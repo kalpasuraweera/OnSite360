@@ -1,0 +1,25 @@
+# Root-level node_modules
+node_modules/
+
+# Frontend ignores (Vite)
+frontend/node_modules/
+frontend/.env
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Backend ignores (NestJS)
+backend/node_modules/
+backend/.env
+backend/dist/
+backend/coverage/
+
+# Shared/common ignores
+.env
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.cache/
+
