@@ -3,23 +3,67 @@ node_modules/
 
 # Frontend ignores (Vite)
 frontend/node_modules/
-frontend/.env
 frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
 frontend/.vite/
 frontend/coverage/
 
 # Backend ignores (NestJS)
 backend/node_modules/
-backend/.env
 backend/dist/
+backend/build/
 backend/coverage/
+backend/.nyc_output/
+backend/pids/
+backend/*.pid
+backend/*.seed
+backend/*.pid.lock
+backend/report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+backend/.temp/
+backend/.tmp/
 
-# Shared/common ignores
+# Environment files
 .env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+frontend/.env
+backend/.env
+
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
+
+# IDEs and editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cache
 .cache/
 
