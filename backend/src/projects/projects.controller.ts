@@ -33,6 +33,7 @@ export class ProjectsController {
         data: projects,
       };
     } catch (error) {
+      console.error('Error retrieving projects:', error);
       throw new HttpException(
         'Failed to retrieve projects',
         HttpStatus.INTERNAL_SERVER_ERROR,
