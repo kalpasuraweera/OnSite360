@@ -19,6 +19,8 @@ export class AuthController {
   }
 
   @Public()
+  @ApiBody({ type: RegisterDto })
+  @HttpCode(HttpStatus.CREATED)
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(

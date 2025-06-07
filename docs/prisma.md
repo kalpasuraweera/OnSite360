@@ -9,3 +9,6 @@ With your Prisma models in place, you can generate your SQL migration files and 
 
 
 $ npx prisma migrate dev --name init
+
+
+https://docs.nestjs.com/recipes/prisma#set-up-prisma
