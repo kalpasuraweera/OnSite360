@@ -5,7 +5,7 @@ import { User } from './entities/user.entity';
 export class UsersService {
   private readonly users: User[] = [
     {
-      id: 1,
+      userId: 1,
       password: 'changeme',
       email: 'john@example.com',
       firstName: 'John',
@@ -14,7 +14,7 @@ export class UsersService {
       updatedAt: new Date(),
     },
     {
-      id: 2,
+      userId: 2,
       password: 'guess',
       email: 'maria@example.com',
       firstName: 'Maria',
