@@ -1,20 +1,24 @@
-import {  type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/useAuthStore";
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+    children: ReactNode;
+    redirectTo?: string; // Optional redirect path
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const token = useAuthStore((state) => state.token);
+const ProtectedRoute = ({ 
+    children, 
+    redirectTo = "/login" // Default value is "/login"
+}: ProtectedRouteProps) => {
+    const token = useAuthStore((state) => state.token);
 
-  if (!token) {
-    // Redirect to login if not authenticated
-    return <Navigate to="/login" replace />;
-  }
+    if (!token) {
+        // Redirect to specified route if not authenticated
+        return <Navigate to={redirectTo} replace />;
+    }
 
-  return <>{children}</>;
+    return <>{children}</>;
 };
 
 export default ProtectedRoute;
