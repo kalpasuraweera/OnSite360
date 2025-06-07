@@ -12,6 +12,7 @@ import {
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('projects')
 export class ProjectsController {
@@ -22,6 +23,7 @@ export class ProjectsController {
     return this.projectsService.create(createProjectDto);
   }
 
+  @ApiBearerAuth()
   @Get()
   findAll() {
     try {
