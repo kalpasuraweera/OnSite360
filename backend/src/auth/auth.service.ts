@@ -118,4 +118,23 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
+
+  logout(userId: string): Promise<{ success: boolean }> {
+    try {
+      // Here you would implement token revocation logic
+      // For example, add the token to a blacklist or
+      // invalidate the user's sessions in your database
+
+      // For now, we'll return a success response
+      // When you implement session management, you can update this method
+      // to properly invalidate tokens
+      console.log(`User ${userId} logged out successfully.`);
+      return Promise.resolve({ success: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      return Promise.resolve({ success: false });
+    }
+  }
+
+  //TODO: Implement session management for revoking tokens
 }
