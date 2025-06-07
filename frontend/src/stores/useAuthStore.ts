@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
 
           // Use the instance
-          const response = await instance.post("/api/auth/login", {
+          const response = await instance.post("/auth/login", {
             email,
             password,
           });

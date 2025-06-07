@@ -8,6 +8,14 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
+  // Enable CORS for the frontend application
+  app.enableCors({
+    origin: 'http://localhost:5173', // Your frontend origin
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
+
   const config = new DocumentBuilder()
     .setTitle('OnSite360 API')
     .setDescription('API docs for the project management system')

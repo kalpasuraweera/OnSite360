@@ -18,12 +18,18 @@ export class AuthService {
     }
     const payload = { sub: user.userId, email: user.email };
     return {
-      accessToken: await this.jwtService.signAsync(payload, {
-        expiresIn: '1h', // Set access token expiration
-      }),
-      refreshToken: await this.jwtService.signAsync(payload, {
-        expiresIn: '7d', // Set refresh token expiration
-      }),
+      accessToken: await this.jwtService.signAsync(
+        { ...payload, type: 'access' },
+        {
+          expiresIn: '1h', // Set access token expiration
+        },
+      ),
+      refreshToken: await this.jwtService.signAsync(
+        { ...payload, type: 'refresh' },
+        {
+          expiresIn: '7d', // Set refresh token expiration
+        },
+      ),
       user: {
         userId: user.userId,
         email: user.email,
@@ -65,12 +71,18 @@ export class AuthService {
     const payload = { sub: savedUser.userId, email: savedUser.email };
 
     return {
-      accessToken: await this.jwtService.signAsync(payload, {
-        expiresIn: '1h', // Set access token expiration
-      }),
-      refreshToken: await this.jwtService.signAsync(payload, {
-        expiresIn: '7d', // Set refresh token expiration
-      }),
+      accessToken: await this.jwtService.signAsync(
+        { ...payload, type: 'access' },
+        {
+          expiresIn: '1h', // Set access token expiration
+        },
+      ),
+      refreshToken: await this.jwtService.signAsync(
+        { ...payload, type: 'refresh' },
+        {
+          expiresIn: '7d', // Set refresh token expiration
+        },
+      ),
       user: {
         userId: savedUser.userId,
         email: savedUser.email,
@@ -93,17 +105,26 @@ export class AuthService {
       if (!user) {
         throw new UnauthorizedException('User no longer exists');
       }
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('Invalid token type');
+      }
 
       // Generate new tokens
       const newPayload = { sub: user.userId, email: user.email };
 
       return {
-        accessToken: await this.jwtService.signAsync(newPayload, {
-          expiresIn: '1h', // Set access token expiration
-        }),
-        refreshToken: await this.jwtService.signAsync(newPayload, {
-          expiresIn: '7d', // Set refresh token expiration
-        }),
+        accessToken: await this.jwtService.signAsync(
+          { ...newPayload, type: 'access' },
+          {
+            expiresIn: '1h', // Set access token expiration
+          },
+        ),
+        refreshToken: await this.jwtService.signAsync(
+          { ...newPayload, type: 'refresh' },
+          {
+            expiresIn: '7d', // Set refresh token expiration
+          },
+        ),
         user: {
           userId: user.userId,
           email: user.email,

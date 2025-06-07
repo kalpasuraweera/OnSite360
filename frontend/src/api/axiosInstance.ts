@@ -1,8 +1,10 @@
 import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
+const BASE_URL = "http://localhost:3000/";
+
 const instance = axios.create({
-  baseURL: "localhost:3000", // Adjust the base URL as needed
+  baseURL: BASE_URL,
   timeout: 10000, // Set a timeout for requests
 });
 
@@ -77,7 +79,7 @@ instance.interceptors.response.use(
       }
 
       // Call your refresh token endpoint
-      const response = await axios.post("localhost:3000/auth/refresh", {
+      const response = await axios.post(`${BASE_URL}auth/refresh`, {
         refreshToken,
       });
 
