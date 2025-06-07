@@ -16,15 +16,11 @@ model User {
   updatedAt DateTime @updatedAt
   userId    String   @id @default(uuid())
 }
-
-model Product {
-  name        String
+model Project {
+  projectId String   @id @default(uuid())
+  name      String
   description String?
-  price       Float
-  stock       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String
-  productId   String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ownerId   String
 }
