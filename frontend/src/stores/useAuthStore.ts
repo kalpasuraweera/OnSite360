@@ -33,11 +33,13 @@ export interface User {
 export interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken?: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  setTokens: (accessToken: string, refreshToken?: string) => void;
   clearError: () => void;
 }
 
@@ -46,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -60,11 +63,12 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
 
-          const { user, accessToken } = response.data;
+          const { user, accessToken, refreshToken } = response.data;
 
           set({
             user,
             accessToken,
+            refreshToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -75,16 +79,18 @@ export const useAuthStore = create<AuthState>()(
           console.error("Login error:", error);
         }
       },
-
       logout: () => {
         set({
           user: null,
           accessToken: null,
+          refreshToken: null,
           isAuthenticated: false,
           error: null,
         });
       },
-
+      setTokens: (accessToken: string, refreshToken?: string) => {
+        set({ accessToken, refreshToken, isAuthenticated: true });
+      },
       clearError: () => set({ error: null }),
     }),
     {

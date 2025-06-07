@@ -7,6 +7,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.isLoading);
+  const error = useAuthStore((s) => s.error);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -16,7 +17,6 @@ export default function Login() {
       await login(username, password);
       navigate("/dashboard");
     } catch (err) {
-      alert("Login failed");
       console.error("Login error:", err);
     }
   };
@@ -24,6 +24,19 @@ export default function Login() {
   return (
     <div>
       <h1>Login</h1>
+      {error && (
+        <div
+          style={{
+            color: "red",
+            backgroundColor: "#ffeeee",
+            padding: "10px",
+            borderRadius: "4px",
+            marginBottom: "15px",
+          }}
+        >
+          {error}
+        </div>
+      )}
       <form onSubmit={handleLogin}>
         <div>
           <label htmlFor="username">Username:</label>
