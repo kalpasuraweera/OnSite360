@@ -4,6 +4,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { ApiBody } from '@nestjs/swagger';
 import { Public } from './public.decorator';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -28,5 +29,9 @@ export class AuthController {
     );
   }
 
-  // Protected routes (no @Public() decorator)
+  @Public()
+  @Post('refresh')
+  refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto.refreshToken);
+  }
 }

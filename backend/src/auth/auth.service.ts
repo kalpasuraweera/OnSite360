@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import bcrypt from 'bcrypt';
+import { JwtPayload } from './types/auth.types';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +18,12 @@ export class AuthService {
     }
     const payload = { sub: user.userId, email: user.email };
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      accessToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '1h', // Set access token expiration
+      }),
+      refreshToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '7d', // Set refresh token expiration
+      }),
       user: {
         userId: user.userId,
         email: user.email,
@@ -38,23 +45,77 @@ export class AuthService {
     if (existingUser) {
       throw new UnauthorizedException('User already exists');
     }
+
+    // Hash password before storing
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const user = {
-      userId: Date.now(), // Simple ID generation for demo purposes
+      userId: crypto.randomUUID(), // Using UUID v4 for ID generation
       email,
-      password: password, // In a real app, hash the password before saving
+      password: hashedPassword,
       firstName,
       lastName,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    // Here you would typically save the user to the database
-    // For this example, we will just return the user object
+
+    // Save user to database through UsersService
+    const savedUser = await this.usersService.create(user);
+    const payload = { sub: savedUser.userId, email: savedUser.email };
+
     return {
-      access_token: await this.jwtService.signAsync({
-        sub: user.userId,
-        email: user.email,
+      accessToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '1h', // Set access token expiration
       }),
-      user,
+      refreshToken: await this.jwtService.signAsync(payload, {
+        expiresIn: '7d', // Set refresh token expiration
+      }),
+      user: {
+        userId: savedUser.userId,
+        email: savedUser.email,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        createdAt: savedUser.createdAt,
+        updatedAt: savedUser.updatedAt,
+      },
     };
+  }
+
+  async refreshToken(refreshToken: string): Promise<any> {
+    try {
+      // Verify the refresh token
+      const payload =
+        await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+
+      // Check if user still exists and is valid
+      const user = await this.usersService.findOne(payload.email);
+      if (!user) {
+        throw new UnauthorizedException('User no longer exists');
+      }
+
+      // Generate new tokens
+      const newPayload = { sub: user.userId, email: user.email };
+
+      return {
+        accessToken: await this.jwtService.signAsync(newPayload, {
+          expiresIn: '1h', // Set access token expiration
+        }),
+        refreshToken: await this.jwtService.signAsync(newPayload, {
+          expiresIn: '7d', // Set refresh token expiration
+        }),
+        user: {
+          userId: user.userId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      };
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 }

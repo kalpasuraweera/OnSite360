@@ -5,7 +5,7 @@ import { User } from './entities/user.entity';
 export class UsersService {
   private readonly users: User[] = [
     {
-      userId: 1,
+      userId: '1',
       password: 'changeme',
       email: 'john@example.com',
       firstName: 'John',
@@ -14,7 +14,7 @@ export class UsersService {
       updatedAt: new Date(),
     },
     {
-      userId: 2,
+      userId: '2',
       password: 'guess',
       email: 'maria@example.com',
       firstName: 'Maria',
@@ -23,6 +23,11 @@ export class UsersService {
       updatedAt: new Date(),
     },
   ];
+
+  create(user: User): Promise<User> {
+    this.users.push(user);
+    return Promise.resolve(user);
+  }
 
   findOne(email: string): Promise<User | undefined> {
     return Promise.resolve(this.users.find((user) => user.email === email));
