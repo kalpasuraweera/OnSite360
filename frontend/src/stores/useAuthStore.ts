@@ -1,13 +1,12 @@
-
 /**
  * Authentication store using Zustand for state management.
- * 
+ *
  * This store handles authentication-related state and operations including:
  * - User authentication status
  * - Login/logout functionality
  * - Token storage
  * - Error handling
- * 
+ *
  * @remarks
  * Zustand is particularly helpful in this project because it:
  * - Provides a simple, lightweight state management solution
@@ -16,7 +15,7 @@
  * - Maintains type safety with TypeScript
  * - Offers built-in persistence that automatically syncs with localStorage
  * - Allows component-level access to state without context providers
- * 
+ *
  * The persist middleware automatically saves authentication state to localStorage,
  * enabling persistence between page refreshes and browser sessions.
  */
@@ -33,7 +32,7 @@ export interface User {
 
 export interface AuthState {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -46,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
+      accessToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -61,15 +60,14 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
 
-          const { user, token } = response.data;
+          const { user, accessToken } = response.data;
 
           set({
             user,
-            token,
+            accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
-
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Login failed";
@@ -79,10 +77,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-
         set({
           user: null,
-          token: null,
+          accessToken: null,
           isAuthenticated: false,
           error: null,
         });
