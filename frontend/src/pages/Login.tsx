@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.isLoading);
-  const error = useAuthStore((s) => s.error);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -15,8 +15,14 @@ export default function Login() {
 
     try {
       await login(username, password);
-      navigate("/dashboard");
+      if (useAuthStore.getState().isAuthenticated) {
+        setError(null);
+        navigate("/dashboard");
+      } else {
+        setError("Invalid username or password");
+      }
     } catch (err) {
+      setError(useAuthStore.getState().error || "Login failed");
       console.error("Login error:", err);
     }
   };
