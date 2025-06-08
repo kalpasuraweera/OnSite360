@@ -7,13 +7,11 @@ RUN npm ci
 
 COPY . .
 
-# Generate Prisma client and run database migrations
+# Generate Prisma client
 RUN npx prisma generate
-RUN npx prisma migrate deploy
 
-# Seed the database with initial data
-RUN npx prisma db seed
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:dev"]
+# Run migrations and seed at container startup, then start the app
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm run start:dev"]
