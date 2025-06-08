@@ -58,3 +58,35 @@ This guide will help you set up Docker and run the OnSite360 application.
   ```bash
   docker-compose build [service_name]
   ```
+
+  ## Running PostgreSQL with Docker (Development Mode)
+
+  For development, you might want to run only the PostgreSQL database in Docker while running the frontend and backend applications directly on your machine:
+
+  1. Start only the PostgreSQL container:
+    ```bash
+    docker-compose up -d postgres
+    ```
+
+  2. Run the frontend application:
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+
+  3. Run the backend application:
+    ```bash
+    cd backend
+    npm install
+    npm run start:dev
+    ```
+
+  4. Access the applications:
+    - Frontend: http://localhost:5173 (or the port configured in your frontend application)
+    - Backend API: http://localhost:3000 (or the port configured in your backend application)
+    
+  5. To stop the PostgreSQL container when done:
+    ```bash
+    docker-compose stop postgres
+    ```
