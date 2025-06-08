@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: bumblebee --default, halloween --prefersdark;
+  root: ":root";
+  include: ;
+  exclude: ;
+  prefix: ;
+  logs: true;
+}
