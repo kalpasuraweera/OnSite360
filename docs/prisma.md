@@ -34,6 +34,44 @@ datasource db {
 }
 ```
 
+## Prisma Studio - Browser-Based Database Viewer
+
+To open Prisma Studio, the browser-based database viewer for Prisma, use this command:
+
+```bash
+npx prisma studio
+```
+
+## Viewing Database Tables
+
+To view all tables in your PostgreSQL database, you can use several methods:
+
+### Option 1: Use psql inside the container
+
+Connect to your PostgreSQL database using psql:
+
+```bash
+psql -U username -h localhost -d mydb
+```
+
+Once connected, use the `\dt` command to list all tables:
+
+```bash
+\dt
+```
+
+For more detailed information, use:
+
+```bash
+\dt+
+```
+
+To exit psql, type:
+
+```bash
+\q
+```
+
 ## Working with Existing Databases
 
 To connect to an existing database:
