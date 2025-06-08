@@ -72,12 +72,15 @@ export const useAuthStore = create<AuthState>()(
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
+            error: null,
           });
+
+          return response.data; // Return the response data for further processing if needed
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Login failed";
-          set({ error: errorMessage, isLoading: false });
-          console.error("Login error:", error);
+          set({ error: "Login Failed", isLoading: false });
+          return Promise.reject(errorMessage);
         }
       },
       logout: () => {

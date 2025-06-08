@@ -32,6 +32,17 @@ const processQueue = (error: Error | null = null) => {
 
 instance.interceptors.request.use(
   (config) => {
+    // Skip adding Authorization header for /auth routes
+    if (
+      config.url &&
+      /^\/?auth(\/|$)/.test(
+        config.url.startsWith(BASE_URL)
+          ? config.url.replace(BASE_URL, "")
+          : config.url
+      )
+    ) {
+      return config;
+    }
     const accessToken = useAuthStore.getState().accessToken; // Get the access token from the auth store
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -49,6 +60,18 @@ instance.interceptors.response.use(
 
     // If the error is not 401 or the original request doesn't exist, reject immediately
     if (!originalRequest || error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    // Skip token refresh logic for /auth routes
+    if (
+      originalRequest.url &&
+      /^\/?auth(\/|$)/.test(
+        originalRequest.url.startsWith(BASE_URL)
+          ? originalRequest.url.replace(BASE_URL, "")
+          : originalRequest.url
+      )
+    ) {
       return Promise.reject(error);
     }
 
