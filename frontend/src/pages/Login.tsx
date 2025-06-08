@@ -22,44 +22,44 @@ export default function Login() {
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      {error && (
-        <div
-          style={{
-            color: "red",
-            backgroundColor: "#ffeeee",
-            padding: "10px",
-            borderRadius: "4px",
-            marginBottom: "15px",
-          }}
-        >
-          {error}
-        </div>
-      )}
-      <form onSubmit={handleLogin}>
-        <div>
-          <label htmlFor="username">Username:</label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="w-full max-w-md p-8 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
+        {error && <div className="p-4 rounded mb-4">{error}</div>}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="form-control">
+            <label htmlFor="username" className="label">
+              <span className="label-text">Username:</span>
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="input input-bordered w-full"
+            />
+          </div>
+          <div className="form-control">
+            <label htmlFor="password" className="label">
+              <span className="label-text">Password:</span>
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input input-bordered w-full"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`btn btn-primary w-full ${loading ? "loading" : ""}`}
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
