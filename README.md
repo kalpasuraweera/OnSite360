@@ -90,3 +90,28 @@ This guide will help you set up Docker and run the OnSite360 application.
     ```bash
     docker-compose stop postgres
     ```
+
+## Database Seeding
+
+The project includes a database seeding mechanism to populate the database with initial data for development and testing purposes.
+
+### Seed Data
+The seed script creates:
+- An admin user with email `admin@onsite360.com`
+- A sample construction project
+
+### How to Run Seeds
+You can seed the database using the following command:
+
+```bash
+npx prisma db seed
+```
+
+This command is configured in package.json to run the seed script located at `backend/prisma/seed.ts`.
+
+### When to Use
+- During local development setup
+- After resetting the development database
+- When setting up a new testing environment
+
+Team members should run the seed command after initial database setup to ensure everyone has the same baseline data.
