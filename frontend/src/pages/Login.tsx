@@ -34,7 +34,8 @@ export default function Login() {
     <div className="flex lg:items-center bg-base-100 justify-center  p-3 lg:p-10 mx-auto">
       <div className="flex w-full justify-center">
         <div className="lg:w-1/2 flex flex-col min-h-screen gap-8 justify-center bg-base-200 px-3 lg:p-10 rounded-3xl lg:rounded-l-3xl border border-base-300">
-          <div className="flex justify-center">
+          <Button variant="back" />
+          <div className="flex justify-center mt-20 lg:mt-28">
             <img src="/logo.png" alt="" className="w-80 flex justify-center" />
           </div>
 

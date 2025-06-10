@@ -1,20 +1,39 @@
 import React from "react";
+import { FaArrowLeftLong } from "react-icons/fa6";
+import { useNavigate } from "react-router-dom";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string;
-  type?: "button" | "submit" | "reset";
-  children: React.ReactNode;
+  variant?: "default" | "back";
+  children?: React.ReactNode;
 }
 
 const Button: React.FC<ButtonProps> = ({
   className = "",
-  type = "button",
+  variant = "default",
   children,
   ...props
-}) => (
-  <button type={type} className={`btn rounded-xl mt-3 ${className}`} {...props}>
-    {children}
-  </button>
-);
+}) => {
+  const navigate = useNavigate();
+
+  if (variant === "back") {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className={`bg-base-100 p-4 rounded-full w-20 border border-base-300 ${className}`}
+        {...props}
+      >
+        <FaArrowLeftLong />
+      </button>
+    );
+  }
+
+  return (
+    <button className={`btn rounded-xl mt-3 ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
 
 export default Button;
