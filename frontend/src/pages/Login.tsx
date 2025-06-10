@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useNavigate } from "react-router-dom";
+import TextInput from "../components/TextInput";
+import Button from "../components/Button";
+import ErrorMsg from "../components/Error";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const login = useAuthStore((s) => s.login);
@@ -14,7 +17,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      await login(username, password);
+      await login(email, password);
       if (useAuthStore.getState().isAuthenticated) {
         setError(null);
         navigate("/dashboard");
@@ -36,55 +39,48 @@ export default function Login() {
           </div>
 
           {/* Heading */}
-          <div className="flex flex-col text-center gap-2 justify-center items-center mb-6">
+          <div className="flex flex-col text-center lg:gap-2 justify-center items-center mb-6">
             <h1 className="text-2xl lg:text-3xl font-bold ">
               Let’s accomplish more together
             </h1>
-            <p className="text-neutral">
+            <p className="text-neutral text-sm">
               Create a user name and a password to activate your account
             </p>
           </div>
 
-          {error && <div className="p-4 rounded mb-4">{error}</div>}
+          {error && <ErrorMsg>{error}</ErrorMsg>}
+
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="form-control">
-              <label htmlFor="username" className="label">
-                <span className="label-text mb-3">Username</span>
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="input input-bordered w-full"
-              />
-            </div>
-            <div className="form-control">
-              <label htmlFor="password" className="label">
-                <span className="label-text mb-3">Password</span>
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input input-bordered w-full"
-              />
-            </div>
-            <button
+            <TextInput
+              id="email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextInput
+              id="password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button
               type="submit"
               disabled={loading}
-              className={`btn btn-primary rounded-xl mt-3 w-full ${
-                loading ? "loading" : ""
-              }`}
+              className="btn-primary w-full"
             >
-              {loading ? "Logging in..." : "Login"}
-            </button>
+              {loading ? (
+                <span className="loading loading-spinner text-primary"></span>
+              ) : (
+                "Login"
+              )}
+            </Button>
           </form>
         </div>
         <img
           src="/bg2.jpg"
-          className="hidden lg:block w-1/3 rounded-r-3xl"
+          className="hidden lg:block w-1/2 rounded-r-3xl"
           alt="construction-img"
         />
       </div>
