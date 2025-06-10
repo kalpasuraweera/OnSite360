@@ -22,6 +22,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import instance from "../api/axiosInstance";
+import { AxiosError } from "axios";
 
 export interface User {
   id: string;
@@ -78,8 +79,10 @@ export const useAuthStore = create<AuthState>()(
           return response.data; // Return the response data for further processing if needed
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : "Login failed";
-          set({ error: "Login Failed", isLoading: false });
+            error instanceof AxiosError
+              ? error?.response?.data.message
+              : "Login failed";
+          set({ error: errorMessage, isLoading: false });
           return Promise.reject(errorMessage);
         }
       },

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.isLoading);
   const navigate = useNavigate();
@@ -16,14 +16,13 @@ export default function Login() {
     try {
       await login(username, password);
       if (useAuthStore.getState().isAuthenticated) {
-        setError(null);
+        setError("");
         navigate("/dashboard");
       } else {
         setError("Invalid username or password");
       }
-    } catch (err) {
+    } catch {
       setError(useAuthStore.getState().error || "Login failed");
-      console.error("Login error:", err);
     }
   };
 
