@@ -41,14 +41,14 @@ const Dashboard = () => {
       <div
         className={`${
           sidebarOpen ? "w-64" : "w-16"
-        } bg-white border-r transition-all duration-200 flex flex-col`}
+        } bg-base-content border border-base-300 transition-all duration-200 flex flex-col`}
       >
         <div className="flex items-center gap-2 px-4 py-4">
           <button
             className="btn btn-ghost btn-circle"
             onClick={() => setSidebarOpen((v) => !v)}
           >
-            <HiOutlineMenu className="w-6 h-6" />
+            <HiOutlineMenu className="w-6 h-6 text-base-200" />
           </button>
           {sidebarOpen && (
             <div className="flex flex-col">
@@ -65,40 +65,40 @@ const Dashboard = () => {
           )}
         </div>
         <nav className="flex-1">
-          <ul className="menu p-0">
+          <ul className="menu p-2 w-full mt-5">
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineHome className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineHome className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Dashboard"}
               </a>
             </li>
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineClipboardList className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineClipboardList className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Projects"}
               </a>
             </li>
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineUsers className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineUsers className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Teams"}
               </a>
             </li>
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineCalendar className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineCalendar className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Schedule"}
               </a>
             </li>
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineChat className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineChat className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Communications"}
               </a>
             </li>
             <li>
-              <a className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100">
-                <HiOutlineChartBar className="w-5 h-5" />
+              <a className="flex text-base-200 text-lg items-center gap-3 px-4 py-2 hover:bg-neutral w-full">
+                <HiOutlineChartBar className="w-5 h-5 text-base-200" />
                 {sidebarOpen && "Reports"}
               </a>
             </li>
@@ -116,24 +116,44 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         {/* Top Bar */}
-        <div className="flex items-center justify-between px-8 py-4 border-b bg-white">
-          <div />
-          <div className="flex items-center gap-4">
-            <button className="btn btn-ghost btn-circle relative">
-              <HiOutlineBell className="w-6 h-6" />
-              <span className="badge badge-error badge-xs absolute top-0 right-0">
-                3
-              </span>
-            </button>
-            <button className="btn btn-ghost btn-circle relative">
-              <HiOutlineChatAlt2 className="w-6 h-6" />
-              <span className="badge badge-primary badge-xs absolute top-0 right-0">
-                7
-              </span>
-            </button>
-            <span className="font-medium text-sm bg-gray-100 px-3 py-1 rounded-full">
-              System Administrator
-            </span>
+        <div className="navbar bg-base-200 border border-base-300 rounded-2xl m-2 px-8">
+          <div className="flex-1" />
+          <div className="flex-none">
+            <div className="flex items-center gap-4">
+              <button className="btn btn-ghost btn-circle relative">
+                <HiOutlineBell className="w-6 h-6" />
+                <span className="badge badge-error badge-xs absolute top-0 right-0">
+                  3
+                </span>
+              </button>
+              <button className="btn btn-ghost btn-circle relative">
+                <HiOutlineChatAlt2 className="w-6 h-6" />
+                <span className="badge badge-primary badge-xs absolute top-0 right-0">
+                  7
+                </span>
+              </button>
+              <div className="dropdown dropdown-end">
+                <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
+                  <div className="w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <HiOutlineUserCircle className="w-6 h-6 text-gray-500" />
+                  </div>
+                </label>
+                <ul
+                  tabIndex={0}
+                  className="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52"
+                >
+                  <li>
+                    <a>Profile</a>
+                  </li>
+                  <li>
+                    <a>Settings</a>
+                  </li>
+                  <li>
+                    <a>Logout</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
         {/* Page Content */}
