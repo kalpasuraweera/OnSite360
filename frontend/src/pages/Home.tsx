@@ -1,22 +1,25 @@
 import { Link } from "react-router-dom";
+import { useAuthStore } from "../stores/useAuthStore";
 
 const Home = () => {
   return (
-    <div className="container mx-auto px-4">
+    <div className="">
       {/* Navbar */}
-      <nav className="navbar bg-base-100 shadow-lg mb-4">
+      <nav className="navbar bg-base-200 shadow-lg mb-4">
         <div className="flex-1">
           <Link to="/" className="text-xl font-bold">
             OnSite360
           </Link>
         </div>
+        {/* Toggle button */}
         <div className="flex-none">
           <label className="swap swap-rotate">
             {/* this hidden checkbox controls the state */}
             <input
               type="checkbox"
               className="theme-controller"
-              value="bumblebee"
+              value={useAuthStore.getState().theme}
+              onChange={() => useAuthStore.getState().toggleTheme()}
             />
 
             {/* sun icon */}
@@ -43,89 +46,25 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="hero bg-base-200 py-16">
-        <div className="flex flex-col lg:flex-row items-center">
-          <div className="text-center lg:text-left lg:w-1/2">
-            <h1 className="text-5xl font-bold">Welcome to OnSite360</h1>
-            <p className="py-6">
-              Your complete solution for construction site management and
-              monitoring
-            </p>
-            <div>
-              <Link to="/login" className="btn btn-primary">
-                Login
-              </Link>
-            </div>
-          </div>
-          <div className="lg:w-1/2">
-            <img
-              src="/images/construction-site.jpg"
-              alt="Construction site overview"
-              className="rounded-lg shadow-lg"
-            />
+      {/* Card */}
+      <div className="card bg-base-200 w-96 border border-neutral-500">
+        <figure>
+          <img
+            src="https://img.daisyui.com/images/stock/photo-1606107557195-0e29a4b5b4aa.webp"
+            alt="Shoes"
+          />
+        </figure>
+        <div className="card-body">
+          <h2 className="card-title">Card Title</h2>
+          <p>
+            A card component has a figure, a body part, and inside body there
+            are title and actions parts
+          </p>
+          <div className="card-actions justify-end">
+            <button className="btn btn-primary">Buy Now</button>
           </div>
         </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16">
-        <h2 className="text-4xl font-bold text-center mb-8">Our Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="card bg-base-100 shadow-lg p-6">
-            <h3 className="text-xl font-bold">Real-time Monitoring</h3>
-            <p className="mt-2">
-              Track your construction progress with live updates and
-              notifications
-            </p>
-          </div>
-          <div className="card bg-base-100 shadow-lg p-6">
-            <h3 className="text-xl font-bold">Safety Compliance</h3>
-            <p className="mt-2">
-              Ensure site safety with automated compliance checks and reporting
-            </p>
-          </div>
-          <div className="card bg-base-100 shadow-lg p-6">
-            <h3 className="text-xl font-bold">Resource Management</h3>
-            <p className="mt-2">
-              Optimize equipment and personnel allocation across your projects
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-16 bg-base-200">
-        <h2 className="text-4xl font-bold text-center mb-8">
-          What Our Clients Say
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="card bg-base-100 shadow-lg p-6">
-            <p className="italic">
-              "OnSite360 has revolutionized how we manage our construction
-              projects."
-            </p>
-            <h4 className="mt-4 font-bold">- John Doe, Project Manager</h4>
-          </div>
-          <div className="card bg-base-100 shadow-lg p-6">
-            <p className="italic">
-              "The real-time insights have helped us prevent costly delays and
-              improve efficiency."
-            </p>
-            <h4 className="mt-4 font-bold">
-              - Jane Smith, Construction Director
-            </h4>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-16 text-center">
-        <h2 className="text-4xl font-bold mb-6">
-          Ready to transform your construction management?
-        </h2>
-        <button className="btn btn-primary btn-lg">Schedule a Demo</button>
-      </section>
+      </div>
     </div>
   );
 };
