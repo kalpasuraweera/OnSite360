@@ -15,7 +15,7 @@ EXPOSE 3000
 
 # This is when database is new or empty
 # Run migrations and seed the database, then start the application
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm run start:dev"]
+# CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm run start:dev"]
 
 # This is when database already has data
-# CMD ["npm", "run", "start:dev"]
+CMD ["npm", "run", "start:dev"]
