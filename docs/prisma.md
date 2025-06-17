@@ -277,6 +277,22 @@ import { PrismaModule } from './prisma/prisma.module';
 export class AppModule {}
 ```
 
+## Automatic Prisma Client Generation
+
+You can add a `postinstall` script to your `package.json` to automatically generate the Prisma client after package installation:
+
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate"
+  }
+}
+```
+
+This ensures that the Prisma client is always in sync with your schema when dependencies are installed.
+
+**Note:** In our project, we're not implementing this approach because we use a centralized database for development. Automatic generation on each developer's machine could lead to inconsistencies when multiple developers work with different schema versions.
+
 ## Best Practices
 
 - **Version Control**: Keep your Prisma schema and migrations in version control
