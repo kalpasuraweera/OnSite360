@@ -5,6 +5,9 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Home from "./pages/Home";
+import AppLayout from "./components/AppLayout";
+import DashboardSettings from "./pages/DashboardSettings";
+import DashboardReports from "./pages/DashboardReports";
 
 const queryClient = new QueryClient();
 
@@ -14,9 +17,16 @@ function App() {
       path: "/",
       element: (
         <ProtectedRoute redirectTo="/home">
-          <Dashboard />
+          <AppLayout />
         </ProtectedRoute>
       ),
+      children: [
+        { path: "", element: <Dashboard /> }, // / (dashboard home)
+        { path: "dashboard", element: <Dashboard /> }, // /dashboard
+        { path: "settings", element: <DashboardSettings /> }, // /settings
+        { path: "reports", element: <DashboardReports /> }, // /reports
+        { path: "*", element: <NotFound /> }, // Catch-all route for undefined paths
+      ],
     },
     {
       path: "/home",
@@ -25,14 +35,6 @@ function App() {
     {
       path: "/login",
       element: <Login />,
-    },
-    {
-      path: "/dashboard",
-      element: (
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      ),
     },
     {
       path: "*",
