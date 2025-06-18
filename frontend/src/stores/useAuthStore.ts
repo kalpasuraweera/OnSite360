@@ -27,8 +27,6 @@ import { AxiosError } from "axios";
 
 export interface AuthState {
   user: User | null;
-  theme: "bumblebee" | "halloween"; // Example themes, can be extended
-  toggleTheme: () => void; // Function to toggle theme
   accessToken: string | null;
   refreshToken?: string | null;
   isAuthenticated: boolean;
@@ -44,18 +42,11 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      theme: "bumblebee", // Default theme
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-
-      toggleTheme: () => {
-        set((state) => ({
-          theme: state.theme === "bumblebee" ? "halloween" : "bumblebee",
-        }));
-      },
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });

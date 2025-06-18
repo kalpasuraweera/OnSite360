@@ -26,7 +26,7 @@ const TopNav = ({
   };
 
   return (
-    <div className="navbar flex justify-between items-center gap-4 bg-base-200 border border-base-300 rounded-2xl p-2">
+    <div className="navbar flex justify-between items-center gap-4 bg-base-100 p-2">
       <button className="btn btn-ghost btn-circle" onClick={toggleSidebar}>
         <FiSidebar className="w-6 h-6" />
       </button>
@@ -38,7 +38,7 @@ const TopNav = ({
             <input
               type="checkbox"
               className="theme-controller"
-              checked={theme === "halloween"}
+              value={theme}
               onChange={handleThemeToggle}
             />
 
@@ -85,7 +85,7 @@ const TopNav = ({
                 <HiOutlineUserCircle className="w-6 h-6 text-gray-500" />
               </div>
             </label>
-            <span className="badge badge-base-300">{user?.firstName}</span>
+            <span className="badge badge-neutral">{user?.firstName}</span>
           </div>
 
           <ul

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { useAuthStore } from "../stores/useAuthStore";
 import { useEffect, useState } from "react";
+import { useSystemStore } from "../stores/useSystemStore";
 
 const Home = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
@@ -37,6 +37,14 @@ const Home = () => {
     setShowInstallButton(false);
   };
 
+  const theme = useSystemStore((state) => state.theme);
+  const setTheme = useSystemStore((state) => state.setTheme);
+
+  // Toggle between bumblebee and halloween themes
+  const handleThemeToggle = () => {
+    setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
+  };
+
   return (
     <div className="">
       {/* Navbar */}
@@ -53,8 +61,8 @@ const Home = () => {
             <input
               type="checkbox"
               className="theme-controller"
-              value={useAuthStore.getState().theme}
-              onChange={() => useAuthStore.getState().toggleTheme()}
+              value={theme}
+              onChange={handleThemeToggle}
             />
 
             {/* sun icon */}

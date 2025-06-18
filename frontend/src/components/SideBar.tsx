@@ -1,7 +1,5 @@
-import { useState } from "react";
 import type { Permission } from "../types/database";
-import { HiOutlineHome, HiOutlineUserCircle } from "react-icons/hi";
-import { useAuthStore } from "../stores/useAuthStore";
+import { HiOutlineHome } from "react-icons/hi";
 import { useSystemStore } from "../stores/useSystemStore";
 
 // Sidebar Component
@@ -17,7 +15,6 @@ const Sidebar = ({
   const accessiblePages = permissions.filter(
     (p) => p.level === "read" || p.level === "read-write"
   );
-  const user = useAuthStore((s) => s.user);
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   return (
     <div
@@ -52,12 +49,6 @@ const Sidebar = ({
           ))}
         </ul>
       </nav>
-      <div className="px-4 py-4 border-t">
-        <div className="flex items-center gap-2">
-          <HiOutlineUserCircle className="w-6 h-6" />
-          {sidebarOpen && <span className="text-sm">System Administrator</span>}
-        </div>
-      </div>
     </div>
   );
 };
