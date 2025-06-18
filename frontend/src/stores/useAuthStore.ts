@@ -22,15 +22,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import instance from "../api/axiosInstance";
+import type { User } from "../types/database";
 import { AxiosError } from "axios";
-
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  // Add any other user properties you need
-}
 
 export interface AuthState {
   user: User | null;
