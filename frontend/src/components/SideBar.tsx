@@ -26,17 +26,17 @@ const Sidebar = ({
     <div
       className={`${
         sidebarOpen ? "w-64" : "w-16"
-      } bg-base-content border border-base-300 transition-all duration-200 flex flex-col`}
+      } bg-base-200 border border-base-300 transition-all duration-200 flex flex-col`}
     >
       <div className="flex flex-col gap-2 px-4 py-4">
         <button
           className="btn btn-ghost btn-circle"
           onClick={() => setSidebarOpen((v) => !v)}
         >
-          <HiOutlineMenu className="w-6 h-6 text-base-200" />
+          <HiOutlineMenu className="w-6 h-6" />
         </button>
         {sidebarOpen && (
-          <div className="flex flex-col text-base-200 bg-neutral w-full p-2 rounded-2xl">
+          <div className="flex flex-col bg-base-300 w-full p-2 rounded-2xl">
             <span className="font-bold text-lg">
               {user?.firstName || "User"}
             </span>
@@ -49,12 +49,12 @@ const Sidebar = ({
           {accessiblePages.map((page) => (
             <li key={page.page_id}>
               <a
-                className={`flex text-base-200 items-center gap-3 px-4 py-2 hover:bg-neutral w-full ${
+                className={`flex text-neutral items-center gap-3 px-4 py-2 hover:bg-base-300 w-full ${
                   activeRoute === `/${page.page_id}` ? "bg-neutral-focus" : ""
                 }`}
                 onClick={() => onNavigate(`/${page.page_id}`)}
               >
-                <HiOutlineHome className="w-5 h-5 text-base-200" />
+                <HiOutlineHome className="w-5 h-5" />
                 {sidebarOpen && page.page_name}
               </a>
             </li>
