@@ -44,4 +44,12 @@ export class RegisterDto {
       'Password is too weak - it should contain uppercase, lowercase, and numbers or special characters',
   })
   password: string;
+
+  @ApiProperty({
+    example: 'user',
+    description: 'The role ID for the user',
+  })
+  @IsString()
+  @IsNotEmpty()
+  roleId: string;
 }

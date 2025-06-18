@@ -46,6 +46,7 @@ export class AuthService {
     password: string,
     firstName: string,
     lastName: string,
+    roleId: string,
   ): Promise<any> {
     const existingUser = await this.usersService.findOne(email);
     if (existingUser) {
@@ -62,6 +63,7 @@ export class AuthService {
       password: hashedPassword,
       firstName,
       lastName,
+      roleId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -13,6 +13,7 @@ export class UsersService {
         password: user.password,
         firstName: user.firstName,
         lastName: user.lastName,
+        roleId: user.roleId,
       },
     });
   }
