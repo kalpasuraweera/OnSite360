@@ -277,6 +277,47 @@ import { PrismaModule } from './prisma/prisma.module';
 export class AppModule {}
 ```
 
+## Automatic Prisma Client Generation
+
+You can add a `postinstall` script to your `package.json` to automatically generate the Prisma client after package installation:
+
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate"
+  }
+}
+```
+## Understanding `prisma generate`
+
+The `npx prisma generate` command generates the Prisma Client code based on your Prisma schema.
+
+### What it does:
+- **Reads your schema:** Analyzes your `schema.prisma` file
+- **Generates type-safe client:** Creates TypeScript types and query methods based on your models
+- **Updates the client library:** Ensures your code can interact with your database according to your schema
+
+### When to run it:
+- After changing your Prisma schema
+- After pulling schema changes from an existing database (`prisma db pull`)
+- After running migrations (`prisma migrate dev`)
+- When setting up a project for the first time
+
+### Important note:
+`prisma generate` does NOT modify your database. It only updates the client code to match your schema definition.
+
+You can add a `postinstall` script to your `package.json` to automatically generate the Prisma client after package installation:
+
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate"
+  }
+}
+```
+
+**Note:** In our project, we're not implementing this approach because we use a centralized database for development. Automatic generation on each developer's machine could lead to inconsistencies when multiple developers work with different schema versions.
+
 ## Best Practices
 
 - **Version Control**: Keep your Prisma schema and migrations in version control
