@@ -4,7 +4,9 @@ import {
   HiOutlineUserCircle,
   HiOutlineLogout,
 } from "react-icons/hi";
+import { FiSidebar } from "react-icons/fi";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useSystemStore } from "../stores/useSystemStore";
 
 const TopNav = ({
   onLogout,
@@ -14,9 +16,20 @@ const TopNav = ({
   onNavigate: (path: string) => void;
 }) => {
   const user = useAuthStore((state) => state.user);
+  const toggleSidebar = useSystemStore((state) => state.toggleSidebar);
+  const theme = useSystemStore((state) => state.theme);
+  const setTheme = useSystemStore((state) => state.setTheme);
+
+  // Toggle between bumblebee and halloween themes
+  const handleThemeToggle = () => {
+    setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
+  };
+
   return (
     <div className="navbar flex justify-between items-center gap-4 bg-base-200 border border-base-300 rounded-2xl p-2">
-      <img src="/logo.png" alt="Logo" className="w-44 flex justify-center" />
+      <button className="btn btn-ghost btn-circle" onClick={toggleSidebar}>
+        <FiSidebar className="w-6 h-6" />
+      </button>
       <div className="flex items-center gap-4 p-1">
         {/* Theme toggle */}
         <div className="flex-none">
@@ -25,8 +38,8 @@ const TopNav = ({
             <input
               type="checkbox"
               className="theme-controller"
-              value={useAuthStore.getState().theme}
-              onChange={() => useAuthStore.getState().toggleTheme()}
+              checked={theme === "halloween"}
+              onChange={handleThemeToggle}
             />
 
             {/* sun icon */}
