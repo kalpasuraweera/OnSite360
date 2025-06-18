@@ -31,7 +31,7 @@ const dummyUsers = [
   },
 ];
 
-const Dashboard = () => {
+const DashboardCopy = () => {
   const { data, isLoading } = useProjects();
   const user = useAuthStore((s) => s.user);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -320,4 +320,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardCopy;
