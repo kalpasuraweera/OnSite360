@@ -1,7 +1,42 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useEffect, useState } from "react";
 
 const Home = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    const promptEvent = deferredPrompt as any;
+    if (!promptEvent) return;
+
+    promptEvent.prompt();
+    const result = await promptEvent.userChoice;
+
+    if (result.outcome === "accepted") {
+      console.log("✅ App installed");
+    } else {
+      console.log("❌ Install dismissed");
+    }
+
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
+
   return (
     <div className="">
       {/* Navbar */}
@@ -61,7 +96,14 @@ const Home = () => {
             are title and actions parts
           </p>
           <div className="card-actions justify-end">
-            <button className="btn btn-primary">Buy Now</button>
+            {showInstallButton && (
+              <button
+                className="btn btn-primary"
+                onClick={handleInstallClick}
+              >
+                Install App
+              </button>
+            )}
           </div>
         </div>
       </div>

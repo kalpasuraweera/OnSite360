@@ -8,7 +8,7 @@ import ErrorMsg from "../components/Error";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const login = useAuthStore((s) => s.login);
   const loading = useAuthStore((s) => s.isLoading);
   const navigate = useNavigate();
@@ -19,14 +19,13 @@ export default function Login() {
     try {
       await login(email, password);
       if (useAuthStore.getState().isAuthenticated) {
-        setError(null);
+        setError("");
         navigate("/dashboard");
       } else {
         setError("Invalid username or password");
       }
-    } catch (err) {
+    } catch {
       setError(useAuthStore.getState().error || "Login failed");
-      console.error("Login error:", err);
     }
   };
 
