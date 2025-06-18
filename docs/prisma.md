@@ -172,6 +172,7 @@ If you want to recreate the database from your Prisma schema:
 ```bash
 npx prisma migrate reset
 ```
+sometimes we need to run migrate dev to run this
 
 ## Seeding Your Database
 

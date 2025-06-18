@@ -16,7 +16,7 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(pass, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const payload = { sub: user.userId, email: user.email };
+    const payload = { sub: user.id, email: user.email };
     return {
       accessToken: await this.jwtService.signAsync(
         { ...payload, type: 'access' },
@@ -31,7 +31,7 @@ export class AuthService {
         },
       ),
       user: {
-        userId: user.userId,
+        id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -57,7 +57,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const user = {
-      userId: crypto.randomUUID(), // Using UUID v4 for ID generation
+      id: crypto.randomUUID(), // Using UUID v4 for ID generation
       email,
       password: hashedPassword,
       firstName,
@@ -68,7 +68,7 @@ export class AuthService {
 
     // Save user to database through UsersService
     const savedUser = await this.usersService.create(user);
-    const payload = { sub: savedUser.userId, email: savedUser.email };
+    const payload = { sub: savedUser.id, email: savedUser.email };
 
     return {
       accessToken: await this.jwtService.signAsync(
@@ -84,7 +84,7 @@ export class AuthService {
         },
       ),
       user: {
-        userId: savedUser.userId,
+        id: savedUser.id,
         email: savedUser.email,
         firstName: savedUser.firstName,
         lastName: savedUser.lastName,
@@ -110,7 +110,7 @@ export class AuthService {
       }
 
       // Generate new tokens
-      const newPayload = { sub: user.userId, email: user.email };
+      const newPayload = { sub: user.id, email: user.email };
 
       return {
         accessToken: await this.jwtService.signAsync(
@@ -126,7 +126,7 @@ export class AuthService {
           },
         ),
         user: {
-          userId: user.userId,
+          id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,

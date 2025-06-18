@@ -7,19 +7,141 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+// User model for storing user information
 model User {
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String   @id @default(uuid())
+  id          String       @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String       @unique
+  password    String // Hashed password (handled by Auth0 or similar)
+  roleId      String
+  role        Role         @relation(fields: [roleId], references: [id])
+  tasks       Task[]       // Tasks assigned to the user
+  messages    Message[]    // Messages sent by the user
+  documents   Document[]   // Documents uploaded by the user
+  issues      Issue[]      // Issues created by the user
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
+
+// Role model for grouping users (e.g., Admin, Site Worker)
+model Role {
+  id             String           @id @default(uuid())
+  name           String           @unique // e.g., Admin, Site Worker, Inspector
+  users          User[]           // Users with this role
+  rolePermissions RolePermission[] // Many-to-many relationship with permissions
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+// Permission model for fine-grained access control
+model Permission {
+  id             String           @id @default(uuid())
+  pageId         String           // Matches pageId from permission structure (e.g., 'document-management')
+  pageName       String           // Human-readable name (e.g., 'Document Management')
+  components     Json             // Array of { componentId, componentName }
+  rolePermissions RolePermission[] // Many-to-many relationship with roles
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+// Junction table for many-to-many relationship between Role and Permission
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  level        Int        // Permission level (e.g., 0=none, 1=read, 2=write, 3=admin)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([roleId, permissionId])
+}
+
+// Project model for construction projects
 model Project {
-  projectId String   @id @default(uuid())
-  name      String
-  description String?
+  id              String           @id @default(uuid())
+  name            String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  documents       Document[]       // Documents associated with the project
+  tasks           Task[]           // Tasks for the project
+  messages        Message[]        // Messages related to the project
+  schedules       Schedule[]       // Project schedules
+  issues          Issue[]          // Issues (RFIs, impediments) for the project
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+// Document model for storing document metadata
+model Document {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  name      String   // e.g., 'Invoice.pdf'
+  url       String   // S3 URL for the file
+  uploadedBy String
+  uploader  User     @relation(fields: [uploadedBy], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Task model for task management
+model Task {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  title       String
+  description String?
+  assigneeId  String?
+  assignee    User?     @relation(fields: [assigneeId], references: [id])
+  status      String    // e.g., 'Pending', 'In Progress', 'Completed'
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Message model for internal communication
+model Message {
+  id         String    @id @default(uuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id])
+  senderId   String
+  sender     User      @relation(fields: [senderId], references: [id])
+  content    String
+  threadId   String?
+  parent     Message?  @relation("Thread", fields: [threadId], references: [id])
+  replies    Message[] @relation("Thread")
+  attachment String?    // S3 URL for attachments
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// Schedule model for project timelines
+model Schedule {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  title     String   // e.g., 'Foundation Phase'
+  startDate DateTime
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Issue model for RFIs and impediments
+model Issue {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  title       String   // e.g., 'RFI: Material Delay'
+  description String?
+  status      String   // e.g., 'Open', 'Resolved'
+  createdBy   String
+  creator     User     @relation(fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
