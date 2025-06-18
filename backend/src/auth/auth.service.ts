@@ -17,6 +17,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
     const payload = { sub: user.id, email: user.email };
+    user.password = ''; // Clear password before returning user object
     return {
       accessToken: await this.jwtService.signAsync(
         { ...payload, type: 'access' },
@@ -30,14 +31,7 @@ export class AuthService {
           expiresIn: '7d', // Set refresh token expiration
         },
       ),
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user,
     };
   }
 
@@ -71,6 +65,7 @@ export class AuthService {
     // Save user to database through UsersService
     const savedUser = await this.usersService.create(user);
     const payload = { sub: savedUser.id, email: savedUser.email };
+    savedUser.password = ''; // Clear password before returning user object
 
     return {
       accessToken: await this.jwtService.signAsync(
@@ -85,14 +80,7 @@ export class AuthService {
           expiresIn: '7d', // Set refresh token expiration
         },
       ),
-      user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        firstName: savedUser.firstName,
-        lastName: savedUser.lastName,
-        createdAt: savedUser.createdAt,
-        updatedAt: savedUser.updatedAt,
-      },
+      user: savedUser,
     };
   }
 

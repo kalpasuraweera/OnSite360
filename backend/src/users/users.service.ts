@@ -15,6 +15,17 @@ export class UsersService {
         lastName: user.lastName,
         roleId: user.roleId,
       },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -22,6 +33,17 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: {
         email,
+      },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
       },
     });
     return user || undefined;
