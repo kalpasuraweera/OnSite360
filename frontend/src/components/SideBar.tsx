@@ -12,9 +12,12 @@ const Sidebar = ({
   activeRoute: string;
   onNavigate: (path: string) => void;
 }) => {
-  const accessiblePages = permissions.filter(
-    (p) => p.level === "read" || p.level === "read-write"
-  );
+  const accessiblePages = permissions
+    .filter((p) => p.level === 1 || p.level === 2 || p.level === 3)
+    .map((p) => ({
+      page_id: p.permission.pageId,
+      page_name: p.permission.pageName,
+    }));
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   return (
     <div

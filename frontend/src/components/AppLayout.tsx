@@ -12,59 +12,8 @@ const AppLayout = () => {
     navigate("/login");
   };
 
-  const permissions = [
-    {
-      page_id: "dashboard",
-      page_name: "Dashboard",
-      level: "read-write",
-      components: [],
-    },
-    {
-      page_id: "settings",
-      page_name: "Settings",
-      level: "read-write",
-      components: [],
-    },
-    {
-      page_id: "reports",
-      page_name: "Reports",
-      level: "read-write",
-      components: [],
-    },
-    {
-      page_id: "document-management",
-      page_name: "Document Management",
-      level: "read-write",
-      components: [
-        {
-          component_id: "upload-document",
-          component_name: "Upload Document",
-          level: "write",
-        },
-        {
-          component_id: "view-document",
-          component_name: "View Document",
-          level: "read",
-        },
-        {
-          component_id: "edit-document",
-          component_name: "Edit Document",
-          level: "write",
-        },
-        {
-          component_id: "delete-document",
-          component_name: "Delete Document",
-          level: "write",
-        },
-      ],
-    },
-    {
-      page_id: "user-management",
-      page_name: "User Management",
-      level: "read-write",
-      components: [],
-    },
-  ];
+  const permissions =
+    useAuthStore((state) => state.user?.role?.rolePermissions) || [];
 
   return (
     <div className="flex h-screen">
