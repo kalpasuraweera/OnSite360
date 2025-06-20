@@ -1,5 +1,4 @@
 import type { Permission } from "../types/database";
-import { HiOutlineHome } from "react-icons/hi";
 import { useSystemStore } from "../stores/useSystemStore";
 
 // Sidebar Component
@@ -45,7 +44,7 @@ const Sidebar = ({
                 }`}
                 onClick={() => onNavigate(`/${page.page_id}`)}
               >
-                <HiOutlineHome className="w-5 h-5" />
+                {/* <HiOutlineHome className="w-5 h-5" /> */}
                 {sidebarOpen && page.page_name}
               </a>
             </li>

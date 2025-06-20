@@ -1,5 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+import UserManagement from "./pages/UserManagement";
+import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -23,8 +25,10 @@ function App() {
       children: [
         { path: "", element: <Dashboard /> }, // / (dashboard home)
         { path: "dashboard", element: <Dashboard /> }, // /dashboard
+        { path: "schedule-management", element: <Schedule /> }, // /schedule
         { path: "settings", element: <DashboardSettings /> }, // /settings
         { path: "reports", element: <DashboardReports /> }, // /reports
+        { path: "user-management", element: <UserManagement /> }, // /user-management
         { path: "*", element: <NotFound /> }, // Catch-all route for undefined paths
       ],
     },
