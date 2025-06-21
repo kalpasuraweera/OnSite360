@@ -3,6 +3,7 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './types/auth.types';
 import * as bcrypt from 'bcrypt';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -35,37 +36,15 @@ export class AuthService {
     };
   }
 
-  async register(
-    email: string,
-    password: string,
-    firstName: string,
-    lastName: string,
-    roleId: string,
-  ): Promise<any> {
-    const existingUser = await this.usersService.findOne(email);
+  async register(user: RegisterDto): Promise<any> {
+    const existingUser = await this.usersService.findOne(user.email);
     if (existingUser) {
       throw new UnauthorizedException('User already exists');
     }
 
-    // Hash password before storing
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    const user = {
-      id: crypto.randomUUID(), // Using UUID v4 for ID generation
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      roleId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
     // Save user to database through UsersService
     const savedUser = await this.usersService.create(user);
     const payload = { sub: savedUser.id, email: savedUser.email };
-    savedUser.password = ''; // Clear password before returning user object
 
     return {
       accessToken: await this.jwtService.signAsync(

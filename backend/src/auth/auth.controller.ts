@@ -23,13 +23,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(
-      registerDto.email,
-      registerDto.password,
-      registerDto.firstName,
-      registerDto.lastName,
-      registerDto.roleId,
-    );
+    return this.authService.register(registerDto);
   }
 
   @Public()
