@@ -4,6 +4,7 @@ import UserManagement from "./pages/UserManagement";
 import Schedule from "./pages/Schedule";
 import Communication from "./pages/Communication";
 import ProgressTracking from "./pages/ProgressTracking";
+import RolesAndPermissions from "./pages/RolesAndPermissions";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -30,6 +31,7 @@ function App() {
         { path: "schedule-management", element: <Schedule /> }, // /schedule
         { path: "communication", element: <Communication /> }, // /communication
         { path: "progress-tracking", element: <ProgressTracking /> }, // /progress-tracking
+        { path: "roles-and-permissions", element: <RolesAndPermissions /> }, // /roles-and-permissions
         { path: "settings", element: <DashboardSettings /> }, // /settings
         { path: "reports", element: <DashboardReports /> }, // /reports
         { path: "user-management", element: <UserManagement /> }, // /user-management
