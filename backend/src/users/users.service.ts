@@ -8,12 +8,15 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(user: CreateUserDto): Promise<User> {
+  async create(user: CreateUserDto): Promise<Omit<User, 'password'>> {
     // Hash password before storing
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(user.password, saltRounds);
 
     return this.prisma.user.create({
+      omit: {
+        password: true,
+      },
       data: {
         email: user.email,
         password: hashedPassword,
@@ -39,8 +42,8 @@ export class UsersService {
     });
   }
 
-  async findOne(email: string): Promise<User | undefined> {
-    const user = await this.prisma.user.findUnique({
+  async findOne(email: string): Promise<Omit<User, 'password'> | null> {
+    return await this.prisma.user.findUnique({
       where: {
         email,
       },
@@ -55,11 +58,13 @@ export class UsersService {
           },
         },
       },
+      omit: {
+        password: true,
+      },
     });
-    return user || undefined;
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<Omit<User, 'password'>[]> {
     return this.prisma.user.findMany({
       include: {
         role: {
@@ -72,10 +77,13 @@ export class UsersService {
           },
         },
       },
+      omit: {
+        password: true,
+      },
     });
   }
 
-  async findById(id: string): Promise<User | undefined> {
+  async findById(id: string): Promise<Omit<User, 'password'> | undefined> {
     const user = await this.prisma.user.findUnique({
       where: {
         id,
@@ -91,6 +99,9 @@ export class UsersService {
           },
         },
       },
+      omit: {
+        password: true,
+      },
     });
     return user || undefined;
   }
@@ -98,12 +109,54 @@ export class UsersService {
   async update(
     id: string,
     updateUserDto: Partial<CreateUserDto>,
-  ): Promise<User> {
+  ): Promise<Omit<User, 'password'>> {
+    // Hash password if it's being updated
+    const data = { ...updateUserDto };
+    if (data.password) {
+      const saltRounds = 10;
+      data.password = await bcrypt.hash(data.password, saltRounds);
+    }
+
     return this.prisma.user.update({
       where: {
         id,
       },
-      data: updateUserDto,
+      data,
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+      omit: {
+        password: true,
+      },
+    });
+  }
+
+  async remove(id: string): Promise<Omit<User, 'password'>> {
+    return this.prisma.user.delete({
+      where: {
+        id,
+      },
+      omit: {
+        password: true,
+      },
+    });
+  }
+
+  async validateUserPassword(
+    email: string,
+    password: string,
+  ): Promise<Omit<User, 'password'> | null> {
+    // Get the complete user with password for comparison
+    const user = await this.prisma.user.findUnique({
+      where: { email },
       include: {
         role: {
           include: {
@@ -116,13 +169,15 @@ export class UsersService {
         },
       },
     });
-  }
 
-  async remove(id: string): Promise<User> {
-    return this.prisma.user.delete({
-      where: {
-        id,
-      },
-    });
+    // Check if user exists and password matches
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return null;
+    }
+
+    // Return user without the password
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
   }
 }
