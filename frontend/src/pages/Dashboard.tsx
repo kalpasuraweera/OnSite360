@@ -83,8 +83,8 @@ const Dashboard = () => {
             </p>
             <div className="flex gap-2 mb-6">
               <button className="btn btn-primary">Add User</button>
-              <button className="btn btn-accent">Import Users</button>
-              <button className="btn btn-accent">Export Users</button>
+              <button className="btn btn-neutral">Import Users</button>
+              <button className="btn btn-neutral">Export Users</button>
             </div>
             <div className="space-y-4">
               {dummyUsers.map((u) => (

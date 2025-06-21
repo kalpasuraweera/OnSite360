@@ -1,11 +1,6 @@
-import { useState } from "react";
 import type { Permission } from "../types/database";
-import {
-  HiOutlineHome,
-  HiOutlineMenu,
-  HiOutlineUserCircle,
-} from "react-icons/hi";
-import { useAuthStore } from "../stores/useAuthStore";
+import { HiOutlineHome } from "react-icons/hi";
+import { useSystemStore } from "../stores/useSystemStore";
 
 // Sidebar Component
 const Sidebar = ({
@@ -20,28 +15,21 @@ const Sidebar = ({
   const accessiblePages = permissions.filter(
     (p) => p.level === "read" || p.level === "read-write"
   );
-  const user = useAuthStore((s) => s.user);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   return (
     <div
       className={`${
         sidebarOpen ? "w-64" : "w-16"
-      } bg-base-content border border-base-300 transition-all duration-200 flex flex-col`}
+      } bg-base-200 border border-base-300 transition-all duration-200 flex flex-col`}
     >
       <div className="flex flex-col gap-2 px-4 py-4">
-        <button
-          className="btn btn-ghost btn-circle"
-          onClick={() => setSidebarOpen((v) => !v)}
-        >
-          <HiOutlineMenu className="w-6 h-6 text-base-200" />
-        </button>
+        {/* Sidebar toggle button is now handled in TopNav via useSystemStore */}
         {sidebarOpen && (
-          <div className="flex flex-col text-base-200 bg-neutral w-full p-2 rounded-2xl">
-            <span className="font-bold text-lg">
-              {user?.firstName || "User"}
-            </span>
-            <p className="text-sm">user@gmail.com</p>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-52 flex justify-center"
+          />
         )}
       </div>
       <nav className="flex-1">
@@ -49,24 +37,18 @@ const Sidebar = ({
           {accessiblePages.map((page) => (
             <li key={page.page_id}>
               <a
-                className={`flex text-base-200 items-center gap-3 px-4 py-2 hover:bg-neutral w-full ${
+                className={`flex text-base-content items-center gap-3 px-4 py-2 hover:bg-base-300 w-full ${
                   activeRoute === `/${page.page_id}` ? "bg-neutral-focus" : ""
                 }`}
                 onClick={() => onNavigate(`/${page.page_id}`)}
               >
-                <HiOutlineHome className="w-5 h-5 text-base-200" />
+                <HiOutlineHome className="w-5 h-5" />
                 {sidebarOpen && page.page_name}
               </a>
             </li>
           ))}
         </ul>
       </nav>
-      <div className="px-4 py-4 border-t">
-        <div className="flex items-center gap-2">
-          <HiOutlineUserCircle className="w-6 h-6" />
-          {sidebarOpen && <span className="text-sm">System Administrator</span>}
-        </div>
-      </div>
     </div>
   );
 };
