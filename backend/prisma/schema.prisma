@@ -45,7 +45,7 @@ model Role {
 // Permission model for fine-grained access control
 model Permission {
   id              String           @id @default(uuid())
-  pageId          String // Matches pageId from permission structure (e.g., 'document-management')
+  pageId          String           @unique // Matches pageId from permission structure (e.g., 'document-management')
   pageName        String // Human-readable name (e.g., 'Document Management')
   components      Json? // Array of { componentId, componentName }
   rolePermissions RolePermission[] // Many-to-many relationship with roles
