@@ -1,9 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/UserManagement";
-import Schedule from "./pages/Schedule";
-import Communication from "./pages/Communication";
-import ProgressTracking from "./pages/ProgressTracking";
 import RoleManagement from "./pages/RoleManagement";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -11,9 +8,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Home from "./pages/Home";
 import AppLayout from "./components/AppLayout";
-import DashboardSettings from "./pages/DashboardSettings";
-import DashboardReports from "./pages/DashboardReports";
 import PermissionManagement from "./pages/PermissionManagement";
+import PermissionRoute from "./components/PermissionRoute";
+import ProgressTracking from "./pages/ProgressTracking";
 
 const queryClient = new QueryClient();
 
@@ -27,17 +24,55 @@ function App() {
         </ProtectedRoute>
       ),
       children: [
-        { path: "", element: <Dashboard /> }, // / (dashboard home)
-        { path: "dashboard", element: <Dashboard /> }, // /dashboard
-        { path: "role-management", element: <RoleManagement /> }, // /roles-and-permissions
-        { path: "user-management", element: <UserManagement /> }, // /user-management
-        { path: "permission-management", element: <PermissionManagement /> }, // /user-management
-        { path: "schedule-management", element: <Schedule /> }, // /schedule
-        { path: "communication", element: <Communication /> }, // /communication
-        { path: "progress-tracking", element: <ProgressTracking /> }, // /progress-tracking
-        { path: "settings", element: <DashboardSettings /> }, // /settings
-        { path: "reports", element: <DashboardReports /> }, // /reports
-        { path: "*", element: <NotFound /> }, // Catch-all route for undefined paths
+        {
+          path: "",
+          element: (
+            <PermissionRoute pageId="dashboard">
+              <Dashboard />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "dashboard",
+          element: (
+            <PermissionRoute pageId="dashboard">
+              <Dashboard />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "role-management",
+          element: (
+            <PermissionRoute pageId="role-management">
+              <RoleManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "user-management",
+          element: (
+            <PermissionRoute pageId="user-management">
+              <UserManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "permission-management",
+          element: (
+            <PermissionRoute pageId="permission-management">
+              <PermissionManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "progress-tracking",
+          element: (
+            <PermissionRoute pageId="progress-tracking">
+              <ProgressTracking />
+            </PermissionRoute>
+          ),
+        },
+        { path: "*", element: <NotFound /> },
       ],
     },
     {
