@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { usePermissions, type Permission } from "../hooks/usePermissions";
+import {
+  usePermissions,
+  useCreatePermission,
+  useUpdatePermission,
+  useDeletePermission,
+  type Permission,
+} from "../hooks/usePermissions";
 
 const PermissionManagement = () => {
   const [activeTab, setActiveTab] = useState("permissions");
@@ -8,6 +14,9 @@ const PermissionManagement = () => {
   );
 
   const { data: permissions } = usePermissions();
+  const createPermission = useCreatePermission();
+  const updatePermission = useUpdatePermission();
+  const deletePermission = useDeletePermission();
 
   const handleEditPermission = (permission: Permission) => {
     setEditingPermission(permission);
@@ -15,8 +24,59 @@ const PermissionManagement = () => {
   };
 
   const handleDeletePermission = (id: string) => {
-    // In a real application, you would call an API to delete the permission
-    console.log(`Delete permission with ID: ${id}`);
+    deletePermission.mutate(id, {
+      onSuccess: () => {
+        console.log(`Permission with ID ${id} deleted successfully.`);
+      },
+      onError: (error) => {
+        console.error("Failed to delete permission:", error);
+      },
+    });
+  };
+
+  const handleCreatePermission = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const newPermission = {
+      pageId: formData.get("pageId") as string,
+      pageName: formData.get("pageName") as string,
+      components: formData.get("components") as string,
+    };
+
+    createPermission.mutate(newPermission, {
+      onSuccess: () => {
+        console.log("Permission created successfully!");
+        setActiveTab("permissions");
+      },
+      onError: (error) => {
+        console.error("Failed to create permission:", error);
+      },
+    });
+  };
+
+  const handleUpdatePermission = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingPermission) return;
+
+    const formData = new FormData(event.currentTarget);
+    const updatedPermission = {
+      pageId: formData.get("pageId") as string,
+      pageName: formData.get("pageName") as string,
+      components: formData.get("components") as string,
+    };
+
+    updatePermission.mutate(
+      { id: editingPermission.id, permission: updatedPermission },
+      {
+        onSuccess: () => {
+          console.log("Permission updated successfully!");
+          setActiveTab("permissions");
+        },
+        onError: (error) => {
+          console.error("Failed to update permission:", error);
+        },
+      }
+    );
   };
 
   return (
@@ -101,7 +161,10 @@ const PermissionManagement = () => {
               <p className="text-neutral-500 mb-6">
                 Create a new permission for page access and components.
               </p>
-              <form className="flex flex-col gap-4">
+              <form
+                className="flex flex-col gap-4"
+                onSubmit={handleCreatePermission}
+              >
                 <div className="flex gap-4">
                   <div className="w-1/2">
                     <label className="label">
@@ -111,6 +174,7 @@ const PermissionManagement = () => {
                       type="text"
                       className="input input-bordered w-full"
                       placeholder="e.g., dashboard, projects"
+                      name="pageId"
                     />
                   </div>
                   <div className="w-1/2">
@@ -121,6 +185,7 @@ const PermissionManagement = () => {
                       type="text"
                       className="input input-bordered w-full"
                       placeholder="e.g., Dashboard, Projects"
+                      name="pageName"
                     />
                   </div>
                 </div>
@@ -135,6 +200,7 @@ const PermissionManagement = () => {
                     className="textarea textarea-bordered w-full font-mono"
                     rows={6}
                     placeholder='{"view": true, "edit": false, "delete": false}'
+                    name="components"
                   ></textarea>
                   <p className="text-xs text-gray-500 mt-1">
                     Enter component permissions as a valid JSON object
@@ -142,11 +208,21 @@ const PermissionManagement = () => {
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2">
-                  <button type="button" className="btn btn-outline">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setActiveTab("permissions")}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
-                    Create Permission
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={createPermission.isPending}
+                  >
+                    {createPermission.isPending
+                      ? "Creating..."
+                      : "Create Permission"}
                   </button>
                 </div>
               </form>
@@ -169,7 +245,10 @@ const PermissionManagement = () => {
                 Modify existing permission settings.
               </p>
               {editingPermission ? (
-                <form className="flex flex-col gap-4">
+                <form
+                  className="flex flex-col gap-4"
+                  onSubmit={handleUpdatePermission}
+                >
                   <div className="flex gap-4">
                     <div className="w-1/2">
                       <label className="label">
@@ -179,6 +258,7 @@ const PermissionManagement = () => {
                         type="text"
                         className="input input-bordered w-full"
                         defaultValue={editingPermission.pageId}
+                        name="pageId"
                       />
                     </div>
                     <div className="w-1/2">
@@ -191,6 +271,7 @@ const PermissionManagement = () => {
                         type="text"
                         className="input input-bordered w-full"
                         defaultValue={editingPermission.pageName}
+                        name="pageName"
                       />
                     </div>
                   </div>
@@ -205,6 +286,7 @@ const PermissionManagement = () => {
                       className="textarea textarea-bordered w-full font-mono"
                       rows={6}
                       defaultValue={editingPermission.components}
+                      name="components"
                     ></textarea>
                   </div>
 
@@ -216,8 +298,14 @@ const PermissionManagement = () => {
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary">
-                      Update Permission
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={updatePermission.isPending}
+                    >
+                      {updatePermission.isPending
+                        ? "Updating..."
+                        : "Update Permission"}
                     </button>
                   </div>
                 </form>

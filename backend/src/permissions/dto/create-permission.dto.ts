@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreatePermissionDto {
   @ApiProperty({
@@ -19,11 +19,11 @@ export class CreatePermissionDto {
   pageName: string;
 
   @ApiProperty({
-    example: ['chart', 'table', 'form'],
+    example: "['chart', 'table', 'form']",
     description: 'Optional list of components on the page',
     required: false,
   })
-  @IsArray()
+  @IsString()
   @IsOptional()
-  components?: string[];
+  components?: string;
 }
