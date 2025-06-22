@@ -1,38 +1,20 @@
 import { useState } from "react";
+import { usePermissions, type Permission } from "../hooks/usePermissions";
 
 const PermissionManagement = () => {
   const [activeTab, setActiveTab] = useState("permissions");
-  const [editingPermission, setEditingPermission] = useState(null);
+  const [editingPermission, setEditingPermission] = useState<Permission | null>(
+    null
+  );
 
-  const dummyPermissions = [
-    {
-      id: "1",
-      pageId: "dashboard",
-      pageName: "Dashboard",
-      components: JSON.stringify({
-        view: true,
-        edit: true,
-        delete: false
-      })
-    },
-    {
-      id: "2",
-      pageId: "projects",
-      pageName: "Projects",
-      components: JSON.stringify({
-        view: true,
-        edit: false,
-        delete: false
-      })
-    },
-  ];
+  const { data: permissions } = usePermissions();
 
-  const handleEditPermission = (permission) => {
+  const handleEditPermission = (permission: Permission) => {
     setEditingPermission(permission);
     setActiveTab("edit_permission");
   };
 
-  const handleDeletePermission = (id) => {
+  const handleDeletePermission = (id: string) => {
     // In a real application, you would call an API to delete the permission
     console.log(`Delete permission with ID: ${id}`);
   };
@@ -40,7 +22,9 @@ const PermissionManagement = () => {
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Permission Management</h1>
-      <p className="text-gray-500 mb-6">Manage page permissions and access controls</p>
+      <p className="text-gray-500 mb-6">
+        Manage page permissions and access controls
+      </p>
 
       {/* Tabs navigation */}
       <div className="tabs tabs-border">
@@ -62,16 +46,24 @@ const PermissionManagement = () => {
               </p>
 
               <div className="space-y-4">
-                {dummyPermissions.map((permission) => (
+                {permissions && permissions.map((permission) => (
                   <div
                     key={permission.id}
                     className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center"
                   >
                     <div>
-                      <h3 className="text-lg font-semibold">{permission.pageName}</h3>
-                      <p className="text-sm text-gray-500">Page ID: {permission.pageId}</p>
+                      <h3 className="text-lg font-semibold">
+                        {permission.pageName}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Page ID: {permission.pageId}
+                      </p>
                       <pre className="text-xs font-mono mt-2">
-                        {JSON.stringify(JSON.parse(permission.components), null, 2)}
+                        {JSON.stringify(
+                          JSON.parse(permission.components),
+                          null,
+                          2
+                        )}
                       </pre>
                     </div>
                     <div className="flex gap-2">
@@ -135,7 +127,9 @@ const PermissionManagement = () => {
 
                 <div>
                   <label className="label">
-                    <span className="label-text font-medium">Components (JSON)</span>
+                    <span className="label-text font-medium">
+                      Components (JSON)
+                    </span>
                   </label>
                   <textarea
                     className="textarea textarea-bordered w-full font-mono"
@@ -189,7 +183,9 @@ const PermissionManagement = () => {
                     </div>
                     <div className="w-1/2">
                       <label className="label">
-                        <span className="label-text font-medium">Page Name</span>
+                        <span className="label-text font-medium">
+                          Page Name
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -201,7 +197,9 @@ const PermissionManagement = () => {
 
                   <div>
                     <label className="label">
-                      <span className="label-text font-medium">Components (JSON)</span>
+                      <span className="label-text font-medium">
+                        Components (JSON)
+                      </span>
                     </label>
                     <textarea
                       className="textarea textarea-bordered w-full font-mono"
@@ -211,8 +209,8 @@ const PermissionManagement = () => {
                   </div>
 
                   <div className="flex justify-end gap-2 mt-2">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-outline"
                       onClick={() => setActiveTab("permissions")}
                     >
