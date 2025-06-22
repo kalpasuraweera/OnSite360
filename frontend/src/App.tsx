@@ -13,6 +13,7 @@ import Home from "./pages/Home";
 import AppLayout from "./components/AppLayout";
 import DashboardSettings from "./pages/DashboardSettings";
 import DashboardReports from "./pages/DashboardReports";
+import PermissionManagement from "./pages/PermissionManagement";
 
 const queryClient = new QueryClient();
 
@@ -28,13 +29,14 @@ function App() {
       children: [
         { path: "", element: <Dashboard /> }, // / (dashboard home)
         { path: "dashboard", element: <Dashboard /> }, // /dashboard
+        { path: "role-management", element: <RoleManagement /> }, // /roles-and-permissions
+        { path: "user-management", element: <UserManagement /> }, // /user-management
+        { path: "permission-management", element: <PermissionManagement /> }, // /user-management
         { path: "schedule-management", element: <Schedule /> }, // /schedule
         { path: "communication", element: <Communication /> }, // /communication
         { path: "progress-tracking", element: <ProgressTracking /> }, // /progress-tracking
-        { path: "role-management", element: <RoleManagement /> }, // /roles-and-permissions
         { path: "settings", element: <DashboardSettings /> }, // /settings
         { path: "reports", element: <DashboardReports /> }, // /reports
-        { path: "user-management", element: <UserManagement /> }, // /user-management
         { path: "*", element: <NotFound /> }, // Catch-all route for undefined paths
       ],
     },
