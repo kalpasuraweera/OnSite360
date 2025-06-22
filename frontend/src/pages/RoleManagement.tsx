@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MdEdit, MdDelete } from "react-icons/md";
 
 const RolesAndPermissions = () => {
   const [activeTab, setActiveTab] = useState("current_user_roles");
@@ -54,7 +55,7 @@ const RolesAndPermissions = () => {
                     key={role.name}
                     className="bg-base-200 border border-base-300 rounded-2xl p-2  flex flex-col gap-3 relative"
                   >
-                    <div className="flex flex-col gap-1 bg-base-300 rounded-2xl p-3">
+                    <div className="flex flex-col gap-1 bg-base-100 rounded-2xl p-3">
                       <div className="absolute top-4 right-4 bg-warning text-warning-content text-xs rounded-full px-3 py-1 font-semibold">
                         {role.users} users
                       </div>
@@ -71,9 +72,16 @@ const RolesAndPermissions = () => {
                       </div>
                     </div>
 
-                    <button className="btn bg-black btn-sm w-max">
-                      Edit Permissions
-                    </button>
+                    <div className="flex justify-end">
+                      <div className="btn-group">
+                        <button className="btn bg-black btn-sm w-max">
+                          <MdEdit />
+                        </button>
+                        <button className="btn bg-black btn-sm w-max">
+                          <MdDelete />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
