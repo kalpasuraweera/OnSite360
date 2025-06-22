@@ -1,5 +1,4 @@
 import type { Permission } from "../types/database";
-import { HiOutlineHome } from "react-icons/hi";
 import { useSystemStore } from "../stores/useSystemStore";
 
 // Sidebar Component
@@ -12,9 +11,12 @@ const Sidebar = ({
   activeRoute: string;
   onNavigate: (path: string) => void;
 }) => {
-  const accessiblePages = permissions.filter(
-    (p) => p.level === "read" || p.level === "read-write"
-  );
+  const accessiblePages = permissions
+    .filter((p) => p.level === 1 || p.level === 2 || p.level === 3)
+    .map((p) => ({
+      page_id: p.permission.pageId,
+      page_name: p.permission.pageName,
+    }));
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   return (
     <div
@@ -42,7 +44,7 @@ const Sidebar = ({
                 }`}
                 onClick={() => onNavigate(`/${page.page_id}`)}
               >
-                <HiOutlineHome className="w-5 h-5" />
+                {/* <HiOutlineHome className="w-5 h-5" /> */}
                 {sidebarOpen && page.page_name}
               </a>
             </li>

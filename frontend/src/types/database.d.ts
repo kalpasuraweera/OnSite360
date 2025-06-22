@@ -1,12 +1,18 @@
+export type PermissionComponent = {
+  componentId: string;
+  componentName: string;
+};
+
 export type Permission = {
-  page_id: string;
-  page_name: string;
-  level: string;
-  components: {
-    component_id: string;
-    component_name: string;
-    level: string;
-  }[];
+  id: string;
+  level: number;
+  permission: {
+    pageId: string;
+    pageName: string;
+    components: {
+      create: PermissionComponent[];
+    };
+  };
 };
 
 export interface User {
@@ -14,5 +20,9 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  // Add any other user properties you need
+  role: {
+    rolePermissions: Permission[];
+    id: string;
+    name: string;
+  };
 }
