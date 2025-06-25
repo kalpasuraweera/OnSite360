@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { useEffect } from "react";
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/UserManagement";
 import RoleManagement from "./pages/RoleManagement";
@@ -11,10 +12,18 @@ import AppLayout from "./components/AppLayout";
 import PermissionManagement from "./pages/PermissionManagement";
 import PermissionRoute from "./components/PermissionRoute";
 import ProgressTracking from "./pages/ProgressTracking";
+import { useSystemStore } from "./stores/useSystemStore";
 
 const queryClient = new QueryClient();
 
 function App() {
+  const theme = useSystemStore((state) => state.theme);
+
+  // Apply theme to document when component mounts or theme changes
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const router = createBrowserRouter([
     {
       path: "/",

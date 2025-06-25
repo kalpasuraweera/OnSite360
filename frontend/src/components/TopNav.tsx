@@ -38,7 +38,7 @@ const TopNav = ({
             <input
               type="checkbox"
               className="theme-controller"
-              value={theme}
+              checked={theme === "halloween"}
               onChange={handleThemeToggle}
             />
 
