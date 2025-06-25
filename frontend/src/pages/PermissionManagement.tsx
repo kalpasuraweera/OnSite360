@@ -157,7 +157,7 @@ const PermissionManagement = () => {
   const switchToTab = (tab: string) => {
     setActiveTab(tab);
     if (tab === "add_permission") {
-      setFormData({ pageId: "", pageName: "", components: '{\n  "view": true,\n  "edit": false,\n  "delete": false\n}' });
+      setFormData({ pageId: "", pageName: "", components: '["projects", "tasks", "reports"]' });
     }
   };
 
