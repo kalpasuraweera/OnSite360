@@ -21,6 +21,7 @@ const Home = () => {
   }, []);
 
   const handleInstallClick = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promptEvent = deferredPrompt as any;
     if (!promptEvent) return;
 
