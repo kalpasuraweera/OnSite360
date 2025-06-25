@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import TextInput from "../components/TextInput";
+import PasswordInput from "../components/PasswordInput";
 import Button from "../components/Button";
 import ErrorMsg from "../components/Error";
 
@@ -58,10 +59,9 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <TextInput
+            <PasswordInput
               id="password"
               label="Password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />

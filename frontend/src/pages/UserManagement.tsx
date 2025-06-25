@@ -8,6 +8,7 @@ import {
   type UpdateUserDto,
 } from "../hooks/useUsers";
 import { useRoles } from "../hooks/useRoles";
+import PasswordInput from "../components/PasswordInput";
 
 const UserManagement = () => {
   const [activeTab, setActiveTab] = useState("users");
@@ -229,16 +230,13 @@ const UserManagement = () => {
                     />
                   </div>
                   <div className="w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Password
-                      </span>
-                    </label>
-                    <input 
-                      type="password" 
-                      className="input input-bordered w-full" 
+                    <PasswordInput
+                      id="add-user-password"
+                      label="Password"
                       name="password"
+                      showGenerator={true}
                       required
+                      labelClassName="font-medium"
                     />
                   </div>
                 </div>
@@ -368,16 +366,13 @@ const UserManagement = () => {
                       />
                     </div>
                     <div className="w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          New Password (Optional)
-                        </span>
-                      </label>
-                      <input 
-                        type="password" 
-                        className="input input-bordered w-full" 
+                      <PasswordInput
+                        id="edit-user-password"
+                        label="New Password (Optional)"
                         name="password"
                         placeholder="Leave blank to keep current password"
+                        showGenerator={true}
+                        labelClassName="font-medium"
                       />
                     </div>
                   </div>
