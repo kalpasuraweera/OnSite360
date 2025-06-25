@@ -5,8 +5,6 @@
 /* Add bumblebee theme */
 @plugin "daisyui/theme" {
   name: "bumblebee";
-  default: true;
-  prefersdark: false;
   color-scheme: "light";
   --color-base-100: oklch(97% 0 0); 
   --color-base-200: oklch(100% 0 0);
@@ -41,8 +39,6 @@
 /* Add halloween theme */
 @plugin "daisyui/theme" {
   name: "halloween";
-  default: false;
-  prefersdark: true;
   color-scheme: "dark";
   --color-base-100: oklch(14% 0.004 49.25); 
   --color-base-200: oklch(21% 0.006 56.043);
