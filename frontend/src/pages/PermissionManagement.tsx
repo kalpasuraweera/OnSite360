@@ -22,6 +22,8 @@ const PermissionManagement = () => {
     pageName: "",
     components: [],
   });
+  const [newComponent, setNewComponent] = useState("");
+  const [editComponent, setEditComponent] = useState("");
 
   const { data: permissions, isLoading: permissionsLoading } = usePermissions();
   const createPermission = useCreatePermission();
@@ -39,7 +41,11 @@ const PermissionManagement = () => {
   };
 
   const handleDeletePermission = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this permission? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this permission? This action cannot be undone."
+      )
+    ) {
       deletePermission.mutate(id, {
         onSuccess: () => {
           console.log(`Permission with ID ${id} deleted successfully.`);
@@ -55,9 +61,15 @@ const PermissionManagement = () => {
   const handleCreatePermission = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    // Validate required fields
+    if (!formData.pageId.trim() || !formData.pageName.trim()) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
     const newPermission: CreatePermissionDto = {
-      pageId: formData.pageId,
-      pageName: formData.pageName,
+      pageId: formData.pageId.trim(),
+      pageName: formData.pageName.trim(),
       components: formData.components,
     };
 
@@ -66,6 +78,7 @@ const PermissionManagement = () => {
         console.log("Permission created successfully!");
         setActiveTab("permissions");
         setFormData({ pageId: "", pageName: "", components: [] });
+        setNewComponent("");
       },
       onError: (error) => {
         console.error("Failed to create permission:", error);
@@ -78,9 +91,15 @@ const PermissionManagement = () => {
     event.preventDefault();
     if (!editingPermission) return;
 
+    // Validate required fields
+    if (!formData.pageId.trim() || !formData.pageName.trim()) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
     const updatedPermission = {
-      pageId: formData.pageId,
-      pageName: formData.pageName,
+      pageId: formData.pageId.trim(),
+      pageName: formData.pageName.trim(),
       components: formData.components,
     };
 
@@ -92,6 +111,7 @@ const PermissionManagement = () => {
           setActiveTab("permissions");
           setEditingPermission(null);
           setFormData({ pageId: "", pageName: "", components: [] });
+          setEditComponent("");
         },
         onError: (error) => {
           console.error("Failed to update permission:", error);
@@ -102,9 +122,9 @@ const PermissionManagement = () => {
   };
 
   const handleFormChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -112,49 +132,59 @@ const PermissionManagement = () => {
     setActiveTab("permissions");
     setEditingPermission(null);
     setFormData({ pageId: "", pageName: "", components: [] });
+    setNewComponent("");
+    setEditComponent("");
   };
 
-  // Helper function to validate JSON
-  const isValidJSON = (str: string) => {
-    try {
-      JSON.parse(str);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  // Helper function to safely parse and display JSON
-  const displayComponents = (components: string) => {
-    try {
-      return JSON.stringify(JSON.parse(components), null, 2);
-    } catch {
-      return components || "Invalid JSON";
-    }
-  };
-
-  // Helper to format JSON
-  const formatJSON = () => {
-    if (isValidJSON(formData.components)) {
-      try {
-        const formatted = JSON.stringify(JSON.parse(formData.components), null, 2);
-        handleFormChange("components", formatted);
-      } catch {
-        // If parsing fails, do nothing
   // Add a helper to reset form when switching tabs
   const switchToTab = (tab: string) => {
     setActiveTab(tab);
     if (tab === "add_permission") {
-      setFormData({ pageId: "", pageName: "", components: ["projects", "tasks", "reports"] });
-    }
-  };
-    if (tab === "add_permission") {
-      setFormData({ pageId: "", pageName: "", components: '["projects", "tasks", "reports"]' });
+      setFormData({
+        pageId: "",
+        pageName: "",
+        components: [],
+      });
+      setNewComponent("");
     }
   };
 
-  console.log("Permissions:", permissions);
-  console.log("Form data:", formData);
+  const addComponent = (componentInput: string, isEditing: boolean = false) => {
+    const trimmedComponent = componentInput.trim();
+    if (!trimmedComponent) return;
+
+    // Check for duplicates
+    if (formData.components.includes(trimmedComponent)) {
+      alert("This component already exists.");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      components: [...prev.components, trimmedComponent],
+    }));
+
+    // Clear the input
+    if (isEditing) {
+      setEditComponent("");
+    } else {
+      setNewComponent("");
+    }
+  };
+
+  const removeComponent = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      components: prev.components.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleComponentKeyPress = (e: React.KeyboardEvent, isEditing: boolean = false) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addComponent(isEditing ? editComponent : newComponent, isEditing);
+    }
+  };
 
   return (
     <div className="p-8">
@@ -198,13 +228,9 @@ const PermissionManagement = () => {
                           {permission.pageName}
                         </h3>
                         <p className="text-sm text-gray-500 mb-2">
-                          Page ID: <span className="font-mono">{permission.pageId}</span>
+                          Page ID:{" "}
+                          <span className="font-mono">{permission.pageId}</span>
                         </p>
-                        <div className="bg-gray-50 border border-gray-200 rounded p-2">
-                          <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap overflow-x-auto">
-                            {displayComponents(permission.components)}
-                          </pre>
-                        </div>
                       </div>
                       <div className="flex gap-2 ml-4">
                         <button
@@ -233,7 +259,8 @@ const PermissionManagement = () => {
                   ))
                 ) : (
                   <div className="text-center text-gray-500 py-8">
-                    No permissions found. Create your first permission to get started.
+                    No permissions found. Create your first permission to get
+                    started.
                   </div>
                 )}
               </div>
@@ -269,7 +296,9 @@ const PermissionManagement = () => {
                       className="input input-bordered w-full"
                       placeholder="e.g., dashboard, projects"
                       value={formData.pageId}
-                      onChange={(e) => handleFormChange("pageId", e.target.value)}
+                      onChange={(e) =>
+                        handleFormChange("pageId", e.target.value)
+                      }
                       required
                     />
                   </div>
@@ -282,48 +311,66 @@ const PermissionManagement = () => {
                       className="input input-bordered w-full"
                       placeholder="e.g., Dashboard, Projects"
                       value={formData.pageName}
-                      onChange={(e) => handleFormChange("pageName", e.target.value)}
+                      onChange={(e) =>
+                        handleFormChange("pageName", e.target.value)
+                      }
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Components (JSON)
-                      </span>
-                    </label>
+                  <label className="label">
+                    <span className="label-text font-medium">Components</span>
+                    <span className="label-text-alt">
+                      Add components that will be accessible
+                    </span>
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      className="input input-bordered flex-1"
+                      placeholder="Add a component (e.g., projects, tasks)"
+                      value={newComponent}
+                      onChange={(e) => setNewComponent(e.target.value)}
+                      onKeyPress={(e) => handleComponentKeyPress(e, false)}
+                    />
                     <button
                       type="button"
-                      className="btn btn-ghost btn-xs"
-                      onClick={formatJSON}
-                      disabled={!formData.components || !isValidJSON(formData.components)}
+                      className="btn btn-primary"
+                      onClick={() => addComponent(newComponent, false)}
+                      disabled={!newComponent.trim()}
                     >
-                      Format JSON
+                      Add
                     </button>
                   </div>
-                  <textarea
-                    className={`textarea textarea-bordered w-full font-mono ${
-                      formData.components && !isValidJSON(formData.components) 
-                        ? "textarea-error" 
-                        : ""
-                    }`}
-                    rows={6}
-                    placeholder='{"view": true, "edit": false, "delete": false}'
-                    value={formData.components}
-                    onChange={(e) => handleFormChange("components", e.target.value)}
-                    required
-                  ></textarea>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-xs text-gray-500">
-                      Enter component permissions as a valid JSON object
-                    </p>
-                    {formData.components && !isValidJSON(formData.components) && (
-                      <p className="text-xs text-error">Invalid JSON format</p>
+
+                  <div className="bg-base-100 p-2 rounded-lg border border-base-300 min-h-16">
+                    {formData.components.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.components.map((component, index) => (
+                          <div key={index} className="badge badge-lg gap-1 p-3">
+                            {component}
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs btn-circle"
+                              onClick={() => removeComponent(index)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-center py-3">
+                        No components added yet
+                      </div>
                     )}
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Components represent features or sections users can access
+                    within this page
+                  </p>
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2">
@@ -333,26 +380,25 @@ const PermissionManagement = () => {
                     onClick={handleCancel}
                   >
                     Cancel
-                  </button>                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={
-                        createPermission.isPending || 
-                        !formData.pageId.trim() || 
-                        !formData.pageName.trim() || 
-                        !formData.components.trim() ||
-                        !isValidJSON(formData.components)
-                      }
-                    >
-                      {createPermission.isPending ? (
-                        <>
-                          <span className="loading loading-spinner loading-xs"></span>
-                          Creating...
-                        </>
-                      ) : (
-                        "Create Permission"
-                      )}
-                    </button>
+                  </button>{" "}
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createPermission.isPending ||
+                      !formData.pageId.trim() ||
+                      !formData.pageName.trim()
+                    }
+                  >
+                    {createPermission.isPending ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Permission"
+                    )}
+                  </button>
                 </div>
               </form>
             </div>
@@ -387,7 +433,9 @@ const PermissionManagement = () => {
                         type="text"
                         className="input input-bordered w-full"
                         value={formData.pageId}
-                        onChange={(e) => handleFormChange("pageId", e.target.value)}
+                        onChange={(e) =>
+                          handleFormChange("pageId", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -401,47 +449,69 @@ const PermissionManagement = () => {
                         type="text"
                         className="input input-bordered w-full"
                         value={formData.pageName}
-                        onChange={(e) => handleFormChange("pageName", e.target.value)}
+                        onChange={(e) =>
+                          handleFormChange("pageName", e.target.value)
+                        }
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Components (JSON)
-                        </span>
-                      </label>
+                    <label className="label">
+                      <span className="label-text font-medium">Components</span>
+                      <span className="label-text-alt">
+                        Add components that will be accessible
+                      </span>
+                    </label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        className="input input-bordered flex-1"
+                        placeholder="Add a component (e.g., projects, tasks)"
+                        value={editComponent}
+                        onChange={(e) => setEditComponent(e.target.value)}
+                        onKeyPress={(e) => handleComponentKeyPress(e, true)}
+                      />
                       <button
                         type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={formatJSON}
-                        disabled={!formData.components || !isValidJSON(formData.components)}
+                        className="btn btn-primary"
+                        onClick={() => addComponent(editComponent, true)}
+                        disabled={!editComponent.trim()}
                       >
-                        Format JSON
+                        Add
                       </button>
                     </div>
-                    <textarea
-                      className={`textarea textarea-bordered w-full font-mono ${
-                        formData.components && !isValidJSON(formData.components) 
-                          ? "textarea-error" 
-                          : ""
-                      }`}
-                      rows={6}
-                      value={formData.components}
-                      onChange={(e) => handleFormChange("components", e.target.value)}
-                      required
-                    ></textarea>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs text-gray-500">
-                        Enter component permissions as a valid JSON object
-                      </p>
-                      {formData.components && !isValidJSON(formData.components) && (
-                        <p className="text-xs text-error">Invalid JSON format</p>
+
+                    <div className="bg-base-100 p-2 rounded-lg border border-base-300 min-h-16">
+                      {formData.components.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.components.map((component, index) => (
+                            <div
+                              key={index}
+                              className="badge badge-lg gap-1 p-3"
+                            >
+                              {component}
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-xs btn-circle"
+                                onClick={() => removeComponent(index)}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-gray-400 text-center py-3">
+                          No components added yet
+                        </div>
                       )}
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Components represent features or sections users can access
+                      within this page
+                    </p>
                   </div>
 
                   <div className="flex justify-end gap-2 mt-2">
@@ -456,11 +526,9 @@ const PermissionManagement = () => {
                       type="submit"
                       className="btn btn-primary"
                       disabled={
-                        updatePermission.isPending || 
-                        !formData.pageId.trim() || 
-                        !formData.pageName.trim() || 
-                        !formData.components.trim() ||
-                        !isValidJSON(formData.components)
+                        updatePermission.isPending ||
+                        !formData.pageId.trim() ||
+                        !formData.pageName.trim()
                       }
                     >
                       {updatePermission.isPending ? (

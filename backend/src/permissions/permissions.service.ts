@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, RolePermission, Prisma } from '@prisma/client';
+import { Permission, RolePermission } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreatePermissionDto } from './dto/create-permission.dto';
 
 @Injectable()
 export class PermissionsService {
@@ -17,9 +18,7 @@ export class PermissionsService {
   }
 
   // Create a new permission
-  async createPermission(
-    data: Omit<Permission, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<Permission> {
+  async createPermission(data: CreatePermissionDto): Promise<Permission> {
     return this.prisma.permission.create({ data });
   }
 

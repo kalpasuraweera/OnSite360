@@ -19,6 +19,14 @@ export class CreatePermissionDto {
   pageName: string;
 
   @ApiProperty({
+    example: 'This page allows users to view and manage their dashboard.',
+    description: 'A brief description of the page',
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
     example: ['component1', 'component2'],
     description: 'Optional list of components on the page',
     required: false,
