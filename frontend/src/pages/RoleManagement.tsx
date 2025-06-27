@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MdEdit, MdDelete } from "react-icons/md";
+import Select from "react-select";
 import {
   useRoles,
   useCreateRole,
@@ -105,13 +106,23 @@ const RolesAndPermissions = () => {
     );
   };
 
+  const handleComponentsChange = (
+    permissionId: string,
+    components: string[]
+  ) => {
+    setSelectedPermissions((prev) => {
+      const updated = prev.map((p) =>
+        p.permissionId === permissionId
+          ? { ...p, availableComponents: components }
+          : p
+      );
+      return updated;
+    });
+  };
+
   const handlePermissionToggle = (permissionId: string, level: number) => {
     console.log("Toggling permission:", permissionId, "level:", level);
-    
-    // Find the permission to check if it's a dashboard permission
-    const permission = permissions?.find(p => p.id === permissionId);
-    const isDashboard = permission?.pageId === "dashboard";
-    
+
     setSelectedPermissions((prev) => {
       const existing = prev.find((p) => p.permissionId === permissionId);
       if (existing) {
@@ -129,48 +140,15 @@ const RolesAndPermissions = () => {
           return updated;
         }
       } else {
-        // Add new permission with appropriate default components
-        const defaultComponents = isDashboard 
-          ? '["users", "projects", "communications", "reports"]' 
-          : "[]";
-        
         const updated = [
           ...prev,
-          { permissionId, level, availableComponents: defaultComponents },
+          { permissionId, level, availableComponents: [] },
         ];
         console.log("Adding new permission, new array:", updated);
         return updated;
       }
     });
   };
-
-  const handleComponentsChange = (permissionId: string, components: string) => {
-    console.log("Updating components for permission:", permissionId, "components:", components);
-    
-    // Validate JSON format
-    let isValidJson = true;
-    try {
-      JSON.parse(components);
-    } catch {
-      isValidJson = false;
-    }
-    
-    setSelectedPermissions((prev) => {
-      const updated = prev.map((p) =>
-        p.permissionId === permissionId ? { ...p, availableComponents: components } : p
-      );
-      console.log("Updated components, new array:", updated);
-      return updated;
-    });
-    
-    // Show validation message (you can enhance this with a toast or state)
-    if (!isValidJson && components.trim() !== "") {
-      console.warn("Invalid JSON format for components:", components);
-    }
-  };
-  console.log("Roles:", roles);
-  console.log("Permissions:", permissions);
-  console.log("Selected permissions:", selectedPermissions);
 
   return (
     <div className="p-8">
@@ -397,8 +375,8 @@ const RolesAndPermissions = () => {
                       <p className="text-sm text-gray-700">
                         Select permissions for this role. Each permission can
                         have different access levels (1-5). Higher levels
-                        typically grant more access. For dashboard permissions,
-                        you can also specify which components are available.
+                        typically grant more access. For permissions, you can
+                        also specify which components are available.
                       </p>
                     </div>
 
@@ -428,61 +406,14 @@ const RolesAndPermissions = () => {
                                     {permission.pageId}
                                   </td>
                                   <td>
-                                    {permission.pageId === "dashboard" ? (
-                                      <div className="flex flex-col gap-2">
-                                        <select
-                                          className="select select-bordered select-sm w-full max-w-xs"
-                                          value={selectedPermission?.level || ""}
-                                          onChange={(e) => {
-                                            const level = parseInt(e.target.value);
-                                            if (level) {
-                                              handlePermissionToggle(
-                                                permission.id,
-                                                level
-                                              );
-                                            }
-                                          }}
-                                        >
-                                          <option value="0">No Access</option>
-                                          <option value="1">
-                                            Level 1 (Read Only)
-                                          </option>
-                                          <option value="2">
-                                            Level 2 (Read/Write)
-                                          </option>
-                                          <option value="3">
-                                            Level 3 (Admin Access)
-                                          </option>
-                                        </select>
-                                        {selectedPermission && (
-                                          <div>
-                                            <textarea
-                                              className="textarea textarea-bordered textarea-sm w-full max-w-xs"
-                                              value={
-                                                selectedPermission?.availableComponents ||
-                                                "[]"
-                                              }
-                                              onChange={(e) => {
-                                                handleComponentsChange(
-                                                  permission.id,
-                                                  e.target.value
-                                                );
-                                              }}
-                                              placeholder='["users", "projects", "communications", "reports"]'
-                                              rows={2}
-                                            />
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              JSON array of dashboard components
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
+                                    <div className="flex flex-col gap-2">
                                       <select
                                         className="select select-bordered select-sm w-full max-w-xs"
                                         value={selectedPermission?.level || ""}
                                         onChange={(e) => {
-                                          const level = parseInt(e.target.value);
+                                          const level = parseInt(
+                                            e.target.value
+                                          );
                                           if (level) {
                                             handlePermissionToggle(
                                               permission.id,
@@ -502,7 +433,45 @@ const RolesAndPermissions = () => {
                                           Level 3 (Admin Access)
                                         </option>
                                       </select>
-                                    )}
+                                      {selectedPermission && (
+                                        <div>
+                                          <Select
+                                            isMulti
+                                            name="components"
+                                            options={
+                                              permission.components?.map(
+                                                (comp) => ({
+                                                  value: comp,
+                                                  label: comp,
+                                                })
+                                              ) || []
+                                            }
+                                            value={
+                                              selectedPermission.availableComponents?.map(
+                                                (comp) => ({
+                                                  value: comp,
+                                                  label: comp,
+                                                })
+                                              ) || []
+                                            }
+                                            onChange={(selectedOptions) =>
+                                              handleComponentsChange(
+                                                permission.id,
+                                                selectedOptions.map(
+                                                  (option) => option.value
+                                                )
+                                              )
+                                            }
+                                            className="basic-multi-select"
+                                            classNamePrefix="select"
+                                            placeholder="Select components..."
+                                          />
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            Select components
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
                                   </td>
                                   <td>
                                     <button
@@ -636,13 +605,10 @@ const RolesAndPermissions = () => {
                                     </span>
                                   </td>
                                   <td>
-                                    {permission?.pageId === "dashboard" ? (
-                                      <div className="text-xs bg-base-200 p-2 rounded max-w-xs overflow-hidden">
-                                        {sp.availableComponents || "[]"}
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">N/A</span>
-                                    )}
+                                    <div className="text-xs bg-base-200 p-2 rounded max-w-xs overflow-hidden">
+                                      {sp.availableComponents?.join(", ") ||
+                                        "None"}
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -745,58 +711,7 @@ const RolesAndPermissions = () => {
                                     {permission.pageId}
                                   </td>
                                   <td>
-                                    {permission.pageId === "dashboard" ? (
-                                      <div className="flex flex-col gap-2">
-                                        <select
-                                          className="select select-bordered select-sm w-full max-w-xs"
-                                          value={selectedPermission?.level || ""}
-                                          onChange={(e) => {
-                                            const level = parseInt(
-                                              e.target.value
-                                            );
-                                            if (level) {
-                                              handlePermissionToggle(
-                                                permission.id,
-                                                level
-                                              );
-                                            }
-                                          }}
-                                        >
-                                          <option value="0">No Access</option>
-                                          <option value="1">
-                                            Level 1 (Read Only)
-                                          </option>
-                                          <option value="2">
-                                            Level 2 (Read/Write)
-                                          </option>
-                                          <option value="3">
-                                            Level 3 (Admin Access)
-                                          </option>
-                                        </select>
-                                        {selectedPermission && (
-                                          <div>
-                                            <textarea
-                                              className="textarea textarea-bordered textarea-sm w-full max-w-xs"
-                                              value={
-                                                selectedPermission?.availableComponents ||
-                                                "[]"
-                                              }
-                                              onChange={(e) => {
-                                                handleComponentsChange(
-                                                  permission.id,
-                                                  e.target.value
-                                                );
-                                              }}
-                                              placeholder='["users", "projects", "communications", "reports"]'
-                                              rows={3}
-                                            />
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              JSON array of dashboard components
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : (
+                                    <div className="flex flex-col gap-2">
                                       <select
                                         className="select select-bordered select-sm w-full max-w-xs"
                                         value={selectedPermission?.level || ""}
@@ -823,7 +738,45 @@ const RolesAndPermissions = () => {
                                           Level 3 (Admin Access)
                                         </option>
                                       </select>
-                                    )}
+                                      {selectedPermission && (
+                                        <div>
+                                          <Select
+                                            isMulti
+                                            name="components"
+                                            options={
+                                              permission.components?.map(
+                                                (comp) => ({
+                                                  value: comp,
+                                                  label: comp,
+                                                })
+                                              ) || []
+                                            }
+                                            value={
+                                              selectedPermission.availableComponents?.map(
+                                                (comp) => ({
+                                                  value: comp,
+                                                  label: comp,
+                                                })
+                                              ) || []
+                                            }
+                                            onChange={(selectedOptions) =>
+                                              handleComponentsChange(
+                                                permission.id,
+                                                selectedOptions.map(
+                                                  (option) => option.value
+                                                )
+                                              )
+                                            }
+                                            className="basic-multi-select"
+                                            classNamePrefix="select"
+                                            placeholder="Select components..."
+                                          />
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            Select components
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
                                   </td>
                                   <td>
                                     <button
