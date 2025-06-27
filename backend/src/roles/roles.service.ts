@@ -61,38 +61,35 @@ export class RolesService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto) {
     const { name, permissions = [] } = updateRoleDto;
-    // Update role and its permissions
-    return this.prisma.role.update({
-      where: { id },
-      data: {
-        name,
-        rolePermissions: {
-          upsert: permissions.map((permission) => ({
-            where: {
-              roleId_permissionId: {
-                roleId: id,
-                permissionId: permission.permissionId,
-              },
-            },
-            update: {
-              level: permission.level || 0, // Default level to 0 if not provided
-              availableComponents: permission.availableComponents || [], // Default to empty array if not provided
-            },
-            create: {
+
+    // Use transaction to ensure data consistency
+    return this.prisma.$transaction(async (prisma) => {
+      // First, delete all existing role permissions
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: id },
+      });
+
+      // Then update the role with new permissions
+      return prisma.role.update({
+        where: { id },
+        data: {
+          name,
+          rolePermissions: {
+            create: permissions.map((permission) => ({
               permissionId: permission.permissionId,
-              level: permission.level || 0, // Default level to 0 if not provided
-              availableComponents: permission.availableComponents || [], // Default to empty array if not provided
-            },
-          })),
-        },
-      },
-      include: {
-        rolePermissions: {
-          include: {
-            permission: true,
+              level: permission.level || 0,
+              availableComponents: permission.availableComponents || [],
+            })),
           },
         },
-      },
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      });
     });
   }
 
