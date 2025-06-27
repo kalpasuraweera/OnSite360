@@ -12,8 +12,16 @@ export class CreateRoleDto {
 
   @ApiProperty({
     example: [
-      { permissionId: 'permission-uuid-1', level: 1 },
-      { permissionId: 'permission-uuid-2', level: 2 },
+      {
+        permissionId: 'permission-uuid-1',
+        level: 1,
+        availableComponents: ['component1', 'component2'],
+      },
+      {
+        permissionId: 'permission-uuid-2',
+        level: 2,
+        availableComponents: ['component3'],
+      },
     ],
     description: 'Array of permissions with their access levels',
     required: false,
@@ -23,6 +31,11 @@ export class CreateRoleDto {
       properties: {
         permissionId: { type: 'string', format: 'uuid' },
         level: { type: 'integer' },
+        availableComponents: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional list of components for the permission',
+        },
       },
     },
   })

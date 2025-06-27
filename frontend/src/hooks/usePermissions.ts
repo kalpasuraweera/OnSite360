@@ -7,7 +7,7 @@ export interface Permission {
   id: string;
   pageId: string;
   pageName: string;
-  components: string; // Assuming components is a JSON string
+  components: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -15,7 +15,7 @@ export interface Permission {
 export interface CreatePermissionDto {
   pageId: string;
   pageName: string;
-  components: string; // Assuming components is a JSON string
+  components: string[];
 }
 
 // Get all permissions

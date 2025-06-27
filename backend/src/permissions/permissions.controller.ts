@@ -19,11 +19,7 @@ export class PermissionsController {
   @ApiBearerAuth()
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
-    // Convert components to a valid JSON value before passing it to the service
-    return this.permissionsService.createPermission({
-      ...createPermissionDto,
-      components: createPermissionDto.components || [],
-    });
+    return this.permissionsService.createPermission(createPermissionDto);
   }
 
   @ApiBearerAuth()

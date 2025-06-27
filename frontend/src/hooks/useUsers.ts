@@ -33,7 +33,7 @@ export interface RolePermission {
     id: string;
     pageId: string;
     pageName: string;
-    components: string | null;
+    components: string[];
     createdAt: string;
     updatedAt: string;
   };

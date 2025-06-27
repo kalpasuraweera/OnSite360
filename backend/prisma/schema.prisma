@@ -54,7 +54,7 @@ model Permission {
   pageId          String           @unique // Matches pageId from permission structure (e.g., 'document-management')
   pageName        String // Human-readable name (e.g., 'Document Management')
   description     String? // Description of the permission
-  components      Json? // Array of [ componentId, componentName ]
+  components      String[] // Array of component IDs this permission applies to
   rolePermissions RolePermission[] // Many-to-many relationship with roles
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -73,7 +73,7 @@ model RolePermission {
   // 2 = Write (Can create and update, but cannot delete)
   // 3 = Admin (Full access: create, update, delete)
   level               Int        @default(0)
-  availableComponents Json? // Array of [ componentId, componentName ]
+  availableComponents String[] // Array of component IDs this permission applies to
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 

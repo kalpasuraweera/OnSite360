@@ -14,12 +14,12 @@ export interface RolePermission {
   roleId: string;
   permissionId: string;
   level: number;
-  availableComponents?: string | null; // Optional, can be used to specify components for the permission
+  availableComponents?: string[];
   permission?: {
     id: string;
     pageId: string;
     pageName: string;
-    components: string | null;
+    components: string[];
     createdAt: string;
     updatedAt: string;
   };
@@ -32,7 +32,7 @@ export interface CreateRoleDto {
   permissions: {
     permissionId: string;
     level: number;
-    availableComponents?: string | null; 
+    availableComponents?: string[];
   }[];
 }
 
@@ -41,7 +41,7 @@ export interface UpdateRoleDto {
   permissions?: {
     permissionId: string;
     level: number;
-    availableComponents?: string | null; 
+    availableComponents?: string[];
   }[];
 }
 
@@ -71,7 +71,7 @@ export const useRole = (id: string) => {
 // Create a new role
 export const useCreateRole = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (newRole: CreateRoleDto) => {
       const { data } = await instance.post("/roles", newRole);
@@ -87,7 +87,7 @@ export const useCreateRole = () => {
 // Update a role
 export const useUpdateRole = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, role }: { id: string; role: UpdateRoleDto }) => {
       const { data } = await instance.patch(`/roles/${id}`, role);
@@ -104,7 +104,7 @@ export const useUpdateRole = () => {
 // Delete a role
 export const useDeleteRole = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await instance.delete(`/roles/${id}`);

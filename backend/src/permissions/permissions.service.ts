@@ -18,9 +18,7 @@ export class PermissionsService {
 
   // Create a new permission
   async createPermission(
-    data: Omit<Permission, 'id' | 'createdAt' | 'updatedAt'> & {
-      components: string | Prisma.InputJsonValue;
-    },
+    data: Omit<Permission, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Permission> {
     return this.prisma.permission.create({ data });
   }
@@ -28,9 +26,7 @@ export class PermissionsService {
   // Update a permission
   async updatePermission(
     id: string,
-    data: Partial<Omit<Permission, 'components'>> & {
-      components?: string | Prisma.InputJsonValue;
-    },
+    data: Partial<Permission>,
   ): Promise<Permission> {
     return this.prisma.permission.update({ where: { id }, data });
   }

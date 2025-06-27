@@ -13,10 +13,14 @@ const PermissionManagement = () => {
   const [editingPermission, setEditingPermission] = useState<Permission | null>(
     null
   );
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    pageId: string;
+    pageName: string;
+    components: string[];
+  }>({
     pageId: "",
     pageName: "",
-    components: "",
+    components: [],
   });
 
   const { data: permissions, isLoading: permissionsLoading } = usePermissions();
@@ -50,12 +54,6 @@ const PermissionManagement = () => {
 
   const handleCreatePermission = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
-    // Validate JSON format
-    if (!isValidJSON(formData.components)) {
-      alert("Please enter valid JSON format for components");
-      return;
-    }
 
     const newPermission: CreatePermissionDto = {
       pageId: formData.pageId,
@@ -67,7 +65,7 @@ const PermissionManagement = () => {
       onSuccess: () => {
         console.log("Permission created successfully!");
         setActiveTab("permissions");
-        setFormData({ pageId: "", pageName: "", components: "" });
+        setFormData({ pageId: "", pageName: "", components: [] });
       },
       onError: (error) => {
         console.error("Failed to create permission:", error);
@@ -79,12 +77,6 @@ const PermissionManagement = () => {
   const handleUpdatePermission = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingPermission) return;
-
-    // Validate JSON format
-    if (!isValidJSON(formData.components)) {
-      alert("Please enter valid JSON format for components");
-      return;
-    }
 
     const updatedPermission = {
       pageId: formData.pageId,
@@ -99,7 +91,7 @@ const PermissionManagement = () => {
           console.log("Permission updated successfully!");
           setActiveTab("permissions");
           setEditingPermission(null);
-          setFormData({ pageId: "", pageName: "", components: "" });
+          setFormData({ pageId: "", pageName: "", components: [] });
         },
         onError: (error) => {
           console.error("Failed to update permission:", error);
@@ -119,7 +111,7 @@ const PermissionManagement = () => {
   const handleCancel = () => {
     setActiveTab("permissions");
     setEditingPermission(null);
-    setFormData({ pageId: "", pageName: "", components: "" });
+    setFormData({ pageId: "", pageName: "", components: [] });
   };
 
   // Helper function to validate JSON
@@ -149,13 +141,13 @@ const PermissionManagement = () => {
         handleFormChange("components", formatted);
       } catch {
         // If parsing fails, do nothing
-      }
-    }
-  };
-
   // Add a helper to reset form when switching tabs
   const switchToTab = (tab: string) => {
     setActiveTab(tab);
+    if (tab === "add_permission") {
+      setFormData({ pageId: "", pageName: "", components: ["projects", "tasks", "reports"] });
+    }
+  };
     if (tab === "add_permission") {
       setFormData({ pageId: "", pageName: "", components: '["projects", "tasks", "reports"]' });
     }

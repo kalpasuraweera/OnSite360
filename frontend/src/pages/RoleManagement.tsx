@@ -15,7 +15,7 @@ const RolesAndPermissions = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<
-    { permissionId: string; level: number; availableComponents?: string }[]
+    { permissionId: string; level: number; availableComponents?: string[] }[]
   >([]);
   const [roleName, setRoleName] = useState("");
 
@@ -32,7 +32,7 @@ const RolesAndPermissions = () => {
     const permissions = role.rolePermissions.map((rp) => ({
       permissionId: rp.permissionId,
       level: rp.level,
-      availableComponents: rp.availableComponents || "",
+      availableComponents: rp.availableComponents || [],
     }));
     setSelectedPermissions(permissions);
     setActiveTab("edit_role");
