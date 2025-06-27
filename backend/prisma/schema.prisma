@@ -17,19 +17,25 @@ datasource db {
 
 // User model for storing user information
 model User {
-  id        String    @id @default(uuid())
-  firstName String
-  lastName  String?
-  email     String    @unique
-  password  String // Hashed password
-  roleId    String
-  role      Role      @relation(fields: [roleId], references: [id])
-  tasks     Task[] // Tasks assigned to the user
-  threads   Thread[]
-  messages  Message[]
-  projects  Project[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String     @id @default(uuid())
+  firstName      String
+  lastName       String?
+  email          String     @unique
+  password       String // Hashed password
+  roleId         String
+  role           Role       @relation(fields: [roleId], references: [id])
+  tasks          Task[] // Tasks assigned to the user
+  threads        Thread[]
+  messages       Message[]
+  projects       Project[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  dailyLogs       DailyLog[]
+  reportedIssues Issue[] // Issues reported by the user
+  assignedIssues Issue[]    @relation("IssueAssignee") // Issues assigned to the user
+  documents       Document[]
+  requestedRFIs  RFI[]      @relation("RFIRequester") // RFIs requested by this user
+  assignedRFIs   RFI[]      @relation("RFIAssignee") // RFIs assigned to this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -47,6 +53,7 @@ model Permission {
   id              String           @id @default(uuid())
   pageId          String           @unique // Matches pageId from permission structure (e.g., 'document-management')
   pageName        String // Human-readable name (e.g., 'Document Management')
+  description     String? // Description of the permission
   components      Json? // Array of [ componentId, componentName ]
   rolePermissions RolePermission[] // Many-to-many relationship with roles
   createdAt       DateTime         @default(now())
@@ -55,48 +62,68 @@ model Permission {
 
 // Junction table for many-to-many relationship between Role and Permission
 model RolePermission {
-  id           String     @id @default(uuid())
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id])
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  id                  String     @id @default(uuid())
+  roleId              String
+  permissionId        String
+  role                Role       @relation(fields: [roleId], references: [id])
+  permission          Permission @relation(fields: [permissionId], references: [id])
   // Permission level for this role-permission combination
   // 0 = None (No access at all)
   // 1 = Read-only (Can view/list but cannot make changes)
   // 2 = Write (Can create and update, but cannot delete)
   // 3 = Admin (Full access: create, update, delete)
-  level        Int        @default(0)
-  availableComponents      Json? // Array of [ componentId, componentName ]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  level               Int        @default(0)
+  availableComponents Json? // Array of [ componentId, componentName ]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   @@unique([roleId, permissionId])
 }
 
 // Project model for construction projects
 model Project {
-  id          String     @id @default(uuid())
-  name        String
-  description String?
-  startDate   DateTime?
-  endDate     DateTime?
-  documents   Document[] // Documents associated with the project
-  tasks       Task[] // Tasks for the project
-  users       User[]
-  threads     Thread[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id                  String                @id @default(uuid())
+  name                String
+  description         String?
+  startDate           DateTime?
+  endDate             DateTime?
+  documents           Document[] // Documents associated with the project
+  tasks               Task[] // Tasks for the project
+  users               User[]
+  threads             Thread[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  MaterialStock       MaterialStock[]
+  MaterialUsage       MaterialUsage[]
+  DailyLog            DailyLog[]
+  Issue               Issue[]
+  CrewAssignment      CrewAssignment[]
+  ScheduleEvent       ScheduleEvent[]
+  ProjectPhase        ProjectPhase[]
+  EquipmentAssignment EquipmentAssignment[]
+  RFI                 RFI[]
 }
 
 // Document model for storing document metadata
 model Document {
-  id        String   @id @default(uuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  name      String // e.g., 'Invoice.pdf'
-  url       String // S3 URL for the file
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  name         String // e.g., 'Invoice.pdf'
+  url          String // S3 URL for the file
+  type         String // e.g., "Drawing", "Specification", "Contract", "Photo"
+  category     String? // Further categorization
+  version      String   @default("1.0") // Document version
+  size         Int? // File size in bytes
+  mimeType     String? // File MIME type
+  uploadedBy   String // Who uploaded it
+  uploadedById String?
+  uploader     User?    @relation(fields: [uploadedById], references: [id])
+  description  String?
+  tags         String[] // Array of tags
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Task model for task management
@@ -108,10 +135,46 @@ model Task {
   description String?
   assigneeId  String?
   assignee    User?     @relation(fields: [assigneeId], references: [id])
-  status      String // e.g., 'Pending', 'In Progress', 'Completed'
+  status      String    @default("Pending") // "Pending", "In Progress", "Completed", "Cancelled"
+  priority    String    @default("Medium") // "Low", "Medium", "High", "Critical"
+  progress    Float     @default(0) // 0-100 percentage
+  estimatedHours Float?
+  actualHours Float?
   dueDate     DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  dependencies String[] // Array of task IDs this depends on
+  tags        String[] // Array of tags
+  attachments String[] // Array of S3 URLs
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// RFI model for formal information requests
+model RFI {
+  id           String      @id @default(uuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id])
+  title        String
+  description  String
+  category     String      // e.g., "Design", "Specification", "Clarification"
+  priority     String      @default("Medium") // "Low", "Medium", "High", "Urgent"
+  status       String      @default("Open") // "Open", "In Review", "Answered", "Closed"
+  requestedBy  String      // Site supervisor name
+  requestedById String?
+  requester    User?       @relation("RFIRequester", fields: [requestedById], references: [id])
+  assignedTo   String[]    // Array of engineer/architect names
+  assignedToIds String[]   // Array of user IDs
+  assignees    User[]      @relation("RFIAssignee")
+  threadId     String?     // Link to discussion thread
+  thread       Thread?     @relation(fields: [threadId], references: [id])
+  documents    String[]    // Array of document IDs referenced
+  dueDate      DateTime?
+  answeredAt   DateTime?
+  answer       String?     // The response/answer
+  attachments  String[]    // Array of S3 URLs
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 // Thread model for message threads
@@ -119,9 +182,14 @@ model Thread {
   id        String    @id @default(uuid())
   projectId String
   project   Project   @relation(fields: [projectId], references: [id])
-  title     String // e.g., 'Site Inspection Discussion'
+  title     String    // e.g., 'Site Inspection Discussion'
+  type      String    @default("General") // "General", "RFI", "Issue", "Task"
+  status    String    @default("Active") // "Active", "Closed", "Archived"
+  isPrivate Boolean   @default(false) // Private threads for sensitive discussions
+  tags      String[]  // Array of tags for categorization
   messages  Message[] // Messages in this thread
   users     User[]
+  rfis      RFI[]     // RFIs can reference threads
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -137,4 +205,248 @@ model Message {
   attachment String? // S3 URL for attachments
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// Material categories (cement, pipes, bricks, etc.)
+model MaterialCategory {
+  id          String     @id @default(uuid())
+  name        String     @unique // e.g., "Cement", "Pipes", "Bricks"
+  description String?
+  materials   Material[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// Individual materials
+model Material {
+  id          String           @id @default(uuid())
+  name        String // e.g., "Portland Cement 50kg"
+  categoryId  String
+  category    MaterialCategory @relation(fields: [categoryId], references: [id])
+  unit        String // e.g., "bags", "meters", "pieces"
+  description String?
+  stocks      MaterialStock[]
+  usages      MaterialUsage[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// Material stock per project
+model MaterialStock {
+  id               String    @id @default(uuid())
+  projectId        String
+  project          Project   @relation(fields: [projectId], references: [id])
+  materialId       String
+  material         Material  @relation(fields: [materialId], references: [id])
+  currentQuantity  Float     @default(0)
+  minimumThreshold Float? // Alert when stock goes below this
+  maximumCapacity  Float? // Maximum storage capacity
+  location         String? // Where it's stored on site
+  lastRestocked    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([projectId, materialId])
+}
+
+// Material usage tracking
+model MaterialUsage {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id])
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+  quantity   Float
+  usedBy     String // Who used it (crew member name)
+  purpose    String? // What it was used for
+  usageDate  DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+// Daily work logs
+model DailyLog {
+  id          String          @id @default(uuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id])
+  date        DateTime        @db.Date
+  weather     String? // Weather conditions
+  temperature String? // Temperature range
+  workHours   Float? // Total work hours for the day
+  summary     String // Summary of work done
+  issues      String? // Any issues encountered
+  notes       String? // Additional notes
+  loggedBy    String // User who created the log
+  loggedById  String
+  logger      User            @relation(fields: [loggedById], references: [id])
+  activities  DailyActivity[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([projectId, date])
+}
+
+// Activities within a daily log
+model DailyActivity {
+  id          String    @id @default(uuid())
+  dailyLogId  String
+  dailyLog    DailyLog  @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  activity    String // Description of activity
+  location    String? // Where the activity took place
+  crewMembers String[] // Array of crew member names involved
+  startTime   DateTime?
+  endTime     DateTime?
+  progress    Float? // Percentage completed (0-100)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Issue tracking
+model Issue {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  title        String
+  description  String
+  category     String // e.g., "Safety", "Quality", "Delay", "Equipment"
+  severity     String // e.g., "Low", "Medium", "High", "Critical"
+  status       String    @default("Open") // "Open", "In Progress", "Resolved", "Closed"
+  location     String? // Where the issue occurred
+  reportedBy   String // Name of person who reported
+  reportedById String?
+  reporter     User?     @relation(fields: [reportedById], references: [id])
+  assignedTo   String? // Who is responsible for fixing
+  assignedToId String?
+  assignee     User?     @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  dueDate      DateTime?
+  resolvedAt   DateTime?
+  resolution   String? // How the issue was resolved
+  attachments  String[] // Array of S3 URLs for photos/documents
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// Crew members (non-system users)
+model CrewMember {
+  id          String           @id @default(uuid())
+  name        String
+  role        String // e.g., "Foreman", "Electrician", "Carpenter"
+  phone       String?
+  email       String?
+  skills      String[] // Array of skills
+  isActive    Boolean          @default(true)
+  hireDate    DateTime?
+  assignments CrewAssignment[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// Crew assignments to projects
+model CrewAssignment {
+  id           String     @id @default(uuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id])
+  crewMemberId String
+  crewMember   CrewMember @relation(fields: [crewMemberId], references: [id])
+  assignedDate DateTime   @default(now())
+  endDate      DateTime?
+  isActive     Boolean    @default(true)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([projectId, crewMemberId])
+}
+
+// Schedule events (milestones, tasks, meetings)
+model ScheduleEvent {
+  id           String     @id @default(uuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id])
+  title        String
+  description  String?
+  type         String // e.g., "Milestone", "Task", "Meeting", "Delivery", "Inspection"
+  startDate    DateTime
+  endDate      DateTime?
+  allDay       Boolean    @default(false)
+  location     String?
+  assignees    String[] // Array of user IDs or crew member names
+  status       String     @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
+  priority     String     @default("Medium") // "Low", "Medium", "High"
+  color        String? // For calendar display
+  recurrence   Json? // Recurrence rules if applicable
+  reminders    DateTime[] // Array of reminder times
+  dependencies String[] // Array of event IDs this depends on
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// Project phases for Gantt chart
+model ProjectPhase {
+  id          String         @id @default(uuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id])
+  name        String // e.g., "Foundation", "Framing", "Electrical"
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  progress    Float          @default(0) // Percentage completed (0-100)
+  order       Int // Display order
+  parentId    String? // For sub-phases
+  parent      ProjectPhase?  @relation("PhaseHierarchy", fields: [parentId], references: [id])
+  children    ProjectPhase[] @relation("PhaseHierarchy")
+  color       String? // For Gantt chart display
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// Equipment and tools
+model Equipment {
+  id              String                @id @default(uuid())
+  name            String
+  type            String // e.g., "Heavy Machinery", "Hand Tools", "Safety Equipment"
+  model           String?
+  serialNumber    String?
+  status          String                @default("Available") // "Available", "In Use", "Maintenance", "Out of Service"
+  location        String?
+  purchaseDate    DateTime?
+  warrantyExpiry  DateTime?
+  notes           String?
+  maintenanceLogs MaintenanceLog[]
+  assignments     EquipmentAssignment[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+}
+
+// Equipment assignments to projects
+model EquipmentAssignment {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  equipmentId  String
+  equipment    Equipment @relation(fields: [equipmentId], references: [id])
+  assignedDate DateTime  @default(now())
+  returnDate   DateTime?
+  assignedTo   String? // Crew member responsible
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// Equipment maintenance logs
+model MaintenanceLog {
+  id          String    @id @default(uuid())
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  type        String // e.g., "Routine", "Repair", "Inspection"
+  description String
+  performedBy String // Who performed the maintenance
+  date        DateTime  @default(now())
+  cost        Float?
+  nextDue     DateTime? // When next maintenance is due
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
