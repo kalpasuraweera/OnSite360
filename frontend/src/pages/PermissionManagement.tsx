@@ -221,39 +221,63 @@ const PermissionManagement = () => {
                   permissions.map((permission) => (
                     <div
                       key={permission.id}
-                      className="bg-base-100 border border-base-300 p-4 rounded-lg shadow-sm flex justify-between items-start"
+                      className="bg-base-100 border border-base-300 p-4 rounded-lg shadow-sm"
                     >
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-primary">
-                          {permission.pageName}
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-2">
-                          Page ID:{" "}
-                          <span className="font-mono">{permission.pageId}</span>
-                        </p>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-primary">
+                            {permission.pageName}
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-2">
+                            Page ID:{" "}
+                            <span className="font-mono">{permission.pageId}</span>
+                          </p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => handleEditPermission(permission)}
+                            disabled={updatePermission.isPending}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-error btn-sm"
+                            onClick={() => handleDeletePermission(permission.id)}
+                            disabled={deletePermission.isPending}
+                          >
+                            {deletePermission.isPending ? (
+                              <>
+                                <span className="loading loading-spinner loading-xs"></span>
+                                Deleting...
+                              </>
+                            ) : (
+                              "Delete"
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => handleEditPermission(permission)}
-                          disabled={updatePermission.isPending}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-error btn-sm"
-                          onClick={() => handleDeletePermission(permission.id)}
-                          disabled={deletePermission.isPending}
-                        >
-                          {deletePermission.isPending ? (
-                            <>
-                              <span className="loading loading-spinner loading-xs"></span>
-                              Deleting...
-                            </>
-                          ) : (
-                            "Delete"
-                          )}
-                        </button>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Components:
+                        </p>
+                        {permission.components && permission.components.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {permission.components.map((component, index) => (
+                              <span
+                                key={index}
+                                className="badge badge-outline badge-sm"
+                              >
+                                {component}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">
+                            No components assigned
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))
