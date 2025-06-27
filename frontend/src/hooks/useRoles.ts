@@ -14,6 +14,7 @@ export interface RolePermission {
   roleId: string;
   permissionId: string;
   level: number;
+  availableComponents?: string | null; // Optional, can be used to specify components for the permission
   permission?: {
     id: string;
     pageId: string;
@@ -31,6 +32,7 @@ export interface CreateRoleDto {
   permissions: {
     permissionId: string;
     level: number;
+    availableComponents?: string | null; 
   }[];
 }
 
@@ -39,6 +41,7 @@ export interface UpdateRoleDto {
   permissions?: {
     permissionId: string;
     level: number;
+    availableComponents?: string | null; 
   }[];
 }
 

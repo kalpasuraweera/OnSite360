@@ -14,7 +14,9 @@ const RolesAndPermissions = () => {
   const [activeTab, setActiveTab] = useState("current_user_roles");
   const [currentStep, setCurrentStep] = useState(1);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [selectedPermissions, setSelectedPermissions] = useState<{ permissionId: string; level: number }[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<
+    { permissionId: string; level: number; availableComponents?: string }[]
+  >([]);
   const [roleName, setRoleName] = useState("");
 
   const { data: roles, isLoading: rolesLoading } = useRoles();
@@ -27,9 +29,10 @@ const RolesAndPermissions = () => {
     setEditingRole(role);
     setRoleName(role.name);
     // Convert rolePermissions to selectedPermissions format
-    const permissions = role.rolePermissions.map(rp => ({
+    const permissions = role.rolePermissions.map((rp) => ({
       permissionId: rp.permissionId,
-      level: rp.level
+      level: rp.level,
+      availableComponents: rp.availableComponents || "",
     }));
     setSelectedPermissions(permissions);
     setActiveTab("edit_role");
@@ -104,36 +107,71 @@ const RolesAndPermissions = () => {
 
   const handlePermissionToggle = (permissionId: string, level: number) => {
     console.log("Toggling permission:", permissionId, "level:", level);
-    setSelectedPermissions(prev => {
-      const existing = prev.find(p => p.permissionId === permissionId);
+    
+    // Find the permission to check if it's a dashboard permission
+    const permission = permissions?.find(p => p.id === permissionId);
+    const isDashboard = permission?.pageId === "dashboard";
+    
+    setSelectedPermissions((prev) => {
+      const existing = prev.find((p) => p.permissionId === permissionId);
       if (existing) {
         if (existing.level === level) {
           // Remove permission if same level clicked
-          const updated = prev.filter(p => p.permissionId !== permissionId);
+          const updated = prev.filter((p) => p.permissionId !== permissionId);
           console.log("Removing permission, new array:", updated);
           return updated;
         } else {
           // Update level
-          const updated = prev.map(p => 
-            p.permissionId === permissionId 
-              ? { ...p, level } 
-              : p
+          const updated = prev.map((p) =>
+            p.permissionId === permissionId ? { ...p, level } : p
           );
           console.log("Updating permission level, new array:", updated);
           return updated;
         }
       } else {
-        // Add new permission
-        const updated = [...prev, { permissionId, level }];
+        // Add new permission with appropriate default components
+        const defaultComponents = isDashboard 
+          ? '["users", "projects", "communications", "reports"]' 
+          : "[]";
+        
+        const updated = [
+          ...prev,
+          { permissionId, level, availableComponents: defaultComponents },
+        ];
         console.log("Adding new permission, new array:", updated);
         return updated;
       }
     });
   };
+
+  const handleComponentsChange = (permissionId: string, components: string) => {
+    console.log("Updating components for permission:", permissionId, "components:", components);
+    
+    // Validate JSON format
+    let isValidJson = true;
+    try {
+      JSON.parse(components);
+    } catch {
+      isValidJson = false;
+    }
+    
+    setSelectedPermissions((prev) => {
+      const updated = prev.map((p) =>
+        p.permissionId === permissionId ? { ...p, availableComponents: components } : p
+      );
+      console.log("Updated components, new array:", updated);
+      return updated;
+    });
+    
+    // Show validation message (you can enhance this with a toast or state)
+    if (!isValidJson && components.trim() !== "") {
+      console.warn("Invalid JSON format for components:", components);
+    }
+  };
   console.log("Roles:", roles);
   console.log("Permissions:", permissions);
   console.log("Selected permissions:", selectedPermissions);
-  
+
   return (
     <div className="p-8">
       {/* Heading */}
@@ -173,34 +211,44 @@ const RolesAndPermissions = () => {
                           <div className="absolute top-4 right-4 bg-warning text-warning-content text-xs rounded-full px-3 py-1 font-semibold">
                             {role.rolePermissions.length} permissions
                           </div>
-                          <div className="text-lg font-semibold">{role.name}</div>
+                          <div className="text-lg font-semibold">
+                            {role.name}
+                          </div>
                           <div className="flex flex-wrap gap-2 mb-3">
                             {role.rolePermissions.length > 0 ? (
                               role.rolePermissions.map((rolePermission) => (
                                 <span
                                   key={rolePermission.id}
                                   className="badge badge-neutral text-sm"
-                                  title={`Permission: ${rolePermission.permission?.pageName || 'Unknown'}`}
+                                  title={`Permission: ${
+                                    rolePermission.permission?.pageName ||
+                                    "Unknown"
+                                  }`}
                                 >
-                                  {rolePermission.permission?.pageName || rolePermission.permissionId.slice(0, 8)} 
-                                  <span className="ml-1 text-xs">(L{rolePermission.level})</span>
+                                  {rolePermission.permission?.pageName ||
+                                    rolePermission.permissionId.slice(0, 8)}
+                                  <span className="ml-1 text-xs">
+                                    (L{rolePermission.level})
+                                  </span>
                                 </span>
                               ))
                             ) : (
-                              <span className="text-sm text-gray-500 italic">No permissions assigned</span>
+                              <span className="text-sm text-gray-500 italic">
+                                No permissions assigned
+                              </span>
                             )}
                           </div>
                         </div>
 
                         <div className="flex justify-end">
                           <div className="btn-group">
-                            <button 
+                            <button
                               className="btn bg-black btn-sm w-max text-white"
                               onClick={() => handleEditRole(role)}
                             >
                               <MdEdit />
                             </button>
-                            <button 
+                            <button
                               className="btn bg-black btn-sm w-max text-white"
                               onClick={() => handleDeleteRole(role.id)}
                               disabled={deleteRole.isPending}
@@ -294,10 +342,12 @@ const RolesAndPermissions = () => {
                         maxLength={64}
                       />
                       <span className="text-xs text-gray-500 mt-1 block">
-                        The role name can have up to 64 characters. Use descriptive names like "Project Manager" or "Site Supervisor"
+                        The role name can have up to 64 characters. Use
+                        descriptive names like "Project Manager" or "Site
+                        Supervisor"
                       </span>
                     </div>
-                    
+
                     <div className="bg-base-100 border border-info rounded-lg p-3 flex items-start gap-2">
                       <span className="text-info">
                         <svg
@@ -316,8 +366,10 @@ const RolesAndPermissions = () => {
                         </svg>
                       </span>
                       <span className="text-xs text-gray-700">
-                        After creating the role, you'll be able to assign it to users in the User Management section.
-                        Roles define what permissions users have across different parts of the system.
+                        After creating the role, you'll be able to assign it to
+                        users in the User Management section. Roles define what
+                        permissions users have across different parts of the
+                        system.
                       </span>
                     </div>
                     <div className="flex justify-end mt-4">
@@ -337,69 +389,142 @@ const RolesAndPermissions = () => {
               {/* Assign Permissions */}
               {currentStep === 2 && (
                 <div className="w-full bg-base-200 rounded-2xl p-6 border border-base-300">
-                  <h2 className="text-xl font-semibold mb-4">Set Permissions</h2>
+                  <h2 className="text-xl font-semibold mb-4">
+                    Set Permissions
+                  </h2>
                   <div className="flex flex-col gap-4">
                     <div className="bg-base-100 border border-info rounded-lg p-3">
                       <p className="text-sm text-gray-700">
-                        Select permissions for this role. Each permission can have different access levels (1-5).
-                        Higher levels typically grant more access.
+                        Select permissions for this role. Each permission can
+                        have different access levels (1-5). Higher levels
+                        typically grant more access. For dashboard permissions,
+                        you can also specify which components are available.
                       </p>
                     </div>
-                    
+
                     <div className="overflow-x-auto">
                       <table className="table w-full">
                         <thead>
                           <tr>
                             <th>Permission</th>
                             <th>Page</th>
-                            <th>Access Level</th>
+                            <th>Access Level / Components</th>
                             <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {permissions && permissions.length > 0 ? (
                             permissions.map((permission) => {
-                              const selectedPermission = selectedPermissions.find(
-                                (sp) => sp.permissionId === permission.id
-                              );
+                              const selectedPermission =
+                                selectedPermissions.find(
+                                  (sp) => sp.permissionId === permission.id
+                                );
                               return (
                                 <tr key={permission.id}>
-                                  <td className="font-medium">{permission.pageName}</td>
-                                  <td className="text-sm text-gray-500">{permission.pageId}</td>
+                                  <td className="font-medium">
+                                    {permission.pageName}
+                                  </td>
+                                  <td className="text-sm text-gray-500">
+                                    {permission.pageId}
+                                  </td>
                                   <td>
-                                    <select
-                                      className="select select-bordered select-sm w-full max-w-xs"
-                                      value={selectedPermission?.level || ""}
-                                      onChange={(e) => {
-                                        const level = parseInt(e.target.value);
-                                        if (level) {
-                                          handlePermissionToggle(permission.id, level);
-                                        }
-                                      }}
-                                    >
-                                      <option value="">No Access</option>
-                                      <option value="1">Level 1 (Read Only)</option>
-                                      <option value="2">Level 2 (Limited Write)</option>
-                                      <option value="3">Level 3 (Standard Access)</option>
-                                      <option value="4">Level 4 (Advanced Access)</option>
-                                      <option value="5">Level 5 (Full Access)</option>
-                                    </select>
+                                    {permission.pageId === "dashboard" ? (
+                                      <div className="flex flex-col gap-2">
+                                        <select
+                                          className="select select-bordered select-sm w-full max-w-xs"
+                                          value={selectedPermission?.level || ""}
+                                          onChange={(e) => {
+                                            const level = parseInt(e.target.value);
+                                            if (level) {
+                                              handlePermissionToggle(
+                                                permission.id,
+                                                level
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <option value="0">No Access</option>
+                                          <option value="1">
+                                            Level 1 (Read Only)
+                                          </option>
+                                          <option value="2">
+                                            Level 2 (Read/Write)
+                                          </option>
+                                          <option value="3">
+                                            Level 3 (Admin Access)
+                                          </option>
+                                        </select>
+                                        {selectedPermission && (
+                                          <div>
+                                            <textarea
+                                              className="textarea textarea-bordered textarea-sm w-full max-w-xs"
+                                              value={
+                                                selectedPermission?.availableComponents ||
+                                                "[]"
+                                              }
+                                              onChange={(e) => {
+                                                handleComponentsChange(
+                                                  permission.id,
+                                                  e.target.value
+                                                );
+                                              }}
+                                              placeholder='["users", "projects", "communications", "reports"]'
+                                              rows={2}
+                                            />
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              JSON array of dashboard components
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <select
+                                        className="select select-bordered select-sm w-full max-w-xs"
+                                        value={selectedPermission?.level || ""}
+                                        onChange={(e) => {
+                                          const level = parseInt(e.target.value);
+                                          if (level) {
+                                            handlePermissionToggle(
+                                              permission.id,
+                                              level
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        <option value="0">No Access</option>
+                                        <option value="1">
+                                          Level 1 (Read Only)
+                                        </option>
+                                        <option value="2">
+                                          Level 2 (Read/Write)
+                                        </option>
+                                        <option value="3">
+                                          Level 3 (Admin Access)
+                                        </option>
+                                      </select>
+                                    )}
                                   </td>
                                   <td>
                                     <button
                                       type="button"
                                       className={`btn btn-sm ${
-                                        selectedPermission 
-                                          ? "btn-error" 
+                                        selectedPermission
+                                          ? "btn-error"
                                           : "btn-success"
                                       }`}
                                       onClick={() => {
                                         if (selectedPermission) {
-                                          setSelectedPermissions(prev => 
-                                            prev.filter(p => p.permissionId !== permission.id)
+                                          setSelectedPermissions((prev) =>
+                                            prev.filter(
+                                              (p) =>
+                                                p.permissionId !== permission.id
+                                            )
                                           );
                                         } else {
-                                          handlePermissionToggle(permission.id, 1);
+                                          handlePermissionToggle(
+                                            permission.id,
+                                            1
+                                          );
                                         }
                                       }}
                                     >
@@ -411,15 +536,19 @@ const RolesAndPermissions = () => {
                             })
                           ) : (
                             <tr>
-                              <td colSpan={4} className="text-center text-gray-500">
-                                No permissions available. Create permissions first.
+                              <td
+                                colSpan={4}
+                                className="text-center text-gray-500"
+                              >
+                                No permissions available. Create permissions
+                                first.
                               </td>
                             </tr>
                           )}
                         </tbody>
                       </table>
                     </div>
-                    
+
                     <div className="flex justify-between">
                       <button
                         className="btn btn-neutral"
@@ -442,9 +571,12 @@ const RolesAndPermissions = () => {
               {/* Review choices */}
               {currentStep === 3 && (
                 <div className="w-full bg-base-200 rounded-2xl p-6 border border-base-300">
-                  <h2 className="text-xl font-semibold">Review and Create Role</h2>
+                  <h2 className="text-xl font-semibold">
+                    Review and Create Role
+                  </h2>
                   <p className="text-base-content text-xs mb-6">
-                    Review the role details and permissions before creating the role.
+                    Review the role details and permissions before creating the
+                    role.
                   </p>
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-2">Role Details</h3>
@@ -480,31 +612,47 @@ const RolesAndPermissions = () => {
                             <th>Permission</th>
                             <th>Page</th>
                             <th>Access Level</th>
+                            <th>Components</th>
                           </tr>
                         </thead>
                         <tbody>
                           {selectedPermissions.length > 0 ? (
                             selectedPermissions.map((sp) => {
-                              const permission = permissions?.find(p => p.id === sp.permissionId);
+                              const permission = permissions?.find(
+                                (p) => p.id === sp.permissionId
+                              );
                               return (
                                 <tr key={sp.permissionId}>
                                   <td className="font-medium">
-                                    {permission?.pageName || 'Unknown Permission'}
+                                    {permission?.pageName ||
+                                      "Unknown Permission"}
                                   </td>
                                   <td className="text-sm text-gray-500">
-                                    {permission?.pageId || 'Unknown Page'}
+                                    {permission?.pageId || "Unknown Page"}
                                   </td>
                                   <td>
                                     <span className="badge badge-success">
                                       Level {sp.level}
                                     </span>
                                   </td>
+                                  <td>
+                                    {permission?.pageId === "dashboard" ? (
+                                      <div className="text-xs bg-base-200 p-2 rounded max-w-xs overflow-hidden">
+                                        {sp.availableComponents || "[]"}
+                                      </div>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">N/A</span>
+                                    )}
+                                  </td>
                                 </tr>
                               );
                             })
                           ) : (
                             <tr>
-                              <td colSpan={3} className="text-center text-gray-500">
+                              <td
+                                colSpan={4}
+                                className="text-center text-gray-500"
+                              >
                                 No permissions selected
                               </td>
                             </tr>
@@ -520,10 +668,14 @@ const RolesAndPermissions = () => {
                     >
                       Back to Permissions
                     </button>
-                    <button 
+                    <button
                       className="btn btn-primary"
                       onClick={handleCreateRole}
-                      disabled={createRole.isPending || !roleName.trim() || selectedPermissions.length === 0}
+                      disabled={
+                        createRole.isPending ||
+                        !roleName.trim() ||
+                        selectedPermissions.length === 0
+                      }
                     >
                       {createRole.isPending ? "Creating..." : "Create Role"}
                     </button>
@@ -573,54 +725,127 @@ const RolesAndPermissions = () => {
                           <tr>
                             <th>Permission</th>
                             <th>Page</th>
-                            <th>Access Level</th>
+                            <th>Access Level / Components</th>
                             <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {permissions && permissions.length > 0 ? (
                             permissions.map((permission) => {
-                              const selectedPermission = selectedPermissions.find(
-                                (sp) => sp.permissionId === permission.id
-                              );
+                              const selectedPermission =
+                                selectedPermissions.find(
+                                  (sp) => sp.permissionId === permission.id
+                                );
                               return (
                                 <tr key={permission.id}>
-                                  <td className="font-medium">{permission.pageName}</td>
-                                  <td className="text-sm text-gray-500">{permission.pageId}</td>
+                                  <td className="font-medium">
+                                    {permission.pageName}
+                                  </td>
+                                  <td className="text-sm text-gray-500">
+                                    {permission.pageId}
+                                  </td>
                                   <td>
-                                    <select
-                                      className="select select-bordered select-sm w-full max-w-xs"
-                                      value={selectedPermission?.level || ""}
-                                      onChange={(e) => {
-                                        const level = parseInt(e.target.value);
-                                        if (level) {
-                                          handlePermissionToggle(permission.id, level);
-                                        }
-                                      }}
-                                    >
-                                      <option value="">No Access</option>
-                                      <option value="1">Level 1 (Read Only)</option>
-                                      <option value="2">Level 2 (Limited Write)</option>
-                                      <option value="3">Level 3 (Standard Access)</option>
-                                      <option value="4">Level 4 (Advanced Access)</option>
-                                      <option value="5">Level 5 (Full Access)</option>
-                                    </select>
+                                    {permission.pageId === "dashboard" ? (
+                                      <div className="flex flex-col gap-2">
+                                        <select
+                                          className="select select-bordered select-sm w-full max-w-xs"
+                                          value={selectedPermission?.level || ""}
+                                          onChange={(e) => {
+                                            const level = parseInt(
+                                              e.target.value
+                                            );
+                                            if (level) {
+                                              handlePermissionToggle(
+                                                permission.id,
+                                                level
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <option value="0">No Access</option>
+                                          <option value="1">
+                                            Level 1 (Read Only)
+                                          </option>
+                                          <option value="2">
+                                            Level 2 (Read/Write)
+                                          </option>
+                                          <option value="3">
+                                            Level 3 (Admin Access)
+                                          </option>
+                                        </select>
+                                        {selectedPermission && (
+                                          <div>
+                                            <textarea
+                                              className="textarea textarea-bordered textarea-sm w-full max-w-xs"
+                                              value={
+                                                selectedPermission?.availableComponents ||
+                                                "[]"
+                                              }
+                                              onChange={(e) => {
+                                                handleComponentsChange(
+                                                  permission.id,
+                                                  e.target.value
+                                                );
+                                              }}
+                                              placeholder='["users", "projects", "communications", "reports"]'
+                                              rows={3}
+                                            />
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              JSON array of dashboard components
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <select
+                                        className="select select-bordered select-sm w-full max-w-xs"
+                                        value={selectedPermission?.level || ""}
+                                        onChange={(e) => {
+                                          const level = parseInt(
+                                            e.target.value
+                                          );
+                                          if (level) {
+                                            handlePermissionToggle(
+                                              permission.id,
+                                              level
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        <option value="0">No Access</option>
+                                        <option value="1">
+                                          Level 1 (Read Only)
+                                        </option>
+                                        <option value="2">
+                                          Level 2 (Read/Write)
+                                        </option>
+                                        <option value="3">
+                                          Level 3 (Admin Access)
+                                        </option>
+                                      </select>
+                                    )}
                                   </td>
                                   <td>
                                     <button
                                       type="button"
                                       className={`btn btn-sm ${
-                                        selectedPermission 
-                                          ? "btn-error" 
+                                        selectedPermission
+                                          ? "btn-error"
                                           : "btn-success"
                                       }`}
                                       onClick={() => {
                                         if (selectedPermission) {
-                                          setSelectedPermissions(prev => 
-                                            prev.filter(p => p.permissionId !== permission.id)
+                                          setSelectedPermissions((prev) =>
+                                            prev.filter(
+                                              (p) =>
+                                                p.permissionId !== permission.id
+                                            )
                                           );
                                         } else {
-                                          handlePermissionToggle(permission.id, 1);
+                                          handlePermissionToggle(
+                                            permission.id,
+                                            1
+                                          );
                                         }
                                       }}
                                     >
@@ -632,8 +857,12 @@ const RolesAndPermissions = () => {
                             })
                           ) : (
                             <tr>
-                              <td colSpan={4} className="text-center text-gray-500">
-                                No permissions available. Create permissions first.
+                              <td
+                                colSpan={4}
+                                className="text-center text-gray-500"
+                              >
+                                No permissions available. Create permissions
+                                first.
                               </td>
                             </tr>
                           )}
@@ -659,7 +888,11 @@ const RolesAndPermissions = () => {
                       type="button"
                       className="btn btn-primary"
                       onClick={handleUpdateRole}
-                      disabled={updateRole.isPending || !roleName.trim() || selectedPermissions.length === 0}
+                      disabled={
+                        updateRole.isPending ||
+                        !roleName.trim() ||
+                        selectedPermissions.length === 0
+                      }
                     >
                       {updateRole.isPending ? "Updating..." : "Update Role"}
                     </button>

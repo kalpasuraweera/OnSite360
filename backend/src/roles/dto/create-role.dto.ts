@@ -31,5 +31,6 @@ export class CreateRoleDto {
   permissions?: Array<{
     permissionId: string;
     level: number;
+    availableComponents?: string[]; // Optional, can be used to specify components for the permission
   }>;
 }

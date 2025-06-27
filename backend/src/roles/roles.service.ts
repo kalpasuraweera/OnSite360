@@ -20,6 +20,7 @@ export class RolesService {
               connect: { id: permission.permissionId },
             },
             level: permission.level || 0, // Default level to 0 if not provided
+            availableComponents: permission.availableComponents || [], // Default to empty array if not provided
           })),
         },
       },
@@ -75,11 +76,12 @@ export class RolesService {
             },
             update: {
               level: permission.level || 0, // Default level to 0 if not provided
+              availableComponents: permission.availableComponents || [], // Default to empty array if not provided
             },
             create: {
               permissionId: permission.permissionId,
               level: permission.level || 0, // Default level to 0 if not provided
-              roleId: id,
+              availableComponents: permission.availableComponents || [], // Default to empty array if not provided
             },
           })),
         },
