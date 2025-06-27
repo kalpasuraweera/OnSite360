@@ -16,7 +16,14 @@ const Sidebar = ({
     .map((p) => ({
       page_id: p.permission.pageId,
       page_name: p.permission.pageName,
-    }));
+    }))
+    .sort((a, b) => {
+      // Always put dashboard first
+      if (a.page_id === 'dashboard') return -1;
+      if (b.page_id === 'dashboard') return 1;
+      // Otherwise maintain alphabetical order by page_name
+      return a.page_name.localeCompare(b.page_name);
+    });
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   return (
     <div

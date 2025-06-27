@@ -74,6 +74,22 @@ function App() {
           ),
         },
         {
+          path: "integrations",
+          element: (
+            <PermissionRoute pageId="integrations">
+              <ProgressTracking />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "system-logs",
+          element: (
+            <PermissionRoute pageId="system-logs">
+              <ProgressTracking />
+            </PermissionRoute>
+          ),
+        },
+        {
           path: "progress-tracking",
           element: (
             <PermissionRoute pageId="progress-tracking">
