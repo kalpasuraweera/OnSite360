@@ -97,16 +97,35 @@ export class RolesService {
   }
 
   async remove(id: string) {
-    // Delete role and its associated permissions
-    return this.prisma.role.delete({
-      where: { id },
-      include: {
-        rolePermissions: {
-          include: {
-            permission: true,
+    // Delete role and its associated permissions in a transaction
+    return this.prisma.$transaction(async (prisma) => {
+      // Check if any users are assigned to this role
+      const usersWithRole = await prisma.user.count({
+        where: { roleId: id },
+      });
+
+      if (usersWithRole > 0) {
+        throw new Error(
+          `Cannot delete role. ${usersWithRole} user(s) are assigned to this role. Please reassign users before deleting the role.`,
+        );
+      }
+
+      // First delete all role permissions
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: id },
+      });
+
+      // Then delete the role
+      return prisma.role.delete({
+        where: { id },
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true,
+            },
           },
         },
-      },
+      });
     });
   }
 
