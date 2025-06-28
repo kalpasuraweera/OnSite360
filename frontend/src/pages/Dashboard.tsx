@@ -3,31 +3,122 @@ import {
   HiOutlineUserCircle,
   HiOutlineUsers,
 } from "react-icons/hi";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import StatCard from "../components/StatCard";
 
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
+
 const Dashboard = () => {
-  const dummyUsers = [
-    {
-      name: "John Smith",
-      email: "john@construction.com",
-      role: "Project Manager",
-      status: "Active",
+  // Chart data configurations
+  const projectStatusData = {
+    labels: ['Active', 'Completed', 'On Hold', 'Planning'],
+    datasets: [
+      {
+        data: [32, 18, 5, 12],
+        backgroundColor: [
+          '#10B981',
+          '#3B82F6',
+          '#F59E0B',
+          '#6B7280',
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const monthlyActivityData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    datasets: [
+      {
+        label: 'Projects Started',
+        data: [8, 12, 15, 10, 18, 14],
+        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Projects Completed',
+        data: [5, 8, 10, 12, 15, 16],
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const performanceData = {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    datasets: [
+      {
+        label: 'System Performance (%)',
+        data: [95, 98, 92, 96],
+        borderColor: 'rgba(16, 185, 129, 1)',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'User Activity (%)',
+        data: [88, 85, 90, 87],
+        borderColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
     },
-    {
-      name: "Sarah Johnson",
-      email: "sarah@construction.com",
-      role: "Site Supervisor",
-      status: "Active",
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+      },
     },
-  ];
+  };
+
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-1">System Administration</h1>
+      <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
       <p className="text-gray-500 mb-6">
-        Manage users, security, and system configurations
+        System overview and key performance metrics
       </p>
+      
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <StatCard
           icon={<HiOutlineUsers className="inline w-7 h-7 text-secondary" />}
           value={247}
@@ -65,101 +156,41 @@ const Dashboard = () => {
           label="Alerts"
         />
       </div>
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="tabs tabs-lift">
-          <input
-            type="radio"
-            name="dashboard_tabs"
-            className="tab [--tab-bg:white] [--tab-border-color:white]"
-            aria-label="User Management"
-            defaultChecked
-          />
-          <div className="tab-content bg-base-200 border-base-300 p-6">
-            {/* User Management Section */}
-            <h2 className="text-2xl font-bold mb-2">User Management</h2>
-            <p className="text-neutral-500 mb-4">
-              Manage user accounts and access
-            </p>
-            <div className="flex gap-2 mb-6">
-              <button className="btn btn-primary">Add User</button>
-              <button className="btn btn-neutral">Import Users</button>
-              <button className="btn btn-neutral">Export Users</button>
-            </div>
-            <div className="space-y-4">
-              {dummyUsers.map((u) => (
-                <div
-                  key={u.email}
-                  className="flex flex-col md:flex-row md:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
-                >
-                  <div>
-                    <div className="font-semibold">{u.name}</div>
-                    <div className="text-gray-500 text-sm">{u.email}</div>
-                    <span className="badge badge-neutral mt-2">{u.role}</span>
-                  </div>
-                  <div className="flex gap-2 mt-4 md:mt-0">
-                    <span className="badge badge-success badge-lg text-xs px-3 py-1">
-                      {u.status}
-                    </span>
-                    <button className="btn btn-soft btn-accent btn-sm">
-                      Edit
-                    </button>
-                    <button className="btn btn-sm btn-outline btn-error">
-                      Deactivate
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <input
-            type="radio"
-            name="dashboard_tabs"
-            className="tab"
-            aria-label="Roles & Permissions"
-          />
-          <div className="tab-content bg-base-200 border-base-300 p-6">
-            <h2 className="text-2xl font-bold">Roles & Permissions</h2>
-            <p className="text-neutral-500">
-              Manage roles and permissions here.
-            </p>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Project Status Chart */}
+        <div className="bg-base-100 rounded-2xl p-6 border border-base-300">
+          <h3 className="text-xl font-semibold mb-4">Project Status Distribution</h3>
+          <div className="h-64">
+            <Doughnut data={projectStatusData} options={doughnutOptions} />
           </div>
+        </div>
 
-          <input
-            type="radio"
-            name="dashboard_tabs"
-            className="tab"
-            aria-label="Security"
-          />
-          <div className="tab-content bg-base-200 border-base-300 p-6">
-            <h2 className="text-2xl font-bold">Security</h2>
-            <p className="text-neutral-500">
-              Configure security settings here.
-            </p>
+        {/* Monthly Activity Chart */}
+        <div className="bg-base-100 rounded-2xl p-6 border border-base-300">
+          <h3 className="text-xl font-semibold mb-4">Monthly Project Activity</h3>
+          <div className="h-64">
+            <Bar data={monthlyActivityData} options={chartOptions} />
           </div>
+        </div>
+      </div>
 
-          <input
-            type="radio"
-            name="dashboard_tabs"
-            className="tab"
-            aria-label="Integrations"
-          />
-          <div className="tab-content bg-base-200 border-base-300 p-6">
-            <h2 className="text-2xl font-bold">Integrations</h2>
-            <p className="text-neutral-500">Manage system integrations here.</p>
-          </div>
+      {/* Performance Chart - Full Width */}
+      <div className="bg-base-100 rounded-2xl p-6 border border-base-300 mb-6">
+        <h3 className="text-xl font-semibold mb-4">Performance Trends</h3>
+        <div className="h-80">
+          <Line data={performanceData} options={chartOptions} />
+        </div>
+      </div>
 
-          <input
-            type="radio"
-            name="dashboard_tabs"
-            className="tab"
-            aria-label="System Logs"
-          />
-          <div className="tab-content bg-base-200 border-base-300 p-6">
-            <h2 className="text-2xl font-bold">System Logs</h2>
-            <p className="text-neutral-500">View system logs here.</p>
-          </div>
+      {/* Quick Actions */}
+      <div className="bg-base-100 rounded-2xl p-6 border border-base-300">
+        <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="btn btn-primary">Create New Project</button>
+          <button className="btn btn-neutral">Generate Report</button>
+          <button className="btn btn-accent">System Backup</button>
         </div>
       </div>
     </div>
