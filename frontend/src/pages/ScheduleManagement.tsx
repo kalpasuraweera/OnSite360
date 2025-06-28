@@ -211,7 +211,7 @@ const logSummary = [
   },
 ];
 
-const ProgressTracking = () => {
+const ScheduleManagement = () => {
   const [tab, setTab] = useState("Progress Tracking");
 
   return (
@@ -722,4 +722,4 @@ const ProgressTracking = () => {
   );
 };
 
-export default ProgressTracking;
+export default ScheduleManagement;
