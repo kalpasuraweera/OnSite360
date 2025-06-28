@@ -15,6 +15,9 @@ import ProgressTracking from "./pages/ProgressTracking";
 import { useSystemStore } from "./stores/useSystemStore";
 import Integrations from "./pages/Integrations";
 import SystemLogs from "./pages/SystemLogs";
+import ProjectOversight from "./pages/ProjectOversight";
+import EmployeeManagement from "./pages/EmployeeManagement";
+import Communication from "./pages/Communication";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +91,30 @@ function App() {
           element: (
             <PermissionRoute pageId="system-logs">
               <SystemLogs />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "project-oversight",
+          element: (
+            <PermissionRoute pageId="project-oversight">
+              <ProjectOversight />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "employee-management",
+          element: (
+            <PermissionRoute pageId="employee-management">
+              <EmployeeManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "communication",
+          element: (
+            <PermissionRoute pageId="communication">
+              <Communication />
             </PermissionRoute>
           ),
         },
