@@ -13,6 +13,8 @@ import PermissionManagement from "./pages/PermissionManagement";
 import PermissionRoute from "./components/PermissionRoute";
 import ProgressTracking from "./pages/ProgressTracking";
 import { useSystemStore } from "./stores/useSystemStore";
+import Integrations from "./pages/Integrations";
+import SystemLogs from "./pages/SystemLogs";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +79,7 @@ function App() {
           path: "integrations",
           element: (
             <PermissionRoute pageId="integrations">
-              <ProgressTracking />
+              <Integrations />
             </PermissionRoute>
           ),
         },
@@ -85,7 +87,7 @@ function App() {
           path: "system-logs",
           element: (
             <PermissionRoute pageId="system-logs">
-              <ProgressTracking />
+              <SystemLogs />
             </PermissionRoute>
           ),
         },
