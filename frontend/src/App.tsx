@@ -20,6 +20,7 @@ import EmployeeManagement from "./pages/EmployeeManagement";
 import Communication from "./pages/Communication";
 import DocumentManagement from "./pages/DocumentManagement";
 import ScheduleManagement from "./pages/ScheduleManagement";
+import TaskManagement from "./pages/TaskManagement";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,14 @@ function App() {
           element: (
             <PermissionRoute pageId="schedule-management">
               <ScheduleManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "task-management",
+          element: (
+            <PermissionRoute pageId="task-management">
+              <TaskManagement />
             </PermissionRoute>
           ),
         },
