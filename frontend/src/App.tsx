@@ -18,6 +18,8 @@ import SystemLogs from "./pages/SystemLogs";
 import ProjectOversight from "./pages/ProjectOversight";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import Communication from "./pages/Communication";
+import DocumentManagement from "./pages/DocumentManagement";
+import ScheduleManagement from "./pages/ScheduleManagement";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +125,22 @@ function App() {
           element: (
             <PermissionRoute pageId="progress-tracking">
               <ProgressTracking />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "document-management",
+          element: (
+            <PermissionRoute pageId="document-management">
+              <DocumentManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "schedule-management",
+          element: (
+            <PermissionRoute pageId="schedule-management">
+              <ScheduleManagement />
             </PermissionRoute>
           ),
         },
