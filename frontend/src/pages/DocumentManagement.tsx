@@ -142,16 +142,17 @@ const DocumentManagement = () => {
 
   return (
     <div className="p-8">
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+      <h1 className="text-3xl font-bold">Document Management</h1>
+      <p className="text-gray-500 mt-1">
+        Manage and organize all your project documents. Upload, view, and export
+        files for each document type.
+      </p>
+      <div
+        id="tab-navigation"
+        className="bg-base-200 border border-base-300 p-6 rounded-2xl"
+      >
         {/* Heading with project selector */}
         <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="text-3xl font-bold">Document Management</h1>
-            <p className="text-gray-500 mt-1">
-              Manage and organize all your project documents. Upload, view, and
-              export files for each document type.
-            </p>
-          </div>
           <div>
             <select
               className="select select-bordered"
