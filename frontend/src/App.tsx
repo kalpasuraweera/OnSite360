@@ -11,7 +11,6 @@ import Home from "./pages/Home";
 import AppLayout from "./components/AppLayout";
 import PermissionManagement from "./pages/PermissionManagement";
 import PermissionRoute from "./components/PermissionRoute";
-import ScheduleManagement from "./pages/ScheduleManagement";
 import { useSystemStore } from "./stores/useSystemStore";
 import Integrations from "./pages/Integrations";
 import SystemLogs from "./pages/SystemLogs";
