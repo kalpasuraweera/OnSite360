@@ -19,15 +19,15 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  async create(@Body() createProjectDto: CreateProjectDto) {
+    return await this.projectsService.create(createProjectDto);
   }
 
   @ApiBearerAuth()
   @Get()
-  findAll() {
+  async findAll() {
     try {
-      const projects = this.projectsService.findAll();
+      const projects = await this.projectsService.findAll();
       return {
         statusCode: HttpStatus.OK,
         data: projects,

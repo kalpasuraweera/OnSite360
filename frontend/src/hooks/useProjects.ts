@@ -17,6 +17,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import instance from "../api/axiosInstance";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface Project {
   id: string;
@@ -32,6 +33,31 @@ export const useProjects = () => {
     queryFn: async () => {
       const { data } = await instance.get("/projects");
       return data;
+    },
+  });
+};
+
+export interface CreateProjectDto {
+  name: string;
+  budget: number;
+  startDate: string;
+  endDate: string;
+  manager: string;
+  location: string;
+  description?: string;
+}
+
+export const useCreateProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newProject: CreateProjectDto) => {
+      const { data } = await instance.post<Project>("/projects", newProject);
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch projects list after creation
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 };
