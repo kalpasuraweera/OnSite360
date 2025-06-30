@@ -27,7 +27,7 @@ model User {
   tasks          Task[] // Tasks assigned to the user
   threads        Thread[]
   messages       Message[]
-  projects       Project[]
+  userProjects   UserProject[] // Explicit many-to-many relationship with projects
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   dailyLogs       DailyLog[]
@@ -89,7 +89,7 @@ model Project {
   endDate             DateTime?
   documents           Document[] // Documents associated with the project
   tasks               Task[] // Tasks for the project
-  users               User[]
+  userProjects        UserProject[] // Explicit many-to-many relationship with users
   threads             Thread[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -102,6 +102,36 @@ model Project {
   ProjectPhase        ProjectPhase[]
   EquipmentAssignment EquipmentAssignment[]
   RFI                 RFI[]
+}
+
+// Junction table for many-to-many relationship between User and Project
+model UserProject {
+  id           String    @id @default(uuid())
+  userId       String
+  projectId    String
+  user         User      @relation(fields: [userId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id])
+  // Role/position of user in this specific project
+  projectRole  String?   // e.g., "Site Manager", "Foreman", "Supervisor", "Worker"
+  // Access level for this user on this project
+  accessLevel  String    @default("Read") // "Read", "Write", "Admin"
+  // Assignment details
+  assignedDate DateTime  @default(now())
+  endDate      DateTime? // When assignment ends (null for ongoing)
+  isActive     Boolean   @default(true)
+  // Work schedule
+  workSchedule String?   // e.g., "Full-time", "Part-time", "Contractor"
+  hourlyRate   Float?    // If applicable
+  // Contact and emergency info for this project
+  emergencyContact String?
+  // Notes about this assignment
+  notes        String?
+  // Who assigned this user to the project
+  assignedBy   String?   // User ID of who made the assignment
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, projectId])
 }
 
 // Document model for storing document metadata
