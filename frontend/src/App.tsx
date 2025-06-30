@@ -11,13 +11,16 @@ import Home from "./pages/Home";
 import AppLayout from "./components/AppLayout";
 import PermissionManagement from "./pages/PermissionManagement";
 import PermissionRoute from "./components/PermissionRoute";
-import ScheduleManagement from "./pages/ScheduleManagement";
 import { useSystemStore } from "./stores/useSystemStore";
 import Integrations from "./pages/Integrations";
 import SystemLogs from "./pages/SystemLogs";
 import ProjectOversight from "./pages/ProjectOversight";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import Communication from "./pages/Communication";
+import DocumentManagement from "./pages/DocumentManagement";
+import ScheduleManagement from "./pages/ScheduleManagement";
+import TaskManagement from "./pages/TaskManagement";
+import WorkforceManagement from "./pages/WorkforceManagement";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +126,38 @@ function App() {
           element: (
             <PermissionRoute pageId="schedule-management">
               <ScheduleManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "document-management",
+          element: (
+            <PermissionRoute pageId="document-management">
+              <DocumentManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "schedule-management",
+          element: (
+            <PermissionRoute pageId="schedule-management">
+              <ScheduleManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "task-management",
+          element: (
+            <PermissionRoute pageId="task-management">
+              <TaskManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "workforce-management",
+          element: (
+            <PermissionRoute pageId="workforce-management">
+              <WorkforceManagement />
             </PermissionRoute>
           ),
         },
