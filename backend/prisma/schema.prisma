@@ -85,11 +85,18 @@ model Project {
   id                  String                @id @default(uuid())
   name                String
   description         String?
+  type                String                // e.g., "Residential", "Commercial", "Industrial"
+  budget              Float?                // Project budget amount
+  squareFeet          Float?                // Square footage of the project
+  location            String?               // Address or description of location
+  coordinates         Json?                 // Stores latitude/longitude as JSON: { "lat": 40.7128, "lng": -74.0060 }
+  logoUrl             String?               // URL to project logo image
+  featuredImageUrl    String?               // URL to featured/header image
   startDate           DateTime?
   endDate             DateTime?
-  documents           Document[] // Documents associated with the project
-  tasks               Task[] // Tasks for the project
-  userProjects        UserProject[] // Explicit many-to-many relationship with users
+  documents           Document[]            // Documents associated with the project
+  tasks               Task[]                // Tasks for the project
+  userProjects        UserProject[]         // Explicit many-to-many relationship with users
   threads             Thread[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
