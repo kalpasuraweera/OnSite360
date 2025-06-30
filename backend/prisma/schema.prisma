@@ -85,7 +85,7 @@ model Project {
   id                  String                @id @default(uuid())
   name                String
   description         String?
-  type                String                // e.g., "Residential", "Commercial", "Industrial"
+  type                String?                // e.g., "Residential", "Commercial", "Industrial"
   budget              Float?                // Project budget amount
   squareFeet          Float?                // Square footage of the project
   location            String?               // Address or description of location
