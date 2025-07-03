@@ -121,7 +121,7 @@ model UserProject {
   // Role/position of user in this specific project
   projectRole  String?   // e.g., "Site Manager", "Foreman", "Supervisor", "Worker"
   // Access level for this user on this project
-  accessLevel  String    @default("Read") // "Read", "Write", "Admin"
+  accessLevel  Int @default(0) // 0 = None, 1 = Read-only, 2 = Write, 3 = Admin
   // Assignment details
   assignedDate DateTime  @default(now())
   endDate      DateTime? // When assignment ends (null for ongoing)

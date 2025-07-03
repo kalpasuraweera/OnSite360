@@ -13,13 +13,20 @@ export class ProjectsService {
     return this.prisma.project.create({
       data: {
         name,
+        budget,
+        location,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
         description,
-        users: {
-          connect: {
-            id: manager, // Assuming manager is a user ID
-          },
+        userProjects: {
+          create: manager
+            ? {
+                userId: manager,
+                projectRole: 'Task Manager',
+                accessLevel: 2,
+                isActive: true,
+              }
+            : undefined,
         },
       },
     });
