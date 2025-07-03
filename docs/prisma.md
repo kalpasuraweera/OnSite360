@@ -422,6 +422,14 @@ You can add a `postinstall` script to your `package.json` to automatically gener
 - **Data Security**: Never commit sensitive database credentials to version control
 - **Migration Testing**: Test migrations on a staging environment before production
 
+
+# Export
+pg_dump "postgresql://username:password@host:port/database_name" > database_backup.sql
+
+# Import
+psql "postgresql://username:password@host:port/database_name" < database_backup.sql
+
+
 ## Additional Resources
 
 - [Prisma Documentation](https://www.prisma.io/docs/)
