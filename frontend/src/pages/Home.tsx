@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSystemStore } from "../stores/useSystemStore";
 
 const featureCardDescriptions: Record<string, string> = {
@@ -16,6 +16,8 @@ const Home = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [hideFeatureCards, setHideFeatureCards] = useState(false);
+  const featureCardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -77,31 +79,32 @@ const Home = () => {
   // Dashboard screenshots
   const screenshots = [
     {
-      src: "/screencapture-localhost-5173-workforce-management-2025-07-04-10-.png",
-      alt: "Workforce Management Dashboard",
-      className: "absolute w-[964px] h-[647px] top-[392px] left-[545px]",
+      src: "/main-m.png",
+      alt: "Project Status Distribution",
+      key: "chart1",
     },
     {
-      src: "/screencapture-localhost-5173-dashboard-2025-07-04-10-44-25-2.png",
-      alt: "Dashboard Screenshot",
-      className: "absolute w-[619px] h-[452px] top-[465px] left-[313px]",
+      src: "/main-r.png",
+      alt: "Monthly Project Activity",
+      key: "chart2",
     },
     {
-      src: "/screencapture-localhost-5173-dashboard-2025-07-04-10-44-25-1.png",
-      alt: "Dashboard Screenshot",
-      className: "absolute w-[655px] h-[466px] top-[518px] left-[1081px]",
-    },
-    {
-      src: "/screencapture-localhost-5173-dashboard-2025-07-04-10-44-25-3.png",
-      alt: "Dashboard Screenshot",
-      className: "absolute w-[693px] h-[488px] top-[1036px] left-[351px]",
-    },
-    {
-      src: "/screencapture-localhost-5173-dashboard-2025-07-04-10-44-25-4.png",
-      alt: "Dashboard Screenshot",
-      className: "absolute w-[632px] h-[452px] top-0 left-[705px]",
+      src: "/main-l.png",
+      alt: "Workforce Management",
+      key: "chart3",
     },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!featureCardsRef.current) return;
+      const rect = featureCardsRef.current.getBoundingClientRect();
+      // Hide cards when scrolled more than 200px from top of viewport
+      setHideFeatureCards(rect.top < -100);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="">
@@ -225,35 +228,47 @@ const Home = () => {
               ))} */}
 
               {/* Feature Cards */}
-              {featureCards.map((card, index) => (
-                <div
-                  key={index}
-                  className={`flex flex-col items-center justify-center gap-2.5 p-5 absolute ${
-                    card.top
-                  } ${
-                    card.left
-                  } bg-white rounded-[20px] shadow-[0px_4px_100px_#a9a9a969] transition-transform duration-300 cursor-pointer
+              <div
+                ref={featureCardsRef}
+                className={`transition-all duration-500
+                  ${
+                    hideFeatureCards
+                      ? "opacity-0 translate-y-32 pointer-events-none"
+                      : "opacity-100 translate-y-0"
+                  }
+                `}
+                style={{ position: "relative", zIndex: 20 }}
+              >
+                {featureCards.map((card, index) => (
+                  <div
+                    key={index}
+                    className={`flex flex-col items-center justify-center gap-2.5  absolute ${
+                      card.top
+                    } ${
+                      card.left
+                    } bg-white rounded-[20px] shadow-[0px_4px_100px_#a9a9a969] p-5 transition-transform duration-300 cursor-pointer
                     ${hoveredCard === index ? "scale-110 z-10" : "scale-100"}
                   `}
-                  style={{
-                    width: hoveredCard === index ? 350 : 316,
-                    height: hoveredCard === index ? 120 : 85,
-                  }}
-                  onMouseEnter={() => setHoveredCard(index)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <div className="flex items-center justify-center h-full">
-                    <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
-                      {card.title}
+                    style={{
+                      width: hoveredCard === index ? 350 : 316,
+                      height: hoveredCard === index ? 120 : 85,
+                    }}
+                    onMouseEnter={() => setHoveredCard(index)}
+                    onMouseLeave={() => setHoveredCard(null)}
+                  >
+                    <div className="flex items-center justify-center h-full">
+                      <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] bg-[#fff2c4] py-3 px-5 rounded-2xl w-full text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
+                        {card.title}
+                      </div>
                     </div>
+                    {hoveredCard === index && (
+                      <div className="mt-2 text-sm text-neutral-500 text-center   transition-opacity duration-200 opacity-100">
+                        {featureCardDescriptions[card.title]}
+                      </div>
+                    )}
                   </div>
-                  {hoveredCard === index && (
-                    <div className="mt-2 text-sm text-neutral-500 text-center bg-[#fff2c4] p-2 rounded-2xl transition-opacity duration-200 opacity-100">
-                      {featureCardDescriptions[card.title]}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* CTA button */}
@@ -263,8 +278,19 @@ const Home = () => {
               </span>
             </button>
 
+            {/* Charts Section under CTA */}
+            <div className="absolute flex justify-center top-[420px] w-full z-10">
+              {/* Chart 1 */}
+              <img
+                src={screenshots[0].src}
+                alt={screenshots[0].alt}
+                className="object-contain w-1/2 h-full"
+              />
+            </div>
+
             {/* Communication Section */}
-            <div className="absolute w-[583px] h-[265px] top-[1132px] left-[1054px]">
+            <div className="absolute top-[1132px] left-[412px] flex items-center  gap-2">
+              <img src="main-m.png" alt="" className="w-1/2 h-full" />
               <div className="relative h-[265px]">
                 <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
                   COMMUNICATION
@@ -274,7 +300,7 @@ const Home = () => {
                   Close the communication loop.
                 </h2>
 
-                <p className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] font-normal text-[#434343] text-xl tracking-[0] leading-[normal]">
+                <p className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] font-normal text-[#434343] tracking-[0] leading-[normal]">
                   Mobile collaboration tools are built for the site, making it
                   easy for everyone to have a clear understanding of what needs
                   to get done every day to stay on schedule and prevent rework.
@@ -283,7 +309,7 @@ const Home = () => {
             </div>
 
             {/* Access Section */}
-            <div className="absolute w-[583px] h-[265px] top-[1577px] left-[444px]">
+            <div className="absolute top-[1577px] mt-36 left-[444px] flex items-center">
               <div className="relative h-[265px]">
                 <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
                   ACCESS
@@ -293,7 +319,7 @@ const Home = () => {
                   Keep information accurate.
                 </h2>
 
-                <div className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] font-normal text-[#434343] text-xl tracking-[0] leading-[normal]">
+                <div className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica]  text-[#434343]  tracking-[0] leading-[normal]">
                   Trust that all stakeholders have access to the latest
                   information in a centralised location, and in a format that
                   everyone can understand.
@@ -306,39 +332,35 @@ const Home = () => {
                   Mitigate risks with accurate data logs
                 </div>
               </div>
+              <img
+                src="main-m.png"
+                alt=""
+                className="relative left-[570px] w-1/2 h-full"
+              />
             </div>
 
             {/* Stats Section */}
-            <div className="absolute w-[1367px] h-[840px] top-[1537px] left-[386px]">
+            <div className="absolute w-[1367px] h-[840px] top-[1537px] left-[386px] mt-64">
               <div className="top-24 left-[909px] bg-[#fdc70085] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
 
-              <img
-                className="absolute w-[632px] h-[452px] top-0 left-[705px]"
-                alt="Dashboard Screenshot"
-                src="/screencapture-localhost-5173-dashboard-2025-07-04-10-44-25-4.png"
-              />
-
-              <div className="absolute w-[1294px] h-[300px] top-[540px] left-0 bg-[#29261b] rounded-[50px] border-none">
-                <div className="p-0 h-full relative">
-                  <div className="absolute top-[621px] left-[102px] [font-family:'Figtree',Helvetica] font-bold text-[#fdc700] text-[114px] tracking-[0] leading-[normal]">
-                    3000+
-                  </div>
-
-                  <div className="absolute w-[680px] top-[603px] left-[547px] [font-family:'Figtree',Helvetica] font-bold text-white text-[91px] tracking-[0] leading-[normal]">
-                    <span className="[font-family:'Figtree',Helvetica] font-bold text-white text-[91px] tracking-[0]">
-                      Projects
-                    </span>
-                    <span className="text-[58px]">
-                      {" "}
-                      <br />
-                    </span>
-                    <span className="text-[52px]">
-                      succeeded with OnSite360
-                    </span>
-                  </div>
+              <div className="absolute w-[1294px] h-[300px] top-[540px] left-0 bg-[#29261b] rounded-[50px] border-none p-10 flex justify-center items-center gap-12">
+                <h1 className="text-9xl font-black text-[#fdc700]">300+</h1>
+                <div className="flex flex-col gap-5">
+                  <h1 className="font-bold text-white text-8xl">Projects</h1>
+                  <p className="font-bold text-white text-4xl">
+                    Succeeded with OnSite360
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="flex w-full justify-center">
+            <img
+              src="/companies.png"
+              alt="companies"
+              className="absolute top-[3000px] w-3/4 "
+            />
           </div>
 
           {/* Subtitle */}
@@ -347,13 +369,6 @@ const Home = () => {
               CONSTRUCTION&nbsp;&nbsp;PROJECT&nbsp;&nbsp;MANAGEMENT&nbsp;&nbsp;SOFTWARE
             </div>
           </div>
-
-          {/* Footer */}
-          <img
-            className="w-[1366px] h-[148px] top-[2674px] left-[37px] absolute object-cover"
-            alt="Client Logos"
-            src="/image-7.png"
-          />
         </div>
       </div>
     </div>
