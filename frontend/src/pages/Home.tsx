@@ -257,7 +257,7 @@ const Home = () => {
                     onMouseLeave={() => setHoveredCard(null)}
                   >
                     <div className="flex items-center justify-center h-full">
-                      <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] bg-[#fff2c4] py-3 px-5 rounded-2xl w-full text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
+                      <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] w-full text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
                         {card.title}
                       </div>
                     </div>
