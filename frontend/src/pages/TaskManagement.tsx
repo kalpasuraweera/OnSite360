@@ -1,11 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   MdAddTask,
   MdEdit,
   MdDelete,
   MdDownload,
   MdFileDownload,
+  MdViewColumn,
+  MdViewList,
 } from "react-icons/md";
+import { 
+  ControlledBoard, 
+  moveCard
+} from '@caldwell619/react-kanban';
+import type { 
+  KanbanBoard, 
+  OnDragEndNotification, 
+  Card,
+  Column
+} from '@caldwell619/react-kanban';
+import '../styles/kanban.css';
 
 // Mock projects
 const mockProjects = [
@@ -31,8 +44,7 @@ const TASK_TYPE_LABELS: Record<TaskType, string> = {
   custom: "Custom Tasks",
 };
 
-interface Task {
-  id: string;
+interface Task extends Card {
   name: string;
   type: TaskType;
   assignedTo: string;
@@ -110,8 +122,56 @@ const TaskManagement = () => {
   const [selectedProject, setSelectedProject] = useState<string>(
     mockProjects[0].id
   );
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
-  // Filter tasks by project and type
+  // Create kanban board structure
+  const createKanbanBoard = useCallback((): KanbanBoard<Task> => {
+    const filteredTasks = mockTasks.filter(
+      (task) =>
+        task.projectId === selectedProject &&
+        (activeTab === "all" ? true : task.type === activeTab)
+    );
+
+    const columns: Column<Task>[] = [
+      {
+        id: "pending",
+        title: "Pending",
+        cards: filteredTasks.filter((task) => task.status === "Pending"),
+      },
+      {
+        id: "in-progress",
+        title: "In Progress",
+        cards: filteredTasks.filter((task) => task.status === "In Progress"),
+      },
+      {
+        id: "completed",
+        title: "Completed",
+        cards: filteredTasks.filter((task) => task.status === "Completed"),
+      },
+      {
+        id: "delayed",
+        title: "Delayed",
+        cards: filteredTasks.filter((task) => task.status === "Delayed"),
+      },
+    ];
+
+    return { columns };
+  }, [selectedProject, activeTab]);
+
+  const [board, setBoard] = useState<KanbanBoard<Task>>(() => createKanbanBoard());
+
+  // Update board when project or tab changes
+  useEffect(() => {
+    setBoard(createKanbanBoard());
+  }, [createKanbanBoard]);
+
+  const handleCardMove: OnDragEndNotification<Task> = (_card, source, destination) => {
+    setBoard((currentBoard) => {
+      return moveCard(currentBoard, source, destination);
+    });
+  };
+
+  // Filter tasks by project and type for table view
   const filteredTasks = mockTasks.filter(
     (task) =>
       task.projectId === selectedProject &&
@@ -141,6 +201,84 @@ const TaskManagement = () => {
     URL.revokeObjectURL(url);
   };
 
+  const renderCard = (card: Task) => {
+    const getDueDateStatus = (dueDate: string) => {
+      const today = new Date();
+      const due = new Date(dueDate);
+      const diffTime = due.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return { color: 'text-error', text: 'Overdue' };
+      if (diffDays <= 3) return { color: 'text-warning', text: 'Due soon' };
+      return { color: 'text-success', text: 'On track' };
+    };
+
+    const dueDateStatus = getDueDateStatus(card.dueDate);
+
+    return (
+      <div className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/50">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-semibold text-sm text-base-content line-clamp-2 flex-1">{card.name}</h3>
+          <div className="flex gap-1 ml-2">
+            <button
+              className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:btn-success"
+              title="Download Task"
+            >
+              <MdDownload className="text-xs" />
+            </button>
+            <button
+              className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:btn-primary"
+              title="Edit Task"
+            >
+              <MdEdit className="text-xs" />
+            </button>
+            <button
+              className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:btn-error"
+              title="Delete Task"
+            >
+              <MdDelete className="text-xs" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-base-content/60">Type:</span>
+            <span className="badge badge-sm badge-outline">{TASK_TYPE_LABELS[card.type]}</span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-base-content/60">Assigned:</span>
+            <div className="flex items-center gap-1">
+              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-xs font-medium text-primary">
+                  {card.assignedTo.charAt(0)}
+                </span>
+              </div>
+              <span className="text-xs font-medium">{card.assignedTo}</span>
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-base-content/60">Due:</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs">{card.dueDate}</span>
+              <span className={`text-xs font-medium ${dueDateStatus.color}`}>
+                ({dueDateStatus.text})
+              </span>
+            </div>
+          </div>
+          
+          {card.description && (
+            <div className="mt-3 pt-2 border-t border-base-300">
+              <p className="text-xs text-base-content/70 line-clamp-2">{card.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-8">
       <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
@@ -153,7 +291,23 @@ const TaskManagement = () => {
               handover, and custom tasks.
             </p>
           </div>
-          <div>
+          <div className="flex gap-4 items-center">
+            <div className="flex gap-2">
+              <button
+                className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setViewMode('kanban')}
+              >
+                <MdViewColumn />
+                Kanban
+              </button>
+              <button
+                className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setViewMode('table')}
+              >
+                <MdViewList />
+                Table
+              </button>
+            </div>
             <select
               className="select select-bordered"
               value={selectedProject}
@@ -198,79 +352,97 @@ const TaskManagement = () => {
           </button>
         </div>
 
-        {/* Tasks Table */}
-        <div className="overflow-x-auto">
-          <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Assigned To</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Description</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-base-200">
-                    <td className="font-medium">{task.name}</td>
-                    <td>{TASK_TYPE_LABELS[task.type]}</td>
-                    <td>{task.assignedTo}</td>
-                    <td>{task.dueDate}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          task.status === "Completed"
-                            ? "badge-success"
-                            : task.status === "In Progress"
-                            ? "badge-warning"
-                            : task.status === "Delayed"
-                            ? "badge-error"
-                            : "badge-neutral"
-                        }`}
-                      >
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="max-w-xs truncate">{task.description}</td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-sm btn-success"
-                          title="Download Task"
+        {/* Kanban Board or Table View */}
+        {viewMode === 'kanban' ? (
+          <div className="kanban-container">
+            <ControlledBoard<Task> 
+              onCardDragEnd={handleCardMove}
+              renderCard={renderCard}
+              renderColumnHeader={({ title, cards }) => (
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg">{title}</h3>
+                  <span className="badge badge-neutral">{cards.length}</span>
+                </div>
+              )}
+            >
+              {board}
+            </ControlledBoard>
+          </div>
+        ) : (
+          /* Tasks Table */
+          <div className="overflow-x-auto">
+            <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Assigned To</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTasks.length > 0 ? (
+                  filteredTasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-base-200">
+                      <td className="font-medium">{task.name}</td>
+                      <td>{TASK_TYPE_LABELS[task.type]}</td>
+                      <td>{task.assignedTo}</td>
+                      <td>{task.dueDate}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            task.status === "Completed"
+                              ? "badge-success"
+                              : task.status === "In Progress"
+                              ? "badge-warning"
+                              : task.status === "Delayed"
+                              ? "badge-error"
+                              : "badge-neutral"
+                          }`}
                         >
-                          <MdDownload />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-primary"
-                          title="Edit Task"
-                        >
-                          <MdEdit />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-error"
-                          title="Delete Task"
-                        >
-                          <MdDelete />
-                        </button>
-                      </div>
+                          {task.status}
+                        </span>
+                      </td>
+                      <td className="max-w-xs truncate">{task.description}</td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button
+                            className="btn btn-sm btn-success"
+                            title="Download Task"
+                          >
+                            <MdDownload />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            title="Edit Task"
+                          >
+                            <MdEdit />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-error"
+                            title="Delete Task"
+                          >
+                            <MdDelete />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="text-center text-gray-500 py-8">
+                      No tasks found for {TASK_TYPE_LABELS[activeTab]} in this
+                      project.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center text-gray-500 py-8">
-                    No tasks found for {TASK_TYPE_LABELS[activeTab]} in this
-                    project.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Summary Widgets */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">

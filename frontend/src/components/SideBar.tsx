@@ -28,7 +28,7 @@ const Sidebar = ({
   return (
     <div
       className={`${
-        sidebarOpen ? "w-64" : "w-16"
+        sidebarOpen ? "w-64 min-w-64" : "w-16"
       } bg-base-200 border border-base-300 transition-all duration-200 flex flex-col`}
     >
       <div className="flex flex-col gap-2 px-4 py-4">
