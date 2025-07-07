@@ -4,6 +4,16 @@ import {
   MdTimeline,
   MdViewList,
   MdBarChart,
+  MdConstruction,
+  MdWbSunny,
+  MdGroup,
+  MdSecurity,
+  MdLocalShipping,
+  MdBuild,
+  MdCheckCircle,
+  MdWarning,
+  MdAssignment,
+  MdSchedule,
 } from "react-icons/md";
 import { Calendar, momentLocalizer, type View } from 'react-big-calendar';
 import moment from 'moment';
@@ -54,6 +64,40 @@ const eventStyleGetter = (event: { resource: string }) => {
       borderRadius: '4px',
     }
   };
+};
+
+// Helper function to get icon for log types
+const getLogIcon = (title: string) => {
+  const lowerTitle = title.toLowerCase();
+  
+  if (lowerTitle.includes('weather')) return <MdWbSunny className="text-yellow-500" />;
+  if (lowerTitle.includes('delivery') || lowerTitle.includes('delivered')) return <MdLocalShipping className="text-green-500" />;
+  if (lowerTitle.includes('meeting') || lowerTitle.includes('briefing')) return <MdGroup className="text-blue-500" />;
+  if (lowerTitle.includes('safety') || lowerTitle.includes('security')) return <MdSecurity className="text-red-500" />;
+  if (lowerTitle.includes('inspection') || lowerTitle.includes('check') || lowerTitle.includes('quality')) return <MdCheckCircle className="text-green-600" />;
+  if (lowerTitle.includes('equipment') || lowerTitle.includes('tools') || lowerTitle.includes('prep')) return <MdBuild className="text-gray-600" />;
+  if (lowerTitle.includes('foundation') || lowerTitle.includes('framing') || lowerTitle.includes('construction') || lowerTitle.includes('installation')) return <MdConstruction className="text-orange-500" />;
+  if (lowerTitle.includes('order') || lowerTitle.includes('material') || lowerTitle.includes('planning')) return <MdAssignment className="text-purple-500" />;
+  if (lowerTitle.includes('holiday') || lowerTitle.includes('delay')) return <MdWarning className="text-amber-500" />;
+  
+  return <MdSchedule className="text-blue-400" />; // Default icon
+};
+
+// Helper function to get log category color
+const getLogCategoryColor = (title: string) => {
+  const lowerTitle = title.toLowerCase();
+  
+  if (lowerTitle.includes('weather')) return 'bg-yellow-50 border-yellow-200';
+  if (lowerTitle.includes('delivery') || lowerTitle.includes('delivered')) return 'bg-green-50 border-green-200';
+  if (lowerTitle.includes('meeting') || lowerTitle.includes('briefing')) return 'bg-blue-50 border-blue-200';
+  if (lowerTitle.includes('safety') || lowerTitle.includes('security')) return 'bg-red-50 border-red-200';
+  if (lowerTitle.includes('inspection') || lowerTitle.includes('check') || lowerTitle.includes('quality')) return 'bg-emerald-50 border-emerald-200';
+  if (lowerTitle.includes('equipment') || lowerTitle.includes('tools') || lowerTitle.includes('prep')) return 'bg-gray-50 border-gray-200';
+  if (lowerTitle.includes('foundation') || lowerTitle.includes('framing') || lowerTitle.includes('construction') || lowerTitle.includes('installation')) return 'bg-orange-50 border-orange-200';
+  if (lowerTitle.includes('order') || lowerTitle.includes('material') || lowerTitle.includes('planning')) return 'bg-purple-50 border-purple-200';
+  if (lowerTitle.includes('holiday') || lowerTitle.includes('delay')) return 'bg-amber-50 border-amber-200';
+  
+  return 'bg-slate-50 border-slate-200'; // Default
 };
 
 // Mock projects
@@ -549,38 +593,117 @@ const ScheduleManagement = () => {
           {/* Daily Logs */}
           {activeTab === "logs" && (
             <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-4">
-                Daily Logs{" "}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Daily Logs</h2>
+                  {selectedDate && (
+                    <p className="text-base-content/70 mt-1">
+                      {moment(selectedDate).format('dddd, MMMM D, YYYY')}
+                    </p>
+                  )}
+                </div>
                 {selectedDate && (
-                  <span className="text-base font-normal">
-                    ({selectedDate})
-                  </span>
+                  <div className="badge badge-primary badge-lg">
+                    {mockLogs[selectedDate]?.length || 0} entries
+                  </div>
                 )}
-              </h2>
+              </div>
+
               {selectedDate && mockLogs[selectedDate] ? (
                 <div className="space-y-4">
                   {mockLogs[selectedDate].map((log, idx) => (
                     <div
                       key={idx}
-                      className="border border-base-300 rounded-lg p-4 bg-base-200"
+                      className={`relative border rounded-xl p-5 transition-all duration-200 hover:shadow-md ${getLogCategoryColor(log.title)}`}
                     >
-                      <div className="font-semibold">{log.title}</div>
-                      <div className="text-gray-600">{log.details}</div>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 mt-1">
+                          {getLogIcon(log.title)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold text-base-content">
+                              {log.title}
+                            </h3>
+                            <span className="text-xs font-medium text-base-content/50 bg-base-content/10 px-2 py-1 rounded-full">
+                              Entry #{idx + 1}
+                            </span>
+                          </div>
+                          <p className="text-base-content/80 leading-relaxed">
+                            {log.details}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Add a subtle left border for visual hierarchy */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30 rounded-l-xl"></div>
                     </div>
                   ))}
+                  
+                  {/* Summary footer */}
+                  <div className="mt-8 p-4 bg-base-200 rounded-xl border border-base-300">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-base-content/70">
+                        Total entries for this date
+                      </span>
+                      <span className="font-semibold text-primary">
+                        {mockLogs[selectedDate].length} logs recorded
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : selectedDate ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl text-base-content/20 mb-4">📝</div>
+                  <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                    No logs found
+                  </h3>
+                  <p className="text-base-content/50">
+                    No construction logs were recorded for {moment(selectedDate).format('MMMM D, YYYY')}
+                  </p>
                 </div>
               ) : (
-                <div className="text-gray-500">
-                  No logs found for this date.
+                <div className="text-center py-12">
+                  <div className="text-6xl text-base-content/20 mb-4">📅</div>
+                  <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                    Select a date
+                  </h3>
+                  <p className="text-base-content/50 mb-6">
+                    Choose a date from the calendar or timeline to view daily construction logs
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setActiveTab("calendar")}
+                  >
+                    <MdCalendarToday className="mr-2" />
+                    Go to Calendar
+                  </button>
                 </div>
               )}
-              <div className="mt-6">
+
+              <div className="mt-8 flex flex-wrap gap-3">
                 <button
-                  className="btn btn-outline"
+                  className="btn btn-outline btn-sm"
                   onClick={() => setActiveTab("calendar")}
                 >
-                  ← Back to Calendar
+                  <MdCalendarToday className="mr-1" />
+                  Calendar
                 </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setActiveTab("timeline")}
+                >
+                  <MdTimeline className="mr-1" />
+                  Timeline
+                </button>
+                {selectedDate && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setSelectedDate(null)}
+                  >
+                    Clear Selection
+                  </button>
+                )}
               </div>
             </div>
           )}
