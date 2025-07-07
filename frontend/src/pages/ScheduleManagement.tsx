@@ -79,63 +79,253 @@ const mockGantt = [
 
 const mockTimeline = [
   { date: "2025-07-01", event: "Site cleared" },
-  { date: "2025-07-11", event: "Foundation started" },
-  { date: "2025-07-20", event: "First inspection" },
-  { date: "2025-07-26", event: "Framing started" },
+  { date: "2025-07-02", event: "Land surveying completed" },
+  { date: "2025-07-03", event: "Foundation preparation" },
+  { date: "2025-07-04", event: "Holiday - No work" },
+  { date: "2025-07-05", event: "Concrete delivery" },
+  { date: "2025-07-06", event: "Foundation pour" },
+  { date: "2025-07-07", event: "Foundation curing" },
+  { date: "2025-07-08", event: "Lumber delivery" },
+  { date: "2025-07-09", event: "Framing started" },
+  { date: "2025-07-10", event: "Framing continued" },
+  { date: "2025-07-11", event: "Foundation officially approved" },
+  { date: "2025-07-12", event: "Roof installation" },
+  { date: "2025-07-13", event: "Roofing progress" },
+  { date: "2025-07-15", event: "First inspection" },
+  { date: "2025-07-26", event: "Framing phase complete" },
 ];
 
 const mockCalendar = [
   {
     id: 1,
-    title: "Concrete delivery",
-    start: new Date(2025, 6, 5, 8, 0), // July 5, 2025 8:00 AM
-    end: new Date(2025, 6, 5, 9, 0),   // July 5, 2025 9:00 AM
-    resource: "delivery"
-  },
-  {
-    id: 2,
-    title: "Inspection",
-    start: new Date(2025, 6, 15, 10, 0), // July 15, 2025 10:00 AM
-    end: new Date(2025, 6, 15, 12, 0),   // July 15, 2025 12:00 PM
-    resource: "inspection"
-  },
-  {
-    id: 3,
-    title: "Material order",
-    start: new Date(2025, 6, 28, 14, 0), // July 28, 2025 2:00 PM
-    end: new Date(2025, 6, 28, 15, 0),   // July 28, 2025 3:00 PM
-    resource: "order"
-  },
-  {
-    id: 4,
     title: "Site cleared",
     start: new Date(2025, 6, 1, 9, 0),   // July 1, 2025 9:00 AM
     end: new Date(2025, 6, 1, 17, 0),    // July 1, 2025 5:00 PM
     resource: "milestone"
   },
   {
+    id: 2,
+    title: "Land surveying",
+    start: new Date(2025, 6, 2, 8, 0),   // July 2, 2025 8:00 AM
+    end: new Date(2025, 6, 2, 12, 0),    // July 2, 2025 12:00 PM
+    resource: "inspection"
+  },
+  {
+    id: 3,
+    title: "Foundation prep",
+    start: new Date(2025, 6, 3, 8, 0),   // July 3, 2025 8:00 AM
+    end: new Date(2025, 6, 3, 17, 0),    // July 3, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 4,
+    title: "Holiday - No work",
+    start: new Date(2025, 6, 4, 0, 0),   // July 4, 2025 All day
+    end: new Date(2025, 6, 4, 23, 59),   // July 4, 2025 All day
+    resource: "milestone"
+  },
+  {
     id: 5,
+    title: "Concrete delivery",
+    start: new Date(2025, 6, 5, 8, 0),   // July 5, 2025 8:00 AM
+    end: new Date(2025, 6, 5, 9, 0),     // July 5, 2025 9:00 AM
+    resource: "delivery"
+  },
+  {
+    id: 6,
+    title: "Foundation pour",
+    start: new Date(2025, 6, 6, 7, 0),   // July 6, 2025 7:00 AM
+    end: new Date(2025, 6, 6, 15, 0),    // July 6, 2025 3:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 7,
+    title: "Foundation curing",
+    start: new Date(2025, 6, 7, 9, 0),   // July 7, 2025 9:00 AM
+    end: new Date(2025, 6, 7, 17, 0),    // July 7, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 8,
+    title: "Lumber delivery",
+    start: new Date(2025, 6, 8, 10, 0),  // July 8, 2025 10:00 AM
+    end: new Date(2025, 6, 8, 11, 0),    // July 8, 2025 11:00 AM
+    resource: "delivery"
+  },
+  {
+    id: 9,
+    title: "Framing start",
+    start: new Date(2025, 6, 9, 8, 0),   // July 9, 2025 8:00 AM
+    end: new Date(2025, 6, 9, 17, 0),    // July 9, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 10,
+    title: "Framing continued",
+    start: new Date(2025, 6, 10, 8, 0),  // July 10, 2025 8:00 AM
+    end: new Date(2025, 6, 10, 17, 0),   // July 10, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 11,
     title: "Foundation started",
     start: new Date(2025, 6, 11, 8, 0),  // July 11, 2025 8:00 AM
     end: new Date(2025, 6, 11, 17, 0),   // July 11, 2025 5:00 PM
     resource: "milestone"
   },
   {
-    id: 6,
-    title: "Framing started",
-    start: new Date(2025, 6, 26, 8, 0),  // July 26, 2025 8:00 AM
-    end: new Date(2025, 6, 26, 17, 0),   // July 26, 2025 5:00 PM
+    id: 12,
+    title: "Roof installation",
+    start: new Date(2025, 6, 12, 7, 0),  // July 12, 2025 7:00 AM
+    end: new Date(2025, 6, 12, 16, 0),   // July 12, 2025 4:00 PM
     resource: "milestone"
+  },
+  {
+    id: 13,
+    title: "Roofing progress",
+    start: new Date(2025, 6, 13, 8, 0),  // July 13, 2025 8:00 AM
+    end: new Date(2025, 6, 13, 17, 0),   // July 13, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 14,
+    title: "Inspection",
+    start: new Date(2025, 6, 15, 10, 0), // July 15, 2025 10:00 AM
+    end: new Date(2025, 6, 15, 12, 0),   // July 15, 2025 12:00 PM
+    resource: "inspection"
+  },
+  {
+    id: 15,
+    title: "Material order",
+    start: new Date(2025, 6, 28, 14, 0), // July 28, 2025 2:00 PM
+    end: new Date(2025, 6, 28, 15, 0),   // July 28, 2025 3:00 PM
+    resource: "order"
   }
 ];
 
 const mockLogs: Record<string, { title: string; details: string }[]> = {
+  "2025-07-01": [
+    {
+      title: "Site cleared",
+      details: "Site preparation completed. All debris removed and ground leveled.",
+    },
+    { title: "Weather", details: "Cloudy, 22°C. Light rain in the afternoon." },
+    { title: "Equipment", details: "Excavator and bulldozer on site." },
+  ],
+  "2025-07-02": [
+    {
+      title: "Surveying",
+      details: "Land surveyor completed boundary marking and elevation checks.",
+    },
+    { title: "Weather", details: "Partly cloudy, 24°C." },
+    { title: "Team Meeting", details: "Daily briefing with construction crew at 7:00 AM." },
+    { title: "Permit Review", details: "Building permits reviewed and approved by city inspector." },
+    { title: "Site Access", details: "Temporary access road completed for heavy equipment." },
+    { title: "Utilities", details: "Utility lines marked and verified with city utilities department." },
+    { title: "Safety Setup", details: "Construction barriers and safety signage installed around perimeter." },
+    { title: "Equipment Check", details: "All surveying equipment calibrated and GPS coordinates verified." },
+  ],
+  "2025-07-03": [
+    {
+      title: "Foundation prep",
+      details: "Excavation started for foundation. Marked utility lines.",
+    },
+    { title: "Weather", details: "Sunny, 26°C. Perfect working conditions." },
+    { title: "Safety", details: "Safety inspection completed. All workers equipped with PPE." },
+  ],
+  "2025-07-04": [
+    {
+      title: "Holiday",
+      details: "No work scheduled - Independence Day holiday.",
+    },
+    { title: "Security", details: "Security guard on site for equipment protection." },
+  ],
   "2025-07-05": [
     {
       title: "Concrete delivered",
       details: "50 cubic meters delivered at 8:00 AM.",
     },
     { title: "Weather", details: "Sunny, 28°C." },
+    { title: "Foundation work", details: "Foundation forms set up and reinforcement placed." },
+    { title: "Quality Control", details: "Concrete samples taken for compression testing." },
+    { title: "Rebar Installation", details: "Steel reinforcement bars positioned according to structural plans." },
+    { title: "Form Inspection", details: "Foundation forms inspected and approved by structural engineer." },
+    { title: "Concrete Testing", details: "Slump test performed - concrete meets specifications." },
+    { title: "Pump Setup", details: "Concrete pump positioned and hoses laid out for efficient pour." },
+    { title: "Crew Briefing", details: "Pour sequence and safety procedures reviewed with concrete crew." },
+    { title: "Tools Ready", details: "Vibrators, floats, and finishing tools prepared for tomorrow's pour." },
+  ],
+  "2025-07-06": [
+    {
+      title: "Foundation pour",
+      details: "Foundation concrete poured. Quality control tests completed.",
+    },
+    { title: "Weather", details: "Hot and sunny, 32°C." },
+    { title: "Inspection", details: "Building inspector approved foundation work." },
+  ],
+  "2025-07-07": [
+    {
+      title: "Curing process",
+      details: "Foundation curing in progress. Water applied for proper hydration.",
+    },
+    { title: "Weather", details: "Sunny, 30°C. High humidity." },
+    { title: "Material delivery", details: "Lumber delivery scheduled for tomorrow." },
+    { title: "Foundation Inspection", details: "Foundation cure monitored - 72 hours complete, strength developing well." },
+    { title: "Lumber Prep", details: "Lumber order verified and delivery truck access route planned." },
+    { title: "Site Organization", details: "Material storage areas cleared and organized for incoming lumber." },
+    { title: "Form Removal", details: "Foundation forms partially removed - concrete surface looks excellent." },
+    { title: "Waterproofing", details: "Foundation waterproofing membrane applied to exterior walls." },
+    { title: "Backfill Prep", details: "Backfill material tested and approved for compaction requirements." },
+    { title: "Next Phase Planning", details: "Framing crew scheduled and tools/equipment inventory completed." },
+    { title: "Quality Check", details: "Foundation dimensions verified against architectural plans - all within tolerance." },
+  ],
+  "2025-07-08": [
+    {
+      title: "Lumber delivery",
+      details: "Framing lumber delivered and organized on site.",
+    },
+    { title: "Weather", details: "Overcast, 25°C." },
+    { title: "Preparation", details: "Tools and equipment prepared for framing work." },
+  ],
+  "2025-07-09": [
+    {
+      title: "Framing start",
+      details: "Wall framing begun. First floor walls erected.",
+    },
+    { title: "Weather", details: "Light rain, 23°C. Work continued under tarps." },
+    { title: "Progress", details: "30% of first floor framing completed." },
+  ],
+  "2025-07-10": [
+    {
+      title: "Framing continued",
+      details: "Second floor framing started. Roof trusses delivered.",
+    },
+    { title: "Weather", details: "Clearing up, 27°C." },
+    { title: "Quality check", details: "Structural engineer reviewed framing work." },
+  ],
+  "2025-07-11": [
+    {
+      title: "Foundation started",
+      details: "Foundation work officially signed off and approved.",
+    },
+    { title: "Weather", details: "Sunny, 29°C." },
+    { title: "Roof prep", details: "Roof trusses positioned and ready for installation." },
+  ],
+  "2025-07-12": [
+    {
+      title: "Roof installation",
+      details: "Roof trusses installed. Sheathing work begun.",
+    },
+    { title: "Weather", details: "Partly cloudy, 26°C. Light breeze." },
+    { title: "Safety meeting", details: "Height safety briefing conducted for roof work." },
+  ],
+  "2025-07-13": [
+    {
+      title: "Roofing progress",
+      details: "Roof sheathing 70% complete. Preparing for shingle installation.",
+    },
+    { title: "Weather", details: "Sunny, 31°C. Excellent conditions." },
+    { title: "Material order", details: "Roofing materials and gutters ordered for next week." },
   ],
   "2025-07-15": [
     { title: "Inspection", details: "Passed all safety checks." },
