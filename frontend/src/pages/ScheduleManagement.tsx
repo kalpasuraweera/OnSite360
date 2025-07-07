@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MdCalendarToday,
   MdTimeline,
@@ -18,6 +18,7 @@ import {
 import { Calendar, momentLocalizer, type View } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '../styles/gantt.css';
 
 // Set up the localizer
 const localizer = momentLocalizer(moment);
@@ -109,16 +110,96 @@ const mockProjects = [
 
 type ScheduleTab = "gantt" | "timeline" | "calendar" | "logs";
 
-// Mock schedule data
-const mockGantt = [
+// Define types for frappe-gantt
+interface GanttTask {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  progress: number;
+  dependencies?: string;
+  custom_class?: string;
+}
+
+interface GanttInstance {
+  change_view_mode: (mode: string) => void;
+  refresh: (tasks: GanttTask[]) => void;
+  [key: string]: unknown;
+}
+
+// Mock schedule data for frappe-gantt
+const mockGanttTasks: GanttTask[] = [
   {
-    task: "Site Preparation",
-    start: "2025-07-01",
-    end: "2025-07-10",
+    id: 'task1',
+    name: 'Site Preparation',
+    start: '2025-07-01',
+    end: '2025-07-10',
     progress: 100,
+    custom_class: 'bar-milestone'
   },
-  { task: "Foundation", start: "2025-07-11", end: "2025-07-25", progress: 80 },
-  { task: "Framing", start: "2025-07-26", end: "2025-08-10", progress: 30 },
+  {
+    id: 'task2',
+    name: 'Foundation',
+    start: '2025-07-11',
+    end: '2025-07-25',
+    progress: 80,
+    dependencies: 'task1',
+    custom_class: 'bar-progress'
+  },
+  {
+    id: 'task3',
+    name: 'Framing',
+    start: '2025-07-26',
+    end: '2025-08-10',
+    progress: 30,
+    dependencies: 'task2',
+    custom_class: 'bar-progress'
+  },
+  {
+    id: 'task4',
+    name: 'Roofing',
+    start: '2025-08-11',
+    end: '2025-08-20',
+    progress: 0,
+    dependencies: 'task3',
+    custom_class: 'bar-pending'
+  },
+  {
+    id: 'task5',
+    name: 'Electrical Work',
+    start: '2025-08-15',
+    end: '2025-08-30',
+    progress: 0,
+    dependencies: 'task4',
+    custom_class: 'bar-pending'
+  },
+  {
+    id: 'task6',
+    name: 'Plumbing',
+    start: '2025-08-20',
+    end: '2025-09-05',
+    progress: 0,
+    dependencies: 'task4',
+    custom_class: 'bar-pending'
+  },
+  {
+    id: 'task7',
+    name: 'Interior Finishing',
+    start: '2025-09-06',
+    end: '2025-09-20',
+    progress: 0,
+    dependencies: 'task5, task6',
+    custom_class: 'bar-pending'
+  },
+  {
+    id: 'task8',
+    name: 'Final Inspection',
+    start: '2025-09-21',
+    end: '2025-09-22',
+    progress: 0,
+    dependencies: 'task7',
+    custom_class: 'bar-milestone'
+  }
 ];
 
 const mockTimeline = [
@@ -380,6 +461,190 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
   ],
 };
 
+// GanttChart component using frappe-gantt
+const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
+  const ganttRef = useRef<HTMLDivElement>(null);
+  const ganttInstance = useRef<GanttInstance | null>(null);
+  const [viewMode, setViewMode] = useState('Day');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeGantt = async () => {
+      if (!ganttRef.current) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (!tasks.length) {
+        setIsLoading(false);
+        setError('No tasks available to display');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Import frappe-gantt dynamically
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = await import('frappe-gantt' as any);
+        
+        if (!mounted) return;
+
+        // Handle default export - frappe-gantt exports Gantt as default export
+        const GanttClass = module.default;
+        
+        if (!GanttClass) {
+          throw new Error('Gantt class not found in frappe-gantt module');
+        }
+        
+        // Destroy existing instance if it exists
+        if (ganttInstance.current) {
+          ganttInstance.current = null;
+        }
+        
+        // Clear the container
+        if (ganttRef.current) {
+          ganttRef.current.innerHTML = '';
+        }
+        
+        // Create new Gantt instance with div container
+        if (ganttRef.current && GanttClass) {
+          ganttInstance.current = new GanttClass(ganttRef.current, tasks, {
+            header_height: 50,
+            column_width: 30,
+            step: 24,
+            bar_height: 20,
+            bar_corner_radius: 3,
+            arrow_curve: 5,
+            padding: 18,
+            view_mode: viewMode,
+            date_format: 'YYYY-MM-DD',
+            language: 'en',
+            custom_popup_html: null,
+          }) as GanttInstance;
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load frappe-gantt:', error);
+        setError('Failed to load Gantt chart. Please try refreshing the page.');
+        setIsLoading(false);
+      }
+    };
+
+    initializeGantt();
+
+    return () => {
+      mounted = false;
+      if (ganttInstance.current) {
+        ganttInstance.current = null;
+      }
+    };
+  }, [tasks, viewMode]);
+
+  const handleViewModeChange = (mode: string) => {
+    setViewMode(mode);
+    if (ganttInstance.current && ganttInstance.current.change_view_mode) {
+      ganttInstance.current.change_view_mode(mode);
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="w-full">
+        <div className="flex flex-wrap gap-2 mb-4">
+          {['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'].map((mode) => (
+            <button
+              key={mode}
+              onClick={() => handleViewModeChange(mode)}
+              className={`btn btn-sm ${
+                viewMode === mode ? 'btn-primary' : 'btn-outline'
+              }`}
+              disabled
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+        {error === 'No tasks available to display' ? (
+          <div className="text-center py-12">
+            <div className="text-6xl text-base-content/20 mb-4">📊</div>
+            <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+              No tasks to display
+            </h3>
+            <p className="text-base-content/50">
+              Add some tasks to see them in the Gantt chart
+            </p>
+          </div>
+        ) : (
+          <div className="alert alert-error">
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      {/* View Mode Controls */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'].map((mode) => (
+          <button
+            key={mode}
+            onClick={() => handleViewModeChange(mode)}
+            className={`btn btn-sm ${
+              viewMode === mode ? 'btn-primary' : 'btn-outline'
+            }`}
+            disabled={isLoading}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+
+      {/* Gantt Chart Container */}
+      <div className="relative w-full overflow-x-auto border border-base-300 rounded-lg" style={{ minHeight: '400px' }}>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+            <div className="loading loading-spinner loading-lg"></div>
+            <span className="ml-2">Loading Gantt chart...</span>
+          </div>
+        )}
+        <div 
+          ref={ganttRef}
+          className="gantt-target w-full h-full"
+          style={{ minHeight: '400px' }}
+        />
+      </div>
+      
+      {/* Legend */}
+      <div className="mt-4 flex flex-wrap gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
+          <span>Completed</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-500 rounded"></div>
+          <span>In Progress</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-gray-400 rounded"></div>
+          <span>Pending</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+          <span>Milestone</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ScheduleManagement = () => {
   const [activeTab, setActiveTab] = useState<ScheduleTab>("gantt");
   const [selectedProject, setSelectedProject] = useState<string>(
@@ -460,37 +725,8 @@ const ScheduleManagement = () => {
           {/* Gantt Chart */}
           {activeTab === "gantt" && (
             <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-4">Gantt Chart (Mock)</h2>
-              <div className="overflow-x-auto">
-                <table className="table w-full">
-                  <thead>
-                    <tr>
-                      <th>Task</th>
-                      <th>Start</th>
-                      <th>End</th>
-                      <th>Progress</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockGantt.map((row, idx) => (
-                      <tr key={idx}>
-                        <td>{row.task}</td>
-                        <td>{row.start}</td>
-                        <td>{row.end}</td>
-                        <td>
-                          <div className="w-40 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-primary h-2 rounded-full"
-                              style={{ width: `${row.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="ml-2 text-xs">{row.progress}%</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <h2 className="text-xl font-semibold mb-4">Project Gantt Chart</h2>
+              <GanttChart tasks={mockGanttTasks} />
             </div>
           )}
 
