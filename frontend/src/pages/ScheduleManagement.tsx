@@ -5,6 +5,56 @@ import {
   MdViewList,
   MdBarChart,
 } from "react-icons/md";
+import { Calendar, momentLocalizer, type View } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+// Set up the localizer
+const localizer = momentLocalizer(moment);
+
+// Custom styles for react-big-calendar
+const calendarStyle = {
+  height: '100%',
+  fontFamily: 'inherit',
+} as const;
+
+const eventStyleGetter = (event: { resource: string }) => {
+  let backgroundColor = '#3174ad';
+  let borderColor = '#3174ad';
+  
+  // Color code events by resource type
+  switch (event.resource) {
+    case 'delivery':
+      backgroundColor = '#10b981'; // green
+      borderColor = '#10b981';
+      break;
+    case 'inspection':
+      backgroundColor = '#f59e0b'; // yellow
+      borderColor = '#f59e0b';
+      break;
+    case 'order':
+      backgroundColor = '#ef4444'; // red
+      borderColor = '#ef4444';
+      break;
+    case 'milestone':
+      backgroundColor = '#8b5cf6'; // purple
+      borderColor = '#8b5cf6';
+      break;
+    default:
+      backgroundColor = '#3174ad'; // blue
+      borderColor = '#3174ad';
+  }
+  
+  return {
+    style: {
+      backgroundColor,
+      borderColor,
+      color: 'white',
+      border: '1px solid ' + borderColor,
+      borderRadius: '4px',
+    }
+  };
+};
 
 // Mock projects
 const mockProjects = [
@@ -19,40 +69,79 @@ type ScheduleTab = "gantt" | "timeline" | "calendar" | "logs";
 const mockGantt = [
   {
     task: "Site Preparation",
-    start: "2024-07-01",
-    end: "2024-07-10",
+    start: "2025-07-01",
+    end: "2025-07-10",
     progress: 100,
   },
-  { task: "Foundation", start: "2024-07-11", end: "2024-07-25", progress: 80 },
-  { task: "Framing", start: "2024-07-26", end: "2024-08-10", progress: 30 },
+  { task: "Foundation", start: "2025-07-11", end: "2025-07-25", progress: 80 },
+  { task: "Framing", start: "2025-07-26", end: "2025-08-10", progress: 30 },
 ];
 
 const mockTimeline = [
-  { date: "2024-07-01", event: "Site cleared" },
-  { date: "2024-07-11", event: "Foundation started" },
-  { date: "2024-07-20", event: "First inspection" },
-  { date: "2024-07-26", event: "Framing started" },
+  { date: "2025-07-01", event: "Site cleared" },
+  { date: "2025-07-11", event: "Foundation started" },
+  { date: "2025-07-20", event: "First inspection" },
+  { date: "2025-07-26", event: "Framing started" },
 ];
 
 const mockCalendar = [
-  { date: "2024-07-05", event: "Concrete delivery" },
-  { date: "2024-07-15", event: "Inspection" },
-  { date: "2024-07-28", event: "Material order" },
+  {
+    id: 1,
+    title: "Concrete delivery",
+    start: new Date(2025, 6, 5, 8, 0), // July 5, 2025 8:00 AM
+    end: new Date(2025, 6, 5, 9, 0),   // July 5, 2025 9:00 AM
+    resource: "delivery"
+  },
+  {
+    id: 2,
+    title: "Inspection",
+    start: new Date(2025, 6, 15, 10, 0), // July 15, 2025 10:00 AM
+    end: new Date(2025, 6, 15, 12, 0),   // July 15, 2025 12:00 PM
+    resource: "inspection"
+  },
+  {
+    id: 3,
+    title: "Material order",
+    start: new Date(2025, 6, 28, 14, 0), // July 28, 2025 2:00 PM
+    end: new Date(2025, 6, 28, 15, 0),   // July 28, 2025 3:00 PM
+    resource: "order"
+  },
+  {
+    id: 4,
+    title: "Site cleared",
+    start: new Date(2025, 6, 1, 9, 0),   // July 1, 2025 9:00 AM
+    end: new Date(2025, 6, 1, 17, 0),    // July 1, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 5,
+    title: "Foundation started",
+    start: new Date(2025, 6, 11, 8, 0),  // July 11, 2025 8:00 AM
+    end: new Date(2025, 6, 11, 17, 0),   // July 11, 2025 5:00 PM
+    resource: "milestone"
+  },
+  {
+    id: 6,
+    title: "Framing started",
+    start: new Date(2025, 6, 26, 8, 0),  // July 26, 2025 8:00 AM
+    end: new Date(2025, 6, 26, 17, 0),   // July 26, 2025 5:00 PM
+    resource: "milestone"
+  }
 ];
 
 const mockLogs: Record<string, { title: string; details: string }[]> = {
-  "2024-07-05": [
+  "2025-07-05": [
     {
       title: "Concrete delivered",
       details: "50 cubic meters delivered at 8:00 AM.",
     },
     { title: "Weather", details: "Sunny, 28°C." },
   ],
-  "2024-07-15": [
+  "2025-07-15": [
     { title: "Inspection", details: "Passed all safety checks." },
     { title: "Notes", details: "Minor delay due to equipment maintenance." },
   ],
-  "2024-07-28": [
+  "2025-07-28": [
     { title: "Material order", details: "Steel beams ordered for next phase." },
   ],
 };
@@ -63,6 +152,8 @@ const ScheduleManagement = () => {
     mockProjects[0].id
   );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentView, setCurrentView] = useState<View>('month');
 
   // Filtered data by project (mock: all data shown for all projects)
   // In real app, filter by selectedProject
@@ -197,31 +288,70 @@ const ScheduleManagement = () => {
           {activeTab === "calendar" && (
             <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
               <h2 className="text-xl font-semibold mb-4">Project Calendar</h2>
-              <div className="grid grid-cols-7 gap-2 mb-4">
-                {Array.from({ length: 31 }, (_, i) => {
-                  const date = `2024-07-${(i + 1).toString().padStart(2, "0")}`;
-                  const event = mockCalendar.find((e) => e.date === date);
-                  return (
-                    <div
-                      key={date}
-                      className={`border rounded-lg p-2 text-center cursor-pointer ${
-                        event ? "bg-primary/10 border-primary" : "bg-base-200"
-                      } ${selectedDate === date ? "ring-2 ring-primary" : ""}`}
-                      onClick={() => {
-                        setSelectedDate(date);
-                        setActiveTab("logs");
-                      }}
-                    >
-                      <div className="font-bold">{i + 1}</div>
-                      {event && (
-                        <div className="text-xs mt-1">{event.event}</div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div style={{ height: '600px' }}>
+                <Calendar
+                  localizer={localizer}
+                  events={mockCalendar}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={calendarStyle}
+                  eventPropGetter={eventStyleGetter}
+                  date={currentDate}
+                  onNavigate={(newDate) => setCurrentDate(newDate)}
+                  view={currentView}
+                  onView={(newView) => setCurrentView(newView)}
+                  onSelectEvent={(event) => {
+                    // Convert the event date to the format expected by logs
+                    const dateString = moment(event.start).format('YYYY-MM-DD');
+                    setSelectedDate(dateString);
+                    setActiveTab("logs");
+                  }}
+                  onSelectSlot={(slotInfo) => {
+                    // Handle clicking on empty slots
+                    const dateString = moment(slotInfo.start).format('YYYY-MM-DD');
+                    setSelectedDate(dateString);
+                    setActiveTab("logs");
+                  }}
+                  selectable
+                  popup
+                  views={['month', 'week', 'day', 'agenda']}
+                  step={30}
+                  showMultiDayTimes
+                  formats={{
+                    dateFormat: 'D',
+                    dayFormat: 'ddd D',
+                    weekdayFormat: 'ddd',
+                    monthHeaderFormat: 'MMMM YYYY',
+                    dayHeaderFormat: 'dddd, MMMM D',
+                    dayRangeHeaderFormat: ({ start, end }) => 
+                      `${moment(start).format('MMMM D')} - ${moment(end).format('MMMM D, YYYY')}`,
+                    agendaDateFormat: 'ddd, MMM D',
+                    agendaTimeFormat: 'h:mm A',
+                    agendaTimeRangeFormat: ({ start, end }) => 
+                      `${moment(start).format('h:mm A')} - ${moment(end).format('h:mm A')}`,
+                  }}
+                />
               </div>
-              <div className="text-xs text-gray-500">
-                Click a date to view logs.
+              <div className="text-xs text-gray-500 mt-2">
+                Click on an event or date to view logs for that day.
+              </div>
+              <div className="mt-4 flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded"></div>
+                  <span className="text-sm">Deliveries</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                  <span className="text-sm">Inspections</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded"></div>
+                  <span className="text-sm">Orders</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                  <span className="text-sm">Milestones</span>
+                </div>
               </div>
             </div>
           )}
