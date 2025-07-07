@@ -16,7 +16,7 @@ export class ProjectsService {
 
   // Create a new project
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    const { manager, ...projectData } = createProjectDto;
+    const { users, ...projectData } = createProjectDto;
 
     return this.prisma.project.create({
       data: {
@@ -28,16 +28,17 @@ export class ProjectsService {
           ? new Date(projectData.endDate)
           : undefined,
         coordinates: projectData.coordinates || undefined,
-        userProjects: manager
-          ? {
-              create: {
-                userId: manager,
-                projectRole: 'Project Manager',
-                accessLevel: 3, // Admin level
-                isActive: true,
-              },
-            }
-          : undefined,
+        userProjects:
+          users && users.length > 0
+            ? {
+                create: users.map((user) => ({
+                  userId: user.userId,
+                  projectRole: user.projectRole || 'Worker',
+                  accessLevel: user.accessLevel || 1,
+                  isActive: true,
+                })),
+              }
+            : undefined,
       },
       include: {
         userProjects: {
@@ -172,7 +173,7 @@ export class ProjectsService {
     id: string,
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
-    const { manager, ...projectData } = updateProjectDto;
+    const { users, ...projectData } = updateProjectDto;
 
     // Check if project exists
     const existingProject = await this.prisma.project.findUnique({
@@ -192,44 +193,59 @@ export class ProjectsService {
       coordinates: projectData.coordinates || undefined,
     };
 
-    // If manager is provided, handle manager assignment separately
-    if (manager) {
-      // Check if manager exists
-      const managerUser = await this.prisma.user.findUnique({
-        where: { id: manager },
+    // Update the project first
+    await this.prisma.project.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // If users are provided, handle user assignments
+    if (users && users.length > 0) {
+      // Validate all users exist
+      const userIds = users.map((u) => u.userId);
+      const existingUsers = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true },
       });
 
-      if (!managerUser) {
-        throw new NotFoundException(`User with ID ${manager} not found`);
+      const existingUserIds = existingUsers.map((u) => u.id);
+      const missingUsers = userIds.filter(
+        (id) => !existingUserIds.includes(id),
+      );
+
+      if (missingUsers.length > 0) {
+        throw new NotFoundException(
+          `Users with IDs ${missingUsers.join(', ')} not found`,
+        );
       }
 
-      // Check if manager is already assigned to this project
-      const existingAssignment = await this.prisma.userProject.findUnique({
-        where: {
-          userId_projectId: {
-            userId: manager,
-            projectId: id,
-          },
-        },
-      });
-
-      if (!existingAssignment) {
-        // Assign manager to project
-        await this.prisma.userProject.create({
-          data: {
-            userId: manager,
-            projectId: id,
-            projectRole: 'Project Manager',
-            accessLevel: 3, // Admin level
-            isActive: true,
+      // Create user assignments for users not already assigned
+      for (const user of users) {
+        const existingAssignment = await this.prisma.userProject.findUnique({
+          where: {
+            userId_projectId: {
+              userId: user.userId,
+              projectId: id,
+            },
           },
         });
+
+        if (!existingAssignment) {
+          await this.prisma.userProject.create({
+            data: {
+              userId: user.userId,
+              projectId: id,
+              projectRole: user.projectRole || 'Worker',
+              accessLevel: user.accessLevel || 1,
+              isActive: true,
+            },
+          });
+        }
       }
     }
 
-    return this.prisma.project.update({
+    const result = await this.prisma.project.findUnique({
       where: { id },
-      data: updateData,
       include: {
         userProjects: {
           include: {
@@ -245,6 +261,12 @@ export class ProjectsService {
         },
       },
     });
+
+    if (!result) {
+      throw new NotFoundException(`Project with ID ${id} not found`);
+    }
+
+    return result;
   }
 
   // Delete a project

@@ -6,7 +6,10 @@ import {
   IsNumber,
   IsObject,
   IsUrl,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProjectDto {
   @IsString()
@@ -53,7 +56,23 @@ export class CreateProjectDto {
   @IsOptional()
   endDate?: string;
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ProjectUserDto)
+  users?: ProjectUserDto[]; // Array of users to assign to the project
+}
+
+export class ProjectUserDto {
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
   @IsString()
   @IsOptional()
-  manager?: string; // User ID of the project manager
+  projectRole?: string; // e.g., "Project Manager", "Worker", "Supervisor"
+
+  @IsNumber()
+  @IsOptional()
+  accessLevel?: number; // 1-3, defaults to 1
 }
