@@ -186,6 +186,6 @@ export class CommunicationController {
   @Get('rfis/:id')
   @ApiBearerAuth()
   async getRFI(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-   
+    return this.communicationService.getRFI(id, req.user.sub);
   }
 }

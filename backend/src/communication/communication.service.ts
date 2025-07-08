@@ -546,6 +546,70 @@ export class CommunicationService {
     });
   }
 
+  // Get a single RFI (with access control)
+  async getRFI(rfiId: string, userId: string) {
+    const rfi = await this.prisma.rFI.findFirst({
+      where: {
+        id: rfiId,
+        OR: [
+          { requestedById: userId },
+          {
+            assignees: {
+              some: {
+                id: userId,
+              },
+            },
+          },
+          {
+            thread: {
+              users: {
+                some: {
+                  id: userId,
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        requester: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        thread: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!rfi) {
+      throw new NotFoundException('RFI not found or access denied');
+    }
+
+    return rfi;
+  }
+
   // Update RFI (only requester, assignee, or thread participant can update)
   async updateRFI(rfiId: string, updateRFIDto: UpdateRFIDto, userId: string) {
     // First, find the RFI and check access
