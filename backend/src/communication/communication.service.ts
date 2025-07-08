@@ -526,8 +526,8 @@ export class CommunicationService {
         projectId: thread.projectId,
         requestedById: userId,
         assignees: {
-          connect: createRFIDto.assigneeIds
-            ? createRFIDto.assigneeIds.map((id) => ({ id }))
+          connect: createRFIDto.assignedToIds
+            ? createRFIDto.assignedToIds.map((id) => ({ id }))
             : [],
         },
         category: createRFIDto.category || 'General',

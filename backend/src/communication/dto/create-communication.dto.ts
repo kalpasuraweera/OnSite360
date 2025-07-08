@@ -59,5 +59,5 @@ export class CreateRFIDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   @IsOptional()
-  assigneeIds?: string[];
+  assignedToIds?: string[];
 }
