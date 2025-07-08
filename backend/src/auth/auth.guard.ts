@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { JwtPayload } from './types/auth.types';
+import { Request as ExpressRequest } from 'express';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -55,4 +56,12 @@ export class AuthGuard implements CanActivate {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
+}
+
+export interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    sub: string;
+    email: string;
+    [key: string]: any;
+  };
 }

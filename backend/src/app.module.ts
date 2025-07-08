@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
+import { CommunicationModule } from './communication/communication.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { RolesModule } from './roles/roles.module';
     PrismaModule,
     PermissionsModule,
     RolesModule,
+    CommunicationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
