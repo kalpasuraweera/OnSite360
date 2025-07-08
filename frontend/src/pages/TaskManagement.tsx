@@ -290,50 +290,100 @@ const TaskManagement = () => {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold">Task Management</h1>
-      <p className="text-gray-500 mt-1">
-        Manage all project tasks: site work, procurement, inspections, handover,
-        and custom tasks.
-      </p>
-      {/* Task view selection */}
-      <div className="flex items-center justify-end mb-1">
-        <div className="flex gap-4 items-center">
-          <div className="flex gap-2">
-            <button
-              className={`btn btn-sm ${
-                viewMode === "kanban" ? "btn-primary" : "btn-outline"
-              }`}
-              onClick={() => setViewMode("kanban")}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Task Management</h1>
+          <p className="text-gray-500 mt-1">
+            Manage all project tasks: site work, procurement, inspections,
+            handover, and custom tasks.
+          </p>
+        </div>
+        {/* Task view selection */}
+        <div className="flex items-center justify-end mb-1">
+          <div className="flex gap-4 items-center">
+            <div className="flex gap-2">
+              <button
+                className={`btn btn-sm ${
+                  viewMode === "kanban" ? "btn-primary" : "btn-outline"
+                }`}
+                onClick={() => setViewMode("kanban")}
+              >
+                <MdViewColumn />
+                Kanban
+              </button>
+              <button
+                className={`btn btn-sm ${
+                  viewMode === "table" ? "btn-primary" : "btn-outline"
+                }`}
+                onClick={() => setViewMode("table")}
+              >
+                <MdViewList />
+                Table
+              </button>
+            </div>
+            <select
+              className="select select-bordered"
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
             >
-              <MdViewColumn />
-              Kanban
-            </button>
-            <button
-              className={`btn btn-sm ${
-                viewMode === "table" ? "btn-primary" : "btn-outline"
-              }`}
-              onClick={() => setViewMode("table")}
-            >
-              <MdViewList />
-              Table
-            </button>
+              {mockProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            className="select select-bordered"
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
-          >
-            {mockProjects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+        </div>
+      </div>
+
+      {/* Summary Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+        <div className="p-5 bg-base-200 rounded-xl border border-base-300">
+          <div className="font-semibold">Total Tasks</div>
+          <div className="stat-value text-primary">
+            {mockTasks.filter((t) => t.projectId === selectedProject).length}
+          </div>
+          <div className="stat-desc">All types</div>
+        </div>
+        <div className="p-5 bg-base-200 rounded-xl border border-base-300">
+          <div className="font-semibold">Completed</div>
+          <div className="stat-value text-success">
+            {
+              mockTasks.filter(
+                (t) =>
+                  t.projectId === selectedProject && t.status === "Completed"
+              ).length
+            }
+          </div>
+          <div className="stat-desc">Done</div>
+        </div>
+        <div className="p-5 bg-base-200 rounded-xl border border-base-300">
+          <div className="font-semibold">In Progress</div>
+          <div className="stat-value text-warning">
+            {
+              mockTasks.filter(
+                (t) =>
+                  t.projectId === selectedProject && t.status === "In Progress"
+              ).length
+            }
+          </div>
+          <div className="stat-desc">Ongoing</div>
+        </div>
+        <div className="p-5 bg-base-200 rounded-xl border border-base-300">
+          <div className="font-semibold">Delayed</div>
+          <div className="stat-value text-error">
+            {
+              mockTasks.filter(
+                (t) => t.projectId === selectedProject && t.status === "Delayed"
+              ).length
+            }
+          </div>
+          <div className="stat-desc">Attention needed</div>
         </div>
       </div>
 
       {/* Tabs for task types */}
-      <div className="tabs tabs-border mb-4 mt-6">
+      <div className="tabs tabs-border mt-6">
         {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((type) => (
           <button
             key={type}
@@ -465,54 +515,6 @@ const TaskManagement = () => {
             </table>
           </div>
         )}
-
-        {/* Summary Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Total Tasks</div>
-            <div className="stat-value text-primary">
-              {mockTasks.filter((t) => t.projectId === selectedProject).length}
-            </div>
-            <div className="stat-desc">All types</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Completed</div>
-            <div className="stat-value text-success">
-              {
-                mockTasks.filter(
-                  (t) =>
-                    t.projectId === selectedProject && t.status === "Completed"
-                ).length
-              }
-            </div>
-            <div className="stat-desc">Done</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">In Progress</div>
-            <div className="stat-value text-warning">
-              {
-                mockTasks.filter(
-                  (t) =>
-                    t.projectId === selectedProject &&
-                    t.status === "In Progress"
-                ).length
-              }
-            </div>
-            <div className="stat-desc">Ongoing</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Delayed</div>
-            <div className="stat-value text-error">
-              {
-                mockTasks.filter(
-                  (t) =>
-                    t.projectId === selectedProject && t.status === "Delayed"
-                ).length
-              }
-            </div>
-            <div className="stat-desc">Attention needed</div>
-          </div>
-        </div>
       </div>
     </div>
   );
