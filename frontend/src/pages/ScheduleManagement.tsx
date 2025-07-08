@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   MdCalendarToday,
   MdTimeline,
-  MdViewList,
-  MdBarChart,
   MdConstruction,
   MdWbSunny,
   MdGroup,
@@ -15,90 +13,141 @@ import {
   MdAssignment,
   MdSchedule,
 } from "react-icons/md";
-import { Calendar, momentLocalizer, type View } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../styles/gantt.css';
+import { Calendar, momentLocalizer, type View } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "../styles/gantt.css";
 
 // Set up the localizer
 const localizer = momentLocalizer(moment);
 
 // Custom styles for react-big-calendar
 const calendarStyle = {
-  height: '100%',
-  fontFamily: 'inherit',
+  height: "100%",
+  fontFamily: "inherit",
 } as const;
 
 const eventStyleGetter = (event: { resource: string }) => {
-  let backgroundColor = '#3174ad';
-  let borderColor = '#3174ad';
-  
+  let backgroundColor = "#3174ad";
+  let borderColor = "#3174ad";
+
   // Color code events by resource type
   switch (event.resource) {
-    case 'delivery':
-      backgroundColor = '#10b981'; // green
-      borderColor = '#10b981';
+    case "delivery":
+      backgroundColor = "#10b981"; // green
+      borderColor = "#10b981";
       break;
-    case 'inspection':
-      backgroundColor = '#f59e0b'; // yellow
-      borderColor = '#f59e0b';
+    case "inspection":
+      backgroundColor = "#f59e0b"; // yellow
+      borderColor = "#f59e0b";
       break;
-    case 'order':
-      backgroundColor = '#ef4444'; // red
-      borderColor = '#ef4444';
+    case "order":
+      backgroundColor = "#ef4444"; // red
+      borderColor = "#ef4444";
       break;
-    case 'milestone':
-      backgroundColor = '#8b5cf6'; // purple
-      borderColor = '#8b5cf6';
+    case "milestone":
+      backgroundColor = "#8b5cf6"; // purple
+      borderColor = "#8b5cf6";
       break;
     default:
-      backgroundColor = '#3174ad'; // blue
-      borderColor = '#3174ad';
+      backgroundColor = "#3174ad"; // blue
+      borderColor = "#3174ad";
   }
-  
+
   return {
     style: {
       backgroundColor,
       borderColor,
-      color: 'white',
-      border: '1px solid ' + borderColor,
-      borderRadius: '4px',
-    }
+      color: "white",
+      border: "1px solid " + borderColor,
+      borderRadius: "4px",
+    },
   };
 };
 
 // Helper function to get icon for log types
 const getLogIcon = (title: string) => {
   const lowerTitle = title.toLowerCase();
-  
-  if (lowerTitle.includes('weather')) return <MdWbSunny className="text-yellow-500" />;
-  if (lowerTitle.includes('delivery') || lowerTitle.includes('delivered')) return <MdLocalShipping className="text-green-500" />;
-  if (lowerTitle.includes('meeting') || lowerTitle.includes('briefing')) return <MdGroup className="text-blue-500" />;
-  if (lowerTitle.includes('safety') || lowerTitle.includes('security')) return <MdSecurity className="text-red-500" />;
-  if (lowerTitle.includes('inspection') || lowerTitle.includes('check') || lowerTitle.includes('quality')) return <MdCheckCircle className="text-green-600" />;
-  if (lowerTitle.includes('equipment') || lowerTitle.includes('tools') || lowerTitle.includes('prep')) return <MdBuild className="text-gray-600" />;
-  if (lowerTitle.includes('foundation') || lowerTitle.includes('framing') || lowerTitle.includes('construction') || lowerTitle.includes('installation')) return <MdConstruction className="text-orange-500" />;
-  if (lowerTitle.includes('order') || lowerTitle.includes('material') || lowerTitle.includes('planning')) return <MdAssignment className="text-purple-500" />;
-  if (lowerTitle.includes('holiday') || lowerTitle.includes('delay')) return <MdWarning className="text-amber-500" />;
-  
+
+  if (lowerTitle.includes("weather"))
+    return <MdWbSunny className="text-yellow-500" />;
+  if (lowerTitle.includes("delivery") || lowerTitle.includes("delivered"))
+    return <MdLocalShipping className="text-green-500" />;
+  if (lowerTitle.includes("meeting") || lowerTitle.includes("briefing"))
+    return <MdGroup className="text-blue-500" />;
+  if (lowerTitle.includes("safety") || lowerTitle.includes("security"))
+    return <MdSecurity className="text-red-500" />;
+  if (
+    lowerTitle.includes("inspection") ||
+    lowerTitle.includes("check") ||
+    lowerTitle.includes("quality")
+  )
+    return <MdCheckCircle className="text-green-600" />;
+  if (
+    lowerTitle.includes("equipment") ||
+    lowerTitle.includes("tools") ||
+    lowerTitle.includes("prep")
+  )
+    return <MdBuild className="text-gray-600" />;
+  if (
+    lowerTitle.includes("foundation") ||
+    lowerTitle.includes("framing") ||
+    lowerTitle.includes("construction") ||
+    lowerTitle.includes("installation")
+  )
+    return <MdConstruction className="text-orange-500" />;
+  if (
+    lowerTitle.includes("order") ||
+    lowerTitle.includes("material") ||
+    lowerTitle.includes("planning")
+  )
+    return <MdAssignment className="text-purple-500" />;
+  if (lowerTitle.includes("holiday") || lowerTitle.includes("delay"))
+    return <MdWarning className="text-amber-500" />;
+
   return <MdSchedule className="text-blue-400" />; // Default icon
 };
 
 // Helper function to get log category color
 const getLogCategoryColor = (title: string) => {
   const lowerTitle = title.toLowerCase();
-  
-  if (lowerTitle.includes('weather')) return 'bg-yellow-50 border-yellow-200';
-  if (lowerTitle.includes('delivery') || lowerTitle.includes('delivered')) return 'bg-green-50 border-green-200';
-  if (lowerTitle.includes('meeting') || lowerTitle.includes('briefing')) return 'bg-blue-50 border-blue-200';
-  if (lowerTitle.includes('safety') || lowerTitle.includes('security')) return 'bg-red-50 border-red-200';
-  if (lowerTitle.includes('inspection') || lowerTitle.includes('check') || lowerTitle.includes('quality')) return 'bg-emerald-50 border-emerald-200';
-  if (lowerTitle.includes('equipment') || lowerTitle.includes('tools') || lowerTitle.includes('prep')) return 'bg-gray-50 border-gray-200';
-  if (lowerTitle.includes('foundation') || lowerTitle.includes('framing') || lowerTitle.includes('construction') || lowerTitle.includes('installation')) return 'bg-orange-50 border-orange-200';
-  if (lowerTitle.includes('order') || lowerTitle.includes('material') || lowerTitle.includes('planning')) return 'bg-purple-50 border-purple-200';
-  if (lowerTitle.includes('holiday') || lowerTitle.includes('delay')) return 'bg-amber-50 border-amber-200';
-  
-  return 'bg-slate-50 border-slate-200'; // Default
+
+  if (lowerTitle.includes("weather")) return "bg-warning/5 border-warning/40";
+  if (lowerTitle.includes("delivery") || lowerTitle.includes("delivered"))
+    return "bg-success/5 border-success/40";
+  if (lowerTitle.includes("meeting") || lowerTitle.includes("briefing"))
+    return "bg-info/5 border-info/40";
+  if (lowerTitle.includes("safety") || lowerTitle.includes("security"))
+    return "bg-error/5 border-error/40";
+  if (
+    lowerTitle.includes("inspection") ||
+    lowerTitle.includes("check") ||
+    lowerTitle.includes("quality")
+  )
+    return "bg-success/5 border-success/40";
+  if (
+    lowerTitle.includes("equipment") ||
+    lowerTitle.includes("tools") ||
+    lowerTitle.includes("prep")
+  )
+    return "bg-info/5 border-info/40";
+  if (
+    lowerTitle.includes("foundation") ||
+    lowerTitle.includes("framing") ||
+    lowerTitle.includes("construction") ||
+    lowerTitle.includes("installation")
+  )
+    return "bg-warning/5 border-warning/40";
+  if (
+    lowerTitle.includes("order") ||
+    lowerTitle.includes("material") ||
+    lowerTitle.includes("planning")
+  )
+    return "bg-info/5 border-info/40";
+  if (lowerTitle.includes("holiday") || lowerTitle.includes("delay"))
+    return "bg-error/5 border-error/40";
+
+  return "bg-secondary/5 border-secondary/40"; // Default
 };
 
 // Mock projects
@@ -130,76 +179,76 @@ interface GanttInstance {
 // Mock schedule data for frappe-gantt
 const mockGanttTasks: GanttTask[] = [
   {
-    id: 'task1',
-    name: 'Site Preparation',
-    start: '2025-07-01',
-    end: '2025-07-10',
+    id: "task1",
+    name: "Site Preparation",
+    start: "2025-07-01",
+    end: "2025-07-10",
     progress: 100,
-    custom_class: 'bar-milestone'
+    custom_class: "bar-milestone",
   },
   {
-    id: 'task2',
-    name: 'Foundation',
-    start: '2025-07-11',
-    end: '2025-07-25',
+    id: "task2",
+    name: "Foundation",
+    start: "2025-07-11",
+    end: "2025-07-25",
     progress: 80,
-    dependencies: 'task1',
-    custom_class: 'bar-progress'
+    dependencies: "task1",
+    custom_class: "bar-progress",
   },
   {
-    id: 'task3',
-    name: 'Framing',
-    start: '2025-07-26',
-    end: '2025-08-10',
+    id: "task3",
+    name: "Framing",
+    start: "2025-07-26",
+    end: "2025-08-10",
     progress: 30,
-    dependencies: 'task2',
-    custom_class: 'bar-progress'
+    dependencies: "task2",
+    custom_class: "bar-progress",
   },
   {
-    id: 'task4',
-    name: 'Roofing',
-    start: '2025-08-11',
-    end: '2025-08-20',
+    id: "task4",
+    name: "Roofing",
+    start: "2025-08-11",
+    end: "2025-08-20",
     progress: 0,
-    dependencies: 'task3',
-    custom_class: 'bar-pending'
+    dependencies: "task3",
+    custom_class: "bar-pending",
   },
   {
-    id: 'task5',
-    name: 'Electrical Work',
-    start: '2025-08-15',
-    end: '2025-08-30',
+    id: "task5",
+    name: "Electrical Work",
+    start: "2025-08-15",
+    end: "2025-08-30",
     progress: 0,
-    dependencies: 'task4',
-    custom_class: 'bar-pending'
+    dependencies: "task4",
+    custom_class: "bar-pending",
   },
   {
-    id: 'task6',
-    name: 'Plumbing',
-    start: '2025-08-20',
-    end: '2025-09-05',
+    id: "task6",
+    name: "Plumbing",
+    start: "2025-08-20",
+    end: "2025-09-05",
     progress: 0,
-    dependencies: 'task4',
-    custom_class: 'bar-pending'
+    dependencies: "task4",
+    custom_class: "bar-pending",
   },
   {
-    id: 'task7',
-    name: 'Interior Finishing',
-    start: '2025-09-06',
-    end: '2025-09-20',
+    id: "task7",
+    name: "Interior Finishing",
+    start: "2025-09-06",
+    end: "2025-09-20",
     progress: 0,
-    dependencies: 'task5, task6',
-    custom_class: 'bar-pending'
+    dependencies: "task5, task6",
+    custom_class: "bar-pending",
   },
   {
-    id: 'task8',
-    name: 'Final Inspection',
-    start: '2025-09-21',
-    end: '2025-09-22',
+    id: "task8",
+    name: "Final Inspection",
+    start: "2025-09-21",
+    end: "2025-09-22",
     progress: 0,
-    dependencies: 'task7',
-    custom_class: 'bar-milestone'
-  }
+    dependencies: "task7",
+    custom_class: "bar-milestone",
+  },
 ];
 
 const mockTimeline = [
@@ -224,115 +273,116 @@ const mockCalendar = [
   {
     id: 1,
     title: "Site cleared",
-    start: new Date(2025, 6, 1, 9, 0),   // July 1, 2025 9:00 AM
-    end: new Date(2025, 6, 1, 17, 0),    // July 1, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 1, 9, 0), // July 1, 2025 9:00 AM
+    end: new Date(2025, 6, 1, 17, 0), // July 1, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 2,
     title: "Land surveying",
-    start: new Date(2025, 6, 2, 8, 0),   // July 2, 2025 8:00 AM
-    end: new Date(2025, 6, 2, 12, 0),    // July 2, 2025 12:00 PM
-    resource: "inspection"
+    start: new Date(2025, 6, 2, 8, 0), // July 2, 2025 8:00 AM
+    end: new Date(2025, 6, 2, 12, 0), // July 2, 2025 12:00 PM
+    resource: "inspection",
   },
   {
     id: 3,
     title: "Foundation prep",
-    start: new Date(2025, 6, 3, 8, 0),   // July 3, 2025 8:00 AM
-    end: new Date(2025, 6, 3, 17, 0),    // July 3, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 3, 8, 0), // July 3, 2025 8:00 AM
+    end: new Date(2025, 6, 3, 17, 0), // July 3, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 4,
     title: "Holiday - No work",
-    start: new Date(2025, 6, 4, 0, 0),   // July 4, 2025 All day
-    end: new Date(2025, 6, 4, 23, 59),   // July 4, 2025 All day
-    resource: "milestone"
+    start: new Date(2025, 6, 4, 0, 0), // July 4, 2025 All day
+    end: new Date(2025, 6, 4, 23, 59), // July 4, 2025 All day
+    resource: "milestone",
   },
   {
     id: 5,
     title: "Concrete delivery",
-    start: new Date(2025, 6, 5, 8, 0),   // July 5, 2025 8:00 AM
-    end: new Date(2025, 6, 5, 9, 0),     // July 5, 2025 9:00 AM
-    resource: "delivery"
+    start: new Date(2025, 6, 5, 8, 0), // July 5, 2025 8:00 AM
+    end: new Date(2025, 6, 5, 9, 0), // July 5, 2025 9:00 AM
+    resource: "delivery",
   },
   {
     id: 6,
     title: "Foundation pour",
-    start: new Date(2025, 6, 6, 7, 0),   // July 6, 2025 7:00 AM
-    end: new Date(2025, 6, 6, 15, 0),    // July 6, 2025 3:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 6, 7, 0), // July 6, 2025 7:00 AM
+    end: new Date(2025, 6, 6, 15, 0), // July 6, 2025 3:00 PM
+    resource: "milestone",
   },
   {
     id: 7,
     title: "Foundation curing",
-    start: new Date(2025, 6, 7, 9, 0),   // July 7, 2025 9:00 AM
-    end: new Date(2025, 6, 7, 17, 0),    // July 7, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 7, 9, 0), // July 7, 2025 9:00 AM
+    end: new Date(2025, 6, 7, 17, 0), // July 7, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 8,
     title: "Lumber delivery",
-    start: new Date(2025, 6, 8, 10, 0),  // July 8, 2025 10:00 AM
-    end: new Date(2025, 6, 8, 11, 0),    // July 8, 2025 11:00 AM
-    resource: "delivery"
+    start: new Date(2025, 6, 8, 10, 0), // July 8, 2025 10:00 AM
+    end: new Date(2025, 6, 8, 11, 0), // July 8, 2025 11:00 AM
+    resource: "delivery",
   },
   {
     id: 9,
     title: "Framing start",
-    start: new Date(2025, 6, 9, 8, 0),   // July 9, 2025 8:00 AM
-    end: new Date(2025, 6, 9, 17, 0),    // July 9, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 9, 8, 0), // July 9, 2025 8:00 AM
+    end: new Date(2025, 6, 9, 17, 0), // July 9, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 10,
     title: "Framing continued",
-    start: new Date(2025, 6, 10, 8, 0),  // July 10, 2025 8:00 AM
-    end: new Date(2025, 6, 10, 17, 0),   // July 10, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 10, 8, 0), // July 10, 2025 8:00 AM
+    end: new Date(2025, 6, 10, 17, 0), // July 10, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 11,
     title: "Foundation started",
-    start: new Date(2025, 6, 11, 8, 0),  // July 11, 2025 8:00 AM
-    end: new Date(2025, 6, 11, 17, 0),   // July 11, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 11, 8, 0), // July 11, 2025 8:00 AM
+    end: new Date(2025, 6, 11, 17, 0), // July 11, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 12,
     title: "Roof installation",
-    start: new Date(2025, 6, 12, 7, 0),  // July 12, 2025 7:00 AM
-    end: new Date(2025, 6, 12, 16, 0),   // July 12, 2025 4:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 12, 7, 0), // July 12, 2025 7:00 AM
+    end: new Date(2025, 6, 12, 16, 0), // July 12, 2025 4:00 PM
+    resource: "milestone",
   },
   {
     id: 13,
     title: "Roofing progress",
-    start: new Date(2025, 6, 13, 8, 0),  // July 13, 2025 8:00 AM
-    end: new Date(2025, 6, 13, 17, 0),   // July 13, 2025 5:00 PM
-    resource: "milestone"
+    start: new Date(2025, 6, 13, 8, 0), // July 13, 2025 8:00 AM
+    end: new Date(2025, 6, 13, 17, 0), // July 13, 2025 5:00 PM
+    resource: "milestone",
   },
   {
     id: 14,
     title: "Inspection",
     start: new Date(2025, 6, 15, 10, 0), // July 15, 2025 10:00 AM
-    end: new Date(2025, 6, 15, 12, 0),   // July 15, 2025 12:00 PM
-    resource: "inspection"
+    end: new Date(2025, 6, 15, 12, 0), // July 15, 2025 12:00 PM
+    resource: "inspection",
   },
   {
     id: 15,
     title: "Material order",
     start: new Date(2025, 6, 28, 14, 0), // July 28, 2025 2:00 PM
-    end: new Date(2025, 6, 28, 15, 0),   // July 28, 2025 3:00 PM
-    resource: "order"
-  }
+    end: new Date(2025, 6, 28, 15, 0), // July 28, 2025 3:00 PM
+    resource: "order",
+  },
 ];
 
 const mockLogs: Record<string, { title: string; details: string }[]> = {
   "2025-07-01": [
     {
       title: "Site cleared",
-      details: "Site preparation completed. All debris removed and ground leveled.",
+      details:
+        "Site preparation completed. All debris removed and ground leveled.",
     },
     { title: "Weather", details: "Cloudy, 22°C. Light rain in the afternoon." },
     { title: "Equipment", details: "Excavator and bulldozer on site." },
@@ -343,12 +393,33 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Land surveyor completed boundary marking and elevation checks.",
     },
     { title: "Weather", details: "Partly cloudy, 24°C." },
-    { title: "Team Meeting", details: "Daily briefing with construction crew at 7:00 AM." },
-    { title: "Permit Review", details: "Building permits reviewed and approved by city inspector." },
-    { title: "Site Access", details: "Temporary access road completed for heavy equipment." },
-    { title: "Utilities", details: "Utility lines marked and verified with city utilities department." },
-    { title: "Safety Setup", details: "Construction barriers and safety signage installed around perimeter." },
-    { title: "Equipment Check", details: "All surveying equipment calibrated and GPS coordinates verified." },
+    {
+      title: "Team Meeting",
+      details: "Daily briefing with construction crew at 7:00 AM.",
+    },
+    {
+      title: "Permit Review",
+      details: "Building permits reviewed and approved by city inspector.",
+    },
+    {
+      title: "Site Access",
+      details: "Temporary access road completed for heavy equipment.",
+    },
+    {
+      title: "Utilities",
+      details:
+        "Utility lines marked and verified with city utilities department.",
+    },
+    {
+      title: "Safety Setup",
+      details:
+        "Construction barriers and safety signage installed around perimeter.",
+    },
+    {
+      title: "Equipment Check",
+      details:
+        "All surveying equipment calibrated and GPS coordinates verified.",
+    },
   ],
   "2025-07-03": [
     {
@@ -356,14 +427,20 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Excavation started for foundation. Marked utility lines.",
     },
     { title: "Weather", details: "Sunny, 26°C. Perfect working conditions." },
-    { title: "Safety", details: "Safety inspection completed. All workers equipped with PPE." },
+    {
+      title: "Safety",
+      details: "Safety inspection completed. All workers equipped with PPE.",
+    },
   ],
   "2025-07-04": [
     {
       title: "Holiday",
       details: "No work scheduled - Independence Day holiday.",
     },
-    { title: "Security", details: "Security guard on site for equipment protection." },
+    {
+      title: "Security",
+      details: "Security guard on site for equipment protection.",
+    },
   ],
   "2025-07-05": [
     {
@@ -371,14 +448,43 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "50 cubic meters delivered at 8:00 AM.",
     },
     { title: "Weather", details: "Sunny, 28°C." },
-    { title: "Foundation work", details: "Foundation forms set up and reinforcement placed." },
-    { title: "Quality Control", details: "Concrete samples taken for compression testing." },
-    { title: "Rebar Installation", details: "Steel reinforcement bars positioned according to structural plans." },
-    { title: "Form Inspection", details: "Foundation forms inspected and approved by structural engineer." },
-    { title: "Concrete Testing", details: "Slump test performed - concrete meets specifications." },
-    { title: "Pump Setup", details: "Concrete pump positioned and hoses laid out for efficient pour." },
-    { title: "Crew Briefing", details: "Pour sequence and safety procedures reviewed with concrete crew." },
-    { title: "Tools Ready", details: "Vibrators, floats, and finishing tools prepared for tomorrow's pour." },
+    {
+      title: "Foundation work",
+      details: "Foundation forms set up and reinforcement placed.",
+    },
+    {
+      title: "Quality Control",
+      details: "Concrete samples taken for compression testing.",
+    },
+    {
+      title: "Rebar Installation",
+      details:
+        "Steel reinforcement bars positioned according to structural plans.",
+    },
+    {
+      title: "Form Inspection",
+      details:
+        "Foundation forms inspected and approved by structural engineer.",
+    },
+    {
+      title: "Concrete Testing",
+      details: "Slump test performed - concrete meets specifications.",
+    },
+    {
+      title: "Pump Setup",
+      details:
+        "Concrete pump positioned and hoses laid out for efficient pour.",
+    },
+    {
+      title: "Crew Briefing",
+      details:
+        "Pour sequence and safety procedures reviewed with concrete crew.",
+    },
+    {
+      title: "Tools Ready",
+      details:
+        "Vibrators, floats, and finishing tools prepared for tomorrow's pour.",
+    },
   ],
   "2025-07-06": [
     {
@@ -386,23 +492,60 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Foundation concrete poured. Quality control tests completed.",
     },
     { title: "Weather", details: "Hot and sunny, 32°C." },
-    { title: "Inspection", details: "Building inspector approved foundation work." },
+    {
+      title: "Inspection",
+      details: "Building inspector approved foundation work.",
+    },
   ],
   "2025-07-07": [
     {
       title: "Curing process",
-      details: "Foundation curing in progress. Water applied for proper hydration.",
+      details:
+        "Foundation curing in progress. Water applied for proper hydration.",
     },
     { title: "Weather", details: "Sunny, 30°C. High humidity." },
-    { title: "Material delivery", details: "Lumber delivery scheduled for tomorrow." },
-    { title: "Foundation Inspection", details: "Foundation cure monitored - 72 hours complete, strength developing well." },
-    { title: "Lumber Prep", details: "Lumber order verified and delivery truck access route planned." },
-    { title: "Site Organization", details: "Material storage areas cleared and organized for incoming lumber." },
-    { title: "Form Removal", details: "Foundation forms partially removed - concrete surface looks excellent." },
-    { title: "Waterproofing", details: "Foundation waterproofing membrane applied to exterior walls." },
-    { title: "Backfill Prep", details: "Backfill material tested and approved for compaction requirements." },
-    { title: "Next Phase Planning", details: "Framing crew scheduled and tools/equipment inventory completed." },
-    { title: "Quality Check", details: "Foundation dimensions verified against architectural plans - all within tolerance." },
+    {
+      title: "Material delivery",
+      details: "Lumber delivery scheduled for tomorrow.",
+    },
+    {
+      title: "Foundation Inspection",
+      details:
+        "Foundation cure monitored - 72 hours complete, strength developing well.",
+    },
+    {
+      title: "Lumber Prep",
+      details: "Lumber order verified and delivery truck access route planned.",
+    },
+    {
+      title: "Site Organization",
+      details:
+        "Material storage areas cleared and organized for incoming lumber.",
+    },
+    {
+      title: "Form Removal",
+      details:
+        "Foundation forms partially removed - concrete surface looks excellent.",
+    },
+    {
+      title: "Waterproofing",
+      details: "Foundation waterproofing membrane applied to exterior walls.",
+    },
+    {
+      title: "Backfill Prep",
+      details:
+        "Backfill material tested and approved for compaction requirements.",
+    },
+    {
+      title: "Next Phase Planning",
+      details:
+        "Framing crew scheduled and tools/equipment inventory completed.",
+    },
+    {
+      title: "Quality Check",
+      details:
+        "Foundation dimensions verified against architectural plans - all within tolerance.",
+    },
   ],
   "2025-07-08": [
     {
@@ -410,14 +553,20 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Framing lumber delivered and organized on site.",
     },
     { title: "Weather", details: "Overcast, 25°C." },
-    { title: "Preparation", details: "Tools and equipment prepared for framing work." },
+    {
+      title: "Preparation",
+      details: "Tools and equipment prepared for framing work.",
+    },
   ],
   "2025-07-09": [
     {
       title: "Framing start",
       details: "Wall framing begun. First floor walls erected.",
     },
-    { title: "Weather", details: "Light rain, 23°C. Work continued under tarps." },
+    {
+      title: "Weather",
+      details: "Light rain, 23°C. Work continued under tarps.",
+    },
     { title: "Progress", details: "30% of first floor framing completed." },
   ],
   "2025-07-10": [
@@ -426,7 +575,10 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Second floor framing started. Roof trusses delivered.",
     },
     { title: "Weather", details: "Clearing up, 27°C." },
-    { title: "Quality check", details: "Structural engineer reviewed framing work." },
+    {
+      title: "Quality check",
+      details: "Structural engineer reviewed framing work.",
+    },
   ],
   "2025-07-11": [
     {
@@ -434,7 +586,10 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Foundation work officially signed off and approved.",
     },
     { title: "Weather", details: "Sunny, 29°C." },
-    { title: "Roof prep", details: "Roof trusses positioned and ready for installation." },
+    {
+      title: "Roof prep",
+      details: "Roof trusses positioned and ready for installation.",
+    },
   ],
   "2025-07-12": [
     {
@@ -442,15 +597,22 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
       details: "Roof trusses installed. Sheathing work begun.",
     },
     { title: "Weather", details: "Partly cloudy, 26°C. Light breeze." },
-    { title: "Safety meeting", details: "Height safety briefing conducted for roof work." },
+    {
+      title: "Safety meeting",
+      details: "Height safety briefing conducted for roof work.",
+    },
   ],
   "2025-07-13": [
     {
       title: "Roofing progress",
-      details: "Roof sheathing 70% complete. Preparing for shingle installation.",
+      details:
+        "Roof sheathing 70% complete. Preparing for shingle installation.",
     },
     { title: "Weather", details: "Sunny, 31°C. Excellent conditions." },
-    { title: "Material order", details: "Roofing materials and gutters ordered for next week." },
+    {
+      title: "Material order",
+      details: "Roofing materials and gutters ordered for next week.",
+    },
   ],
   "2025-07-15": [
     { title: "Inspection", details: "Passed all safety checks." },
@@ -465,7 +627,7 @@ const mockLogs: Record<string, { title: string; details: string }[]> = {
 const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
   const ganttRef = useRef<HTMLDivElement>(null);
   const ganttInstance = useRef<GanttInstance | null>(null);
-  const [viewMode, setViewMode] = useState('Day');
+  const [viewMode, setViewMode] = useState("Day");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -480,7 +642,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
       if (!tasks.length) {
         setIsLoading(false);
-        setError('No tasks available to display');
+        setError("No tasks available to display");
         return;
       }
 
@@ -490,27 +652,27 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
         // Import frappe-gantt dynamically
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const module = await import('frappe-gantt' as any);
-        
+        const module = await import("frappe-gantt" as any);
+
         if (!mounted) return;
 
         // Handle default export - frappe-gantt exports Gantt as default export
         const GanttClass = module.default;
-        
+
         if (!GanttClass) {
-          throw new Error('Gantt class not found in frappe-gantt module');
+          throw new Error("Gantt class not found in frappe-gantt module");
         }
-        
+
         // Destroy existing instance if it exists
         if (ganttInstance.current) {
           ganttInstance.current = null;
         }
-        
+
         // Clear the container
         if (ganttRef.current) {
-          ganttRef.current.innerHTML = '';
+          ganttRef.current.innerHTML = "";
         }
-        
+
         // Create new Gantt instance with div container
         if (ganttRef.current && GanttClass) {
           ganttInstance.current = new GanttClass(ganttRef.current, tasks, {
@@ -522,16 +684,16 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
             arrow_curve: 5,
             padding: 18,
             view_mode: viewMode,
-            date_format: 'YYYY-MM-DD',
-            language: 'en',
+            date_format: "YYYY-MM-DD",
+            language: "en",
             custom_popup_html: null,
           }) as GanttInstance;
         }
-        
+
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to load frappe-gantt:', error);
-        setError('Failed to load Gantt chart. Please try refreshing the page.');
+        console.error("Failed to load frappe-gantt:", error);
+        setError("Failed to load Gantt chart. Please try refreshing the page.");
         setIsLoading(false);
       }
     };
@@ -557,12 +719,12 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
     return (
       <div className="w-full">
         <div className="flex flex-wrap gap-2 mb-4">
-          {['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'].map((mode) => (
+          {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
             <button
               key={mode}
               onClick={() => handleViewModeChange(mode)}
               className={`btn btn-sm ${
-                viewMode === mode ? 'btn-primary' : 'btn-outline'
+                viewMode === mode ? "btn-primary" : "btn-outline"
               }`}
               disabled
             >
@@ -570,7 +732,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
             </button>
           ))}
         </div>
-        {error === 'No tasks available to display' ? (
+        {error === "No tasks available to display" ? (
           <div className="text-center py-12">
             <div className="text-6xl text-base-content/20 mb-4">📊</div>
             <h3 className="text-xl font-semibold text-base-content/70 mb-2">
@@ -591,55 +753,60 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
   return (
     <div className="w-full">
-      {/* View Mode Controls */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'].map((mode) => (
-          <button
-            key={mode}
-            onClick={() => handleViewModeChange(mode)}
-            className={`btn btn-sm ${
-              viewMode === mode ? 'btn-primary' : 'btn-outline'
-            }`}
-            disabled={isLoading}
-          >
-            {mode}
-          </button>
-        ))}
+      <div className="flex items-center w-full justify-between mb-4">
+        {/* View Mode Controls */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+            <button
+              key={mode}
+              onClick={() => handleViewModeChange(mode)}
+              className={`btn btn-sm ${
+                viewMode === mode ? "btn-primary" : "btn-outline"
+              }`}
+              disabled={isLoading}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <span>Completed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+            <span>In Progress</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gray-400 rounded"></div>
+            <span>Pending</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+            <span>Milestone</span>
+          </div>
+        </div>
       </div>
 
       {/* Gantt Chart Container */}
-      <div className="relative w-full overflow-x-auto border border-base-300 rounded-lg" style={{ minHeight: '400px' }}>
+      <div
+        className="relative w-[1100px] overflow-x-auto border border-base-300 rounded-lg"
+        style={{ minHeight: "400px" }}
+      >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
             <div className="loading loading-spinner loading-lg"></div>
             <span className="ml-2">Loading Gantt chart...</span>
           </div>
         )}
-        <div 
+        <div
           ref={ganttRef}
           className="gantt-target w-full h-full"
-          style={{ minHeight: '400px' }}
+          style={{ minHeight: "400px" }}
         />
-      </div>
-      
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-500 rounded"></div>
-          <span>Completed</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded"></div>
-          <span>In Progress</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-400 rounded"></div>
-          <span>Pending</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-          <span>Milestone</span>
-        </div>
       </div>
     </div>
   );
@@ -652,24 +819,25 @@ const ScheduleManagement = () => {
   );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState<View>('month');
+  const [currentView, setCurrentView] = useState<View>("month");
 
   // Filtered data by project (mock: all data shown for all projects)
   // In real app, filter by selectedProject
 
   return (
     <div className="p-8">
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-        {/* Heading with project selector */}
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="text-3xl font-bold">Schedule Management</h1>
-            <p className="text-gray-500 mt-1">
-              Manage project schedules: Gantt charts, timelines, calendars, and
-              daily logs.
-            </p>
-          </div>
-          <div>
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Schedule Management</h1>
+          <p className="text-gray-500 mt-1">
+            Manage project schedules: Gantt charts, timelines, calendars, and
+            daily logs.
+          </p>
+        </div>
+        {/* Task view selection */}
+        <div className="flex items-center justify-end mb-1">
+          <div className="flex gap-4 items-center">
+            {" "}
             <select
               className="select select-bordered"
               value={selectedProject}
@@ -683,71 +851,77 @@ const ScheduleManagement = () => {
             </select>
           </div>
         </div>
-
-        {/* Tabs for schedule types */}
-        <div className="tabs tabs-border mb-4 mt-6">
-          <button
-            className={`tab text-base ${
-              activeTab === "gantt" ? "tab-active font-bold" : ""
-            }`}
-            onClick={() => setActiveTab("gantt")}
-          >
-            <MdBarChart className="inline mr-1" /> Gantt Chart
-          </button>
-          <button
-            className={`tab text-base ${
-              activeTab === "timeline" ? "tab-active font-bold" : ""
-            }`}
-            onClick={() => setActiveTab("timeline")}
-          >
-            <MdTimeline className="inline mr-1" /> Timeline
-          </button>
-          <button
-            className={`tab text-base ${
-              activeTab === "calendar" ? "tab-active font-bold" : ""
-            }`}
-            onClick={() => setActiveTab("calendar")}
-          >
-            <MdCalendarToday className="inline mr-1" /> Calendar
-          </button>
-          <button
-            className={`tab text-base ${
-              activeTab === "logs" ? "tab-active font-bold" : ""
-            }`}
-            onClick={() => setActiveTab("logs")}
-          >
-            <MdViewList className="inline mr-1" /> Daily Logs
-          </button>
-        </div>
-
+      </div>
+      {/* Tabs for schedule types */}
+      <div className="tabs tabs-border mt-6">
+        <button
+          className={`tab text-base ${
+            activeTab === "gantt" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("gantt")}
+        >
+          Gantt Chart
+        </button>
+        <button
+          className={`tab text-base ${
+            activeTab === "timeline" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("timeline")}
+        >
+          Timeline
+        </button>
+        <button
+          className={`tab text-base ${
+            activeTab === "calendar" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("calendar")}
+        >
+          Calendar
+        </button>
+        <button
+          className={`tab text-base ${
+            activeTab === "logs" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("logs")}
+        >
+          Daily Logs
+        </button>
+      </div>
+      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
         {/* Tab Content */}
         <div className="mt-4">
           {/* Gantt Chart */}
           {activeTab === "gantt" && (
             <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-4">Project Gantt Chart</h2>
               <GanttChart tasks={mockGanttTasks} />
             </div>
           )}
 
           {/* Timeline */}
           {activeTab === "timeline" && (
-            <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-4">Project Timeline</h2>
-              <div className="space-y-4">
+            <div className="my-1">
+              <div className="flex flex-col gap-5">
                 {mockTimeline.map((item, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-center gap-4 cursor-pointer ${
-                      selectedDate === item.date ? "bg-primary/10" : ""
-                    } rounded-lg p-2`}
+                    className={`flex items-center gap-4 h-16 rounded-xl cursor-pointer ${
+                      selectedDate === item.date
+                        ? "shadow-xl shadow-base-300 bg-neutral text-base-content"
+                        : "bg-base-100"
+                    } p-1`}
                     onClick={() => {
                       setSelectedDate(item.date);
                       setActiveTab("logs");
                     }}
                   >
-                    <div className="w-32 font-semibold">{item.date}</div>
-                    <div>{item.event}</div>
+                    <div
+                      className={`w-32 bg-base-300 p-4 rounded-xl font-semibold ${
+                        selectedDate === item.date ? "text-base-content" : ""
+                      }`}
+                    >
+                      {item.date}
+                    </div>
+                    <div className="w-full">{item.event}</div>
                   </div>
                 ))}
               </div>
@@ -756,9 +930,37 @@ const ScheduleManagement = () => {
 
           {/* Calendar */}
           {activeTab === "calendar" && (
-            <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold mb-4">Project Calendar</h2>
-              <div style={{ height: '600px' }}>
+            <div className="bg-base-100 border border-base-300 rounded-2xl p-3">
+              {/* Heading */}
+              <div className="flex justify-between items-center my-3">
+                <div className="text-xs text-gray-500 mt-2">
+                  Click on an event or date to view logs for that day.
+                </div>
+                {/* Legend */}
+                <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <span className="text-sm">Deliveries</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                    <span className="text-sm">Inspections</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <span className="text-sm">Orders</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                    <span className="text-sm">Milestones</span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="bg-base-200 rounded-2xl"
+                style={{ height: "600px" }}
+              >
                 <Calendar
                   localizer={localizer}
                   events={mockCalendar}
@@ -772,69 +974,53 @@ const ScheduleManagement = () => {
                   onView={(newView) => setCurrentView(newView)}
                   onSelectEvent={(event) => {
                     // Convert the event date to the format expected by logs
-                    const dateString = moment(event.start).format('YYYY-MM-DD');
+                    const dateString = moment(event.start).format("YYYY-MM-DD");
                     setSelectedDate(dateString);
                     setActiveTab("logs");
                   }}
                   onSelectSlot={(slotInfo) => {
                     // Handle clicking on empty slots
-                    const dateString = moment(slotInfo.start).format('YYYY-MM-DD');
+                    const dateString = moment(slotInfo.start).format(
+                      "YYYY-MM-DD"
+                    );
                     setSelectedDate(dateString);
                     setActiveTab("logs");
                   }}
                   selectable
                   popup
-                  views={['month', 'week', 'day', 'agenda']}
+                  views={["month", "week", "day", "agenda"]}
                   step={30}
                   showMultiDayTimes
                   formats={{
-                    dateFormat: 'D',
-                    dayFormat: 'ddd D',
-                    weekdayFormat: 'ddd',
-                    monthHeaderFormat: 'MMMM YYYY',
-                    dayHeaderFormat: 'dddd, MMMM D',
-                    dayRangeHeaderFormat: ({ start, end }) => 
-                      `${moment(start).format('MMMM D')} - ${moment(end).format('MMMM D, YYYY')}`,
-                    agendaDateFormat: 'ddd, MMM D',
-                    agendaTimeFormat: 'h:mm A',
-                    agendaTimeRangeFormat: ({ start, end }) => 
-                      `${moment(start).format('h:mm A')} - ${moment(end).format('h:mm A')}`,
+                    dateFormat: "D",
+                    dayFormat: "ddd D",
+                    weekdayFormat: "ddd",
+                    monthHeaderFormat: "MMMM YYYY",
+                    dayHeaderFormat: "dddd, MMMM D",
+                    dayRangeHeaderFormat: ({ start, end }) =>
+                      `${moment(start).format("MMMM D")} - ${moment(end).format(
+                        "MMMM D, YYYY"
+                      )}`,
+                    agendaDateFormat: "ddd, MMM D",
+                    agendaTimeFormat: "h:mm A",
+                    agendaTimeRangeFormat: ({ start, end }) =>
+                      `${moment(start).format("h:mm A")} - ${moment(end).format(
+                        "h:mm A"
+                      )}`,
                   }}
                 />
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                Click on an event or date to view logs for that day.
-              </div>
-              <div className="mt-4 flex flex-wrap gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span className="text-sm">Deliveries</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                  <span className="text-sm">Inspections</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-500 rounded"></div>
-                  <span className="text-sm">Orders</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                  <span className="text-sm">Milestones</span>
-                </div>
               </div>
             </div>
           )}
 
           {/* Daily Logs */}
           {activeTab === "logs" && (
-            <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
+            <div className="">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold">Daily Logs</h2>
                   {selectedDate && (
-                    <p className="text-base-content/70 mt-1">
-                      {moment(selectedDate).format('dddd, MMMM D, YYYY')}
+                    <p className="text-base-content font-bold text-2xl mt-1">
+                      {moment(selectedDate).format("dddd, MMMM D, YYYY")}
                     </p>
                   )}
                 </div>
@@ -850,7 +1036,9 @@ const ScheduleManagement = () => {
                   {mockLogs[selectedDate].map((log, idx) => (
                     <div
                       key={idx}
-                      className={`relative border rounded-xl p-5 transition-all duration-200 hover:shadow-md ${getLogCategoryColor(log.title)}`}
+                      className={`relative border border-l-8 rounded-xl p-5 transition-all duration-200 hover:shadow-xl hover:shadow-base-300 ${getLogCategoryColor(
+                        log.title
+                      )}`}
                     >
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0 mt-1">
@@ -870,23 +1058,11 @@ const ScheduleManagement = () => {
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Add a subtle left border for visual hierarchy */}
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30 rounded-l-xl"></div>
+                      {/* <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30 rounded-l-xl"></div> */}
                     </div>
                   ))}
-                  
-                  {/* Summary footer */}
-                  <div className="mt-8 p-4 bg-base-200 rounded-xl border border-base-300">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-base-content/70">
-                        Total entries for this date
-                      </span>
-                      <span className="font-semibold text-primary">
-                        {mockLogs[selectedDate].length} logs recorded
-                      </span>
-                    </div>
-                  </div>
                 </div>
               ) : selectedDate ? (
                 <div className="text-center py-12">
@@ -895,7 +1071,8 @@ const ScheduleManagement = () => {
                     No logs found
                   </h3>
                   <p className="text-base-content/50">
-                    No construction logs were recorded for {moment(selectedDate).format('MMMM D, YYYY')}
+                    No construction logs were recorded for{" "}
+                    {moment(selectedDate).format("MMMM D, YYYY")}
                   </p>
                 </div>
               ) : (
@@ -905,7 +1082,8 @@ const ScheduleManagement = () => {
                     Select a date
                   </h3>
                   <p className="text-base-content/50 mb-6">
-                    Choose a date from the calendar or timeline to view daily construction logs
+                    Choose a date from the calendar or timeline to view daily
+                    construction logs
                   </p>
                   <button
                     className="btn btn-primary"
@@ -918,20 +1096,6 @@ const ScheduleManagement = () => {
               )}
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setActiveTab("calendar")}
-                >
-                  <MdCalendarToday className="mr-1" />
-                  Calendar
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setActiveTab("timeline")}
-                >
-                  <MdTimeline className="mr-1" />
-                  Timeline
-                </button>
                 {selectedDate && (
                   <button
                     className="btn btn-ghost btn-sm"
