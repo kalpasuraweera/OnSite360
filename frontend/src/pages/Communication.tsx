@@ -5,8 +5,10 @@ import {
   useThreadMessages,
   useSendMessage,
   useRFIs,
+  useCreateRFI,
   type Thread,
-  type CreateThreadDto
+  type CreateThreadDto,
+  type CreateRFIDto
 } from "../hooks/useCommunication";
 import { useProjects, type Project } from "../hooks/useProjects";
 import { useUsers } from "../hooks/useUsers";
@@ -34,13 +36,22 @@ const Communication = () => {
   // Create thread modal state
   const [showCreateThreadModal, setShowCreateThreadModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // Create RFI modal state
+  const [showCreateRFIModal, setShowCreateRFIModal] = useState(false);
+  const [selectedRFIThread, setSelectedRFIThread] = useState<string>("");
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  
+  const createRFIMutation = useCreateRFI();
 
   // Get messages for selected thread
   const { data: messages = [] } = useThreadMessages(selectedThread?.id || "");
 
+  // Get RFIs for the selected thread
+  const selectedThreadRFIs = rfis.filter(rfi => rfi.threadId === selectedThread?.id);
+
   const handleSelectThread = (thread: Thread) => {
     setSelectedThread(thread);
-    console.log(thread);
     setActiveTab("chat");
   };
 
@@ -128,6 +139,71 @@ const Communication = () => {
         }
       });
     }
+  };
+
+  // Create RFI handlers
+  const handleCreateRFI = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    
+    try {
+      let threadId = selectedRFIThread;
+      let projectId = formData.get("projectId") as string;
+      
+      // If no thread is selected, create a new thread automatically
+      if (!selectedRFIThread) {
+        const title = formData.get("title") as string;
+        const newThreadData: CreateThreadDto = {
+          title: `RFI: ${title}`,
+          description: formData.get("description") as string,
+          projectId: projectId,
+          participantIds: selectedAssignees
+        };
+        const newThread = await createThreadMutation.mutateAsync(newThreadData);
+        threadId = newThread.id;
+      } else {
+        // If linking to existing thread, use the thread's project ID
+        const existingThread = threads.find(t => t.id === selectedRFIThread);
+        if (existingThread) {
+          projectId = existingThread.projectId;
+        }
+      }
+      
+      const newRFI: CreateRFIDto = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: formData.get("category") as string || undefined,
+        priority: formData.get("priority") as string || undefined,
+        projectId: projectId,
+        assignedToIds: selectedAssignees,
+        threadId: threadId || undefined,
+        dueDate: formData.get("dueDate") as string || undefined,
+      };
+
+      createRFIMutation.mutate(newRFI, {
+        onSuccess: () => {
+          setShowCreateRFIModal(false);
+          (event.target as HTMLFormElement).reset();
+          setSelectedRFIThread("");
+          setSelectedAssignees([]);
+        },
+        onError: (error) => {
+          console.error("Failed to create RFI:", error);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create thread for RFI:", error);
+    }
+  };
+
+  const handleAddAssignee = (userId: string) => {
+    if (!selectedAssignees.includes(userId)) {
+      setSelectedAssignees(prev => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveAssignee = (userId: string) => {
+    setSelectedAssignees(prev => prev.filter(id => id !== userId));
   };
 
   return (
@@ -243,6 +319,43 @@ const Communication = () => {
                 </div>
               </div>
 
+              {/* Display RFIs associated with this thread */}
+              {selectedThreadRFIs.length > 0 && (
+                <div className="bg-base-100 p-4 border-b border-base-300">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                    Related RFIs ({selectedThreadRFIs.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedThreadRFIs.map((rfi) => (
+                      <div key={rfi.id} className="flex items-center justify-between bg-base-200 p-2 rounded">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{rfi.title}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="badge badge-xs badge-neutral">{rfi.id}</span>
+                            {rfi.status && (
+                              <span className={`badge badge-xs ${getStatusBadge(rfi.status)}`}>
+                                {rfi.status}
+                              </span>
+                            )}
+                            {rfi.priority && (
+                              <span className={`badge badge-xs ${getPriorityBadge(rfi.priority)}`}>
+                                {rfi.priority}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button 
+                          className="btn btn-xs btn-outline"
+                          onClick={() => setActiveTab("rfis")}
+                        >
+                          View RFI
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="h-96 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
@@ -304,10 +417,20 @@ const Communication = () => {
         {activeTab === "rfis" && (
           <div className="tab-content p-5">
             <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-              <h2 className="text-2xl font-bold">Request for Information (RFI)</h2>
-              <p className="text-neutral-500 mb-4">
-                Track information requests and responses
-              </p>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Request for Information (RFI)</h2>
+                  <p className="text-neutral-500">
+                    Track information requests and responses
+                  </p>
+                </div>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowCreateRFIModal(true)}
+                >
+                  + New RFI
+                </button>
+              </div>
 
               {rfisLoading ? (
                 <div className="flex justify-center items-center py-8">
@@ -342,25 +465,43 @@ const Communication = () => {
                           <div className="font-semibold text-lg mb-1">{rfi.title}</div>
                           <div className="text-gray-500 text-sm mb-2">{rfi.description}</div>
                           <div className="text-sm text-gray-600">
-                            <span className="font-medium">Thread:</span> {rfi.thread?.title || 'N/A'} | 
-                            <span className="font-medium"> Created by:</span> {rfi.createdBy.firstName} {rfi.createdBy.lastName}
-                            {rfi.assignee && (
+                            <span className="font-medium">Thread:</span> {rfi.thread?.title || 'No thread linked'} | 
+                            <span className="font-medium"> Created by:</span> {rfi.createdBy ? `${rfi.createdBy.firstName} ${rfi.createdBy.lastName}` : 'Unknown'}
+                            {rfi.assignees && rfi.assignees.length > 0 && (
                               <>
-                                | <span className="font-medium"> Assigned to:</span> {rfi.assignee.firstName} {rfi.assignee.lastName}
+                                | <span className="font-medium"> Assigned to:</span> {rfi.assignees.map(a => `${a.firstName} ${a.lastName}`).join(", ")}
                               </>
                             )}
                           </div>
                           <div className="text-sm text-gray-600">
                             <span className="font-medium">Created:</span> {new Date(rfi.createdAt).toLocaleDateString()} | 
                             <span className="font-medium"> Updated:</span> {new Date(rfi.updatedAt).toLocaleDateString()}
+                            {rfi.dueDate && (
+                              <>
+                                | <span className="font-medium"> Due:</span> {new Date(rfi.dueDate).toLocaleDateString()}
+                              </>
+                            )}
                           </div>
-                          {rfi.response && (
+                          {rfi.answer && (
                             <div className="mt-2 p-2 bg-base-200 rounded text-sm">
-                              <span className="font-medium">Response:</span> {rfi.response}
+                              <span className="font-medium">Answer:</span> {rfi.answer}
                             </div>
                           )}
                         </div>
                         <div className="flex gap-2">
+                          {rfi.threadId && (
+                            <button 
+                              className="btn btn-info btn-sm"
+                              onClick={() => {
+                                const thread = threads.find(t => t.id === rfi.threadId);
+                                if (thread) {
+                                  handleSelectThread(thread);
+                                }
+                              }}
+                            >
+                              Open Chat
+                            </button>
+                          )}
                           <button className="btn btn-soft btn-accent btn-sm">
                             View Details
                           </button>
@@ -373,12 +514,6 @@ const Communication = () => {
                   ))}
                 </div>
               )}
-
-              <div className="mt-6">
-                <button className="btn btn-primary">
-                  + New RFI
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -630,6 +765,236 @@ const Communication = () => {
                     </>
                   ) : (
                     "Create Thread"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create RFI Modal */}
+      {showCreateRFIModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New RFI</h3>
+            
+            <form onSubmit={handleCreateRFI} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">RFI Title *</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    className="input input-bordered w-full"
+                    placeholder="Enter RFI title..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Project *</span>
+                  </label>
+                  <select
+                    name="projectId"
+                    className="select select-bordered w-full"
+                    required={!selectedRFIThread}
+                    disabled={!!selectedRFIThread}
+                    value={
+                      selectedRFIThread 
+                        ? threads.find(t => t.id === selectedRFIThread)?.projectId || ""
+                        : undefined
+                    }
+                  >
+                    <option value="">
+                      {selectedRFIThread 
+                        ? `Project: ${threads.find(t => t.id === selectedRFIThread)?.project?.name || 'Unknown'}`
+                        : "Select a project"
+                      }
+                    </option>
+                    {!selectedRFIThread && 
+                      projects.map((project: Project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  {selectedRFIThread && (
+                    <div className="label">
+                      <span className="label-text-alt text-info">
+                        Project is set by the selected thread
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description *</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Describe the information you need..."
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Category</span>
+                  </label>
+                  <select
+                    name="category"
+                    className="select select-bordered w-full"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Design">Design</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Materials">Materials</option>
+                    <option value="Specifications">Specifications</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Priority</span>
+                  </label>
+                  <select
+                    name="priority"
+                    className="select select-bordered w-full"
+                  >
+                    <option value="">Select priority</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Due Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    className="input input-bordered w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Thread Selection */}
+              <div className="divider">Thread Association</div>
+              
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Link to Existing Thread</span>
+                </label>
+                <select
+                  value={selectedRFIThread}
+                  onChange={(e) => setSelectedRFIThread(e.target.value)}
+                  className="select select-bordered w-full"
+                >
+                  <option value="">Create new thread for this RFI</option>
+                  {threads.map((thread) => (
+                    <option key={thread.id} value={thread.id}>
+                      {thread.title} ({thread.project?.name || 'No project'})
+                    </option>
+                  ))}
+                </select>
+                <div className="label">
+                  <span className="label-text-alt text-gray-500">
+                    {selectedRFIThread 
+                      ? "RFI will be linked to the selected thread" 
+                      : "A new thread will be created automatically for this RFI"
+                    }
+                  </span>
+                </div>
+              </div>
+
+              {/* Assignees Selection */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Assign To</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">No users available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between">
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {selectedAssignees.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveAssignee(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddAssignee(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedAssignees.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Assigned to: {selectedAssignees.length} user(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowCreateRFIModal(false);
+                    setSelectedRFIThread("");
+                    setSelectedAssignees([]);
+                  }}
+                  disabled={createRFIMutation.isPending || createThreadMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createRFIMutation.isPending || createThreadMutation.isPending}
+                >
+                  {(createRFIMutation.isPending || createThreadMutation.isPending) ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create RFI"
                   )}
                 </button>
               </div>

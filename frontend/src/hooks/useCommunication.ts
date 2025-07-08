@@ -11,6 +11,7 @@ export interface Thread {
   updatedAt: string;
   users: ThreadUser[];
   messages?: Message[];
+  rfis?: RFI[];
   project?: {
     id: string;
     name: string;
@@ -45,26 +46,38 @@ export interface RFI {
   id: string;
   title: string;
   description: string;
+  category?: string;
   priority?: string;
   status?: string;
-  response?: string;
-  threadId: string;
-  assigneeId?: string;
-  createdById: string;
+  projectId: string;
+  requestedBy?: string; // Name (legacy field)
+  createdById: string; // User ID who created the RFI
+  assignedTo?: string[]; // Array of names (legacy field)
+  assignedToIds: string[]; // Array of user IDs
+  threadId?: string;
+  dueDate?: string;
+  answeredAt?: string;
+  answer?: string;
+  documents?: string[]; // Array of document IDs referenced
+  attachments?: string[]; // Array of S3 URLs
   createdAt: string;
   updatedAt: string;
-  thread: Thread;
-  assignee?: {
+  thread?: Thread;
+  assignees: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
-  };
+  }[];
   createdBy: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
+  };
+  project?: {
+    id: string;
+    name: string;
   };
 }
 
@@ -100,19 +113,24 @@ export interface UpdateMessageDto {
 export interface CreateRFIDto {
   title: string;
   description: string;
+  category?: string;
   priority?: string;
-  threadId: string;
-  assigneeId?: string;
+  projectId: string;
+  assignedToIds?: string[];
+  threadId?: string;
+  dueDate?: string;
 }
 
 export interface UpdateRFIDto {
   title?: string;
   description?: string;
+  category?: string;
   priority?: string;
   status?: string;
-  response?: string;
+  assignedToIds?: string[];
   threadId?: string;
-  assigneeId?: string;
+  dueDate?: string;
+  answer?: string;
 }
 
 // THREAD HOOKS
@@ -370,6 +388,7 @@ export const useCreateRFI = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rfis"] });
+      queryClient.invalidateQueries({ queryKey: ["threads"] }); // Invalidate threads as RFIs can be linked to threads
     },
   });
 };
