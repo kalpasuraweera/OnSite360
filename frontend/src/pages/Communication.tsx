@@ -10,6 +10,7 @@ import {
 } from "../hooks/useCommunication";
 import { useProjects, type Project } from "../hooks/useProjects";
 import { useUsers } from "../hooks/useUsers";
+import { useAuthStore } from "../stores/useAuthStore";
 
 const Communication = () => {
   // API hooks
@@ -21,6 +22,9 @@ const Communication = () => {
   
   const createThreadMutation = useCreateThread();
   const sendMessageMutation = useSendMessage();
+
+  // Auth store
+  const { user: currentUser } = useAuthStore();
 
   // State
   const [activeTab, setActiveTab] = useState("threads");
@@ -245,17 +249,20 @@ const Communication = () => {
                     No messages yet. Start the conversation!
                   </div>
                 ) : (
-                  messages.map((message) => (
-                    <div key={message.id} className="chat chat-start">
-                      <div className="chat-header">
-                        {message.sender.firstName} {message.sender.lastName}
-                        <time className="text-xs opacity-50 ml-2">
-                          {formatTime(message.createdAt)}
-                        </time>
+                  messages.map((message) => {
+                    const isCurrentUser = currentUser?.id === message.senderId;
+                    return (
+                      <div key={message.id} className={`chat ${isCurrentUser ? 'chat-end' : 'chat-start'}`}>
+                        <div className="chat-header">
+                          {message.sender.firstName} {message.sender.lastName}
+                          <time className="text-xs opacity-50 ml-2">
+                            {formatTime(message.createdAt)}
+                          </time>
+                        </div>
+                        <div className="chat-bubble">{message.content}</div>
                       </div>
-                      <div className="chat-bubble">{message.content}</div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
