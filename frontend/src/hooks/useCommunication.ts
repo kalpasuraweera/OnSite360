@@ -69,6 +69,12 @@ export interface RFI {
     lastName: string;
     email: string;
   }[];
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   createdBy: {
     id: string;
     firstName: string;

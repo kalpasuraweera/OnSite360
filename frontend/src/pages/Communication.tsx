@@ -385,7 +385,9 @@ const Communication = () => {
   // RFI Edit handlers
   const handleEditRFI = (rfi: RFI) => {
     setEditingRFI(rfi);
-    setEditRFISelectedAssignees(rfi.assignedToIds || []);
+    // Extract assignee IDs from assignees array
+    const assigneeIds = rfi.assignees ? rfi.assignees.map(assignee => assignee.id) : [];
+    setEditRFISelectedAssignees(assigneeIds);
     setShowEditRFIModal(true);
   };
 
@@ -704,7 +706,7 @@ const Communication = () => {
                           <div className="text-gray-500 text-sm mb-2">{rfi.description}</div>
                           <div className="text-sm text-gray-600">
                             <span className="font-medium">Thread:</span> {rfi.thread?.title || 'No thread linked'} | 
-                            <span className="font-medium"> Created by:</span> {rfi.createdBy ? `${rfi.createdBy.firstName} ${rfi.createdBy.lastName}` : 'Unknown'}
+                            <span className="font-medium"> Created by:</span> {rfi.requester ? `${rfi.requester.firstName} ${rfi.requester.lastName}` : 'Unknown'}
                             {rfi.assignees && rfi.assignees.length > 0 && (
                               <>
                                 | <span className="font-medium"> Assigned to:</span> {rfi.assignees.map(a => `${a.firstName} ${a.lastName}`).join(", ")}
