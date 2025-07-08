@@ -51,7 +51,7 @@ export interface Project {
     tasks: number;
     documents: number;
     threads: number;
-    Issue: number;
+    issue: number;
   };
 }
 
@@ -60,7 +60,7 @@ export const useProjects = () => {
     queryKey: ["projects"],
     queryFn: async () => {
       const { data } = await instance.get("/projects");
-      return data.data; // Extract the data from the API response structure
+      return data;
     },
   });
 };
@@ -70,7 +70,7 @@ export const useProject = (id: string) => {
     queryKey: ["project", id],
     queryFn: async () => {
       const { data } = await instance.get(`/projects/${id}`);
-      return data.data;
+      return data;
     },
     enabled: !!id,
   });
@@ -120,7 +120,7 @@ export const useCreateProject = () => {
   return useMutation({
     mutationFn: async (newProject: CreateProjectDto) => {
       const { data } = await instance.post("/projects", newProject);
-      return data.data;
+      return data;
     },
     onSuccess: () => {
       // Invalidate and refetch projects list after creation
@@ -135,7 +135,7 @@ export const useUpdateProject = () => {
   return useMutation({
     mutationFn: async ({ id, ...updateData }: UpdateProjectDto & { id: string }) => {
       const { data } = await instance.patch(`/projects/${id}`, updateData);
-      return data.data;
+      return data;
     },
     onSuccess: (data) => {
       // Invalidate and refetch projects list and specific project after update

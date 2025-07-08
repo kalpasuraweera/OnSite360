@@ -78,7 +78,7 @@ export class ProjectsService {
             tasks: true,
             documents: true,
             threads: true,
-            Issue: true,
+            issue: true,
           },
         },
       },
@@ -130,7 +130,7 @@ export class ProjectsService {
             },
           },
         },
-        Issue: {
+        issue: {
           include: {
             reporter: {
               select: {
@@ -155,7 +155,7 @@ export class ProjectsService {
             tasks: true,
             documents: true,
             threads: true,
-            Issue: true,
+            issue: true,
           },
         },
       },

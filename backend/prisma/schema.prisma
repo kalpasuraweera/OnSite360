@@ -103,7 +103,7 @@ model Project {
   MaterialStock       MaterialStock[]
   MaterialUsage       MaterialUsage[]
   DailyLog            DailyLog[]
-  Issue               Issue[]
+  issue               Issue[]
   CrewAssignment      CrewAssignment[]
   ScheduleEvent       ScheduleEvent[]
   ProjectPhase        ProjectPhase[]

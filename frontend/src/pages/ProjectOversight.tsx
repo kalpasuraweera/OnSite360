@@ -8,6 +8,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProjects, useCreateProject, useUpdateProject, type Project, type CreateProjectDto, type UpdateProjectDto } from "../hooks/useProjects";
+import { useUsers, type User } from "../hooks/useUsers";
 
 // Fix default marker icon for leaflet in React
 // You can use CDN links (as shown) or local assets if you prefer.
@@ -27,6 +28,9 @@ const ProjectOversight = () => {
   // Fetch projects data
   const { data: projectsResponse, isLoading, error, refetch } = useProjects();
   const projects = projectsResponse?.data || [];
+
+  // Fetch users data
+  const { data: users = [], isLoading: usersLoading } = useUsers();
 
   const [activeTab, setActiveTab] = useState("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -50,23 +54,7 @@ const ProjectOversight = () => {
   >([]);
   const [showUserModal, setShowUserModal] = useState(false);
 
-  // Mock users data - replace with actual user hook
-  const mockUsers = [
-    { id: "1", name: "John Smith", email: "john@example.com" },
-    { id: "2", name: "Sarah Johnson", email: "sarah@example.com" },
-    { id: "3", name: "Mike Davis", email: "mike@example.com" },
-    { id: "4", name: "Emily Brown", email: "emily@example.com" },
-    { id: "5", name: "David Wilson", email: "david@example.com" },
-  ];
-
-  const projectRoleOptions = [
-    { value: "Project Manager", label: "Project Manager" },
-    { value: "Site Supervisor", label: "Site Supervisor" },
-    { value: "Worker", label: "Worker" },
-    { value: "Inspector", label: "Inspector" },
-    { value: "Contractor", label: "Contractor" },
-  ];
-
+  // Access level options for user permissions
   const accessLevelOptions = [
     { value: 1, label: "Level 1 (Read Only)" },
     { value: 2, label: "Level 2 (Read/Write)" },
@@ -130,7 +118,11 @@ const ProjectOversight = () => {
       // featuredImageUrl: "", // Set after upload if needed
       startDate: formData.get("startDate") as string || undefined,
       endDate: formData.get("endDate") as string || undefined,
-      users: selectedUsers.length > 0 ? selectedUsers : undefined,
+      users: selectedUsers.length > 0 ? selectedUsers.map(user => ({
+        userId: user.userId,
+        projectRole: user.projectRole,
+        accessLevel: user.accessLevel
+      })) : undefined,
     };
 
     createProject.mutate(newProject, {
@@ -165,7 +157,11 @@ const ProjectOversight = () => {
       featuredImageUrl: selectedProject.featuredImageUrl, // Keep existing image for now
       startDate: formData.get("startDate") as string || undefined,
       endDate: formData.get("endDate") as string || undefined,
-      users: selectedUsers.length > 0 ? selectedUsers : undefined,
+      users: selectedUsers.length > 0 ? selectedUsers.map(user => ({
+        userId: user.userId,
+        projectRole: user.projectRole,
+        accessLevel: user.accessLevel
+      })) : undefined,
     };
 
     updateProject.mutate(updatedProject, {
@@ -263,14 +259,14 @@ const ProjectOversight = () => {
   };
 
   // User management functions
-  const handleAddUser = (userId: string, projectRole: string, accessLevel: number) => {
-    const user = mockUsers.find(u => u.id === userId);
+  const handleAddUser = (userId: string, accessLevel: number) => {
+    const user = users.find((u: User) => u.id === userId);
     if (user && !selectedUsers.find(su => su.userId === userId)) {
       setSelectedUsers(prev => [...prev, {
         userId,
-        projectRole,
+        projectRole: user.role?.name || 'No Role',
         accessLevel,
-        userName: user.name
+        userName: `${user.firstName} ${user.lastName}`
       }]);
     }
   };
@@ -279,23 +275,21 @@ const ProjectOversight = () => {
     setSelectedUsers(prev => prev.filter(u => u.userId !== userId));
   };
 
-  const handleUpdateUserRole = (userId: string, projectRole: string, accessLevel: number) => {
+  const handleUpdateUserRole = (userId: string, accessLevel: number) => {
     setSelectedUsers(prev => prev.map(u => 
-      u.userId === userId ? { ...u, projectRole, accessLevel } : u
+      u.userId === userId ? { ...u, accessLevel } : u
     ));
   };
 
   // User Modal Component
   const UserSelectionModal = () => {
     const [tempUserId, setTempUserId] = useState("");
-    const [tempRole, setTempRole] = useState("");
     const [tempAccessLevel, setTempAccessLevel] = useState(1);
 
     const handleAddTempUser = () => {
-      if (tempUserId && tempRole) {
-        handleAddUser(tempUserId, tempRole, tempAccessLevel);
+      if (tempUserId) {
+        handleAddUser(tempUserId, tempAccessLevel);
         setTempUserId("");
-        setTempRole("");
         setTempAccessLevel(1);
         setShowUserModal(false);
       }
@@ -315,33 +309,16 @@ const ProjectOversight = () => {
                 className="select select-bordered w-full"
                 value={tempUserId}
                 onChange={(e) => setTempUserId(e.target.value)}
+                disabled={usersLoading}
               >
-                <option value="">Choose a user</option>
-                {mockUsers
-                  .filter(user => !selectedUsers.find(su => su.userId === user.id))
-                  .map(user => (
+                <option value="">{usersLoading ? "Loading users..." : "Choose a user"}</option>
+                {!usersLoading && users
+                  .filter((user: User) => !selectedUsers.find(su => su.userId === user.id))
+                  .map((user: User) => (
                     <option key={user.id} value={user.id}>
-                      {user.name} ({user.email})
+                      {user.firstName} {user.lastName} ({user.email}) - {user.role?.name || 'No Role'}
                     </option>
                   ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text font-medium">Project Role</span>
-              </label>
-              <select
-                className="select select-bordered w-full"
-                value={tempRole}
-                onChange={(e) => setTempRole(e.target.value)}
-              >
-                <option value="">Select role</option>
-                {projectRoleOptions.map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
               </select>
             </div>
 
@@ -373,7 +350,7 @@ const ProjectOversight = () => {
             <button
               className="btn btn-primary btn-sm"
               onClick={handleAddTempUser}
-              disabled={!tempUserId || !tempRole}
+              disabled={!tempUserId}
             >
               Add User
             </button>
@@ -511,7 +488,7 @@ const ProjectOversight = () => {
                                 💬 {project._count.threads} Threads
                               </span>
                               <span className="badge badge-outline">
-                                ⚠️ {project._count.Issue} Issues
+                                ⚠️ {project._count.issue} Issues
                               </span>
                             </>
                           )}
@@ -636,7 +613,7 @@ const ProjectOversight = () => {
                       <div className="stat bg-base-100 rounded-xl shadow">
                         <div className="stat-title">Issues</div>
                         <div className="stat-value text-warning">
-                          {selectedProject._count.Issue}
+                          {selectedProject._count.issue}
                         </div>
                         <div className="stat-desc">Open issues</div>
                       </div>
@@ -888,23 +865,13 @@ const ProjectOversight = () => {
                             <tr key={user.userId}>
                               <td className="font-medium">{user.userName}</td>
                               <td>
-                                <select
-                                  className="select select-bordered select-sm w-full"
-                                  value={user.projectRole}
-                                  onChange={(e) => handleUpdateUserRole(user.userId, e.target.value, user.accessLevel)}
-                                >
-                                  {projectRoleOptions.map(role => (
-                                    <option key={role.value} value={role.value}>
-                                      {role.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                <span className="badge badge-outline">{user.projectRole}</span>
                               </td>
                               <td>
                                 <select
                                   className="select select-bordered select-sm w-full"
                                   value={user.accessLevel}
-                                  onChange={(e) => handleUpdateUserRole(user.userId, user.projectRole, Number(e.target.value))}
+                                  onChange={(e) => handleUpdateUserRole(user.userId, Number(e.target.value))}
                                 >
                                   {accessLevelOptions.map(level => (
                                     <option key={level.value} value={level.value}>
@@ -1269,23 +1236,13 @@ const ProjectOversight = () => {
                               <tr key={user.userId}>
                                 <td className="font-medium">{user.userName}</td>
                                 <td>
-                                  <select
-                                    className="select select-bordered select-sm w-full"
-                                    value={user.projectRole}
-                                    onChange={(e) => handleUpdateUserRole(user.userId, e.target.value, user.accessLevel)}
-                                  >
-                                    {projectRoleOptions.map(role => (
-                                      <option key={role.value} value={role.value}>
-                                        {role.label}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  <span className="badge badge-outline">{user.projectRole}</span>
                                 </td>
                                 <td>
                                   <select
                                     className="select select-bordered select-sm w-full"
                                     value={user.accessLevel}
-                                    onChange={(e) => handleUpdateUserRole(user.userId, user.projectRole, Number(e.target.value))}
+                                    onChange={(e) => handleUpdateUserRole(user.userId, Number(e.target.value))}
                                   >
                                     {accessLevelOptions.map(level => (
                                       <option key={level.value} value={level.value}>
