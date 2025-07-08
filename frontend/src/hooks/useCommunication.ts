@@ -19,15 +19,9 @@ export interface Thread {
 
 export interface ThreadUser {
   id: string;
-  userId: string;
-  threadId: string;
-  joinedAt: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 // Message interfaces
@@ -166,8 +160,17 @@ export const useUpdateThread = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, thread }: { id: string; thread: UpdateThreadDto }) => {
-      const { data } = await instance.patch(`/communication/threads/${id}`, thread);
+    mutationFn: async ({
+      id,
+      thread,
+    }: {
+      id: string;
+      thread: UpdateThreadDto;
+    }) => {
+      const { data } = await instance.patch(
+        `/communication/threads/${id}`,
+        thread
+      );
       return data;
     },
     onSuccess: (_, variables) => {
@@ -182,14 +185,27 @@ export const useAddUserToThread = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ threadId, user }: { threadId: string; user: AddUserToThreadDto }) => {
-      const { data } = await instance.post(`/communication/threads/${threadId}/users`, user);
+    mutationFn: async ({
+      threadId,
+      user,
+    }: {
+      threadId: string;
+      user: AddUserToThreadDto;
+    }) => {
+      const { data } = await instance.post(
+        `/communication/threads/${threadId}/users`,
+        user
+      );
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["threads"] });
-      queryClient.invalidateQueries({ queryKey: ["threads", variables.threadId] });
-      queryClient.invalidateQueries({ queryKey: ["thread-participants", variables.threadId] });
+      queryClient.invalidateQueries({
+        queryKey: ["threads", variables.threadId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["thread-participants", variables.threadId],
+      });
     },
   });
 };
@@ -199,14 +215,26 @@ export const useRemoveUserFromThread = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ threadId, userId }: { threadId: string; userId: string }) => {
-      const { data } = await instance.delete(`/communication/threads/${threadId}/users/${userId}`);
+    mutationFn: async ({
+      threadId,
+      userId,
+    }: {
+      threadId: string;
+      userId: string;
+    }) => {
+      const { data } = await instance.delete(
+        `/communication/threads/${threadId}/users/${userId}`
+      );
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["threads"] });
-      queryClient.invalidateQueries({ queryKey: ["threads", variables.threadId] });
-      queryClient.invalidateQueries({ queryKey: ["thread-participants", variables.threadId] });
+      queryClient.invalidateQueries({
+        queryKey: ["threads", variables.threadId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["thread-participants", variables.threadId],
+      });
     },
   });
 };
@@ -216,7 +244,9 @@ export const useThreadParticipants = (threadId: string) => {
   return useQuery({
     queryKey: ["thread-participants", threadId],
     queryFn: async () => {
-      const { data } = await instance.get(`/communication/threads/${threadId}/participants`);
+      const { data } = await instance.get(
+        `/communication/threads/${threadId}/participants`
+      );
       return data.participants as ThreadUser[];
     },
     enabled: !!threadId,
@@ -230,7 +260,9 @@ export const useThreadMessages = (threadId: string) => {
   return useQuery({
     queryKey: ["thread-messages", threadId],
     queryFn: async () => {
-      const { data } = await instance.get(`/communication/threads/${threadId}/messages`);
+      const { data } = await instance.get(
+        `/communication/threads/${threadId}/messages`
+      );
       return data as Message[];
     },
     enabled: !!threadId,
@@ -247,7 +279,9 @@ export const useSendMessage = () => {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["thread-messages", variables.threadId] });
+      queryClient.invalidateQueries({
+        queryKey: ["thread-messages", variables.threadId],
+      });
       queryClient.invalidateQueries({ queryKey: ["threads"] }); // Update last message in threads list
     },
   });
@@ -258,13 +292,24 @@ export const useUpdateMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, message }: { id: string; message: UpdateMessageDto }) => {
-      const { data } = await instance.patch(`/communication/messages/${id}`, message);
+    mutationFn: async ({
+      id,
+      message,
+    }: {
+      id: string;
+      message: UpdateMessageDto;
+    }) => {
+      const { data } = await instance.patch(
+        `/communication/messages/${id}`,
+        message
+      );
       return data;
     },
     onSuccess: (data) => {
       if (data.threadId) {
-        queryClient.invalidateQueries({ queryKey: ["thread-messages", data.threadId] });
+        queryClient.invalidateQueries({
+          queryKey: ["thread-messages", data.threadId],
+        });
       }
     },
   });
@@ -281,7 +326,9 @@ export const useDeleteMessage = () => {
     },
     onSuccess: (data) => {
       if (data.threadId) {
-        queryClient.invalidateQueries({ queryKey: ["thread-messages", data.threadId] });
+        queryClient.invalidateQueries({
+          queryKey: ["thread-messages", data.threadId],
+        });
       }
     },
   });

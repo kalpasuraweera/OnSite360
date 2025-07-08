@@ -220,6 +220,7 @@ model Thread {
   projectId String
   project   Project   @relation(fields: [projectId], references: [id])
   title     String    // e.g., 'Site Inspection Discussion'
+  description String? // Optional description
   type      String    @default("General") // "General", "RFI", "Issue", "Task"
   status    String    @default("Active") // "Active", "Closed", "Archived"
   isPrivate Boolean   @default(false) // Private threads for sensitive discussions

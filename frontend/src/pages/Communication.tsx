@@ -1,149 +1,77 @@
 import { useState } from "react";
-
-// Dummy data for threads
-const dummyThreads = [
-  {
-    id: "1",
-    title: "Downtown Office Complex - Daily Updates",
-    participants: ["John Smith", "Sarah Johnson", "Mike Davis"],
-    lastMessage: "Foundation inspection completed successfully",
-    lastMessageTime: "2024-06-28T10:30:00Z",
-    unreadCount: 3,
-    projectId: "1"
-  },
-  {
-    id: "2",
-    title: "Safety Protocol Discussion",
-    participants: ["Emily Brown", "Mike Davis", "John Smith"],
-    lastMessage: "New safety guidelines have been approved",
-    lastMessageTime: "2024-06-28T09:15:00Z",
-    unreadCount: 0,
-    projectId: null
-  },
-  {
-    id: "3",
-    title: "Residential Tower A - Planning Phase",
-    participants: ["Sarah Johnson", "Emily Brown"],
-    lastMessage: "Structural plans need review by Friday",
-    lastMessageTime: "2024-06-27T16:45:00Z",
-    unreadCount: 1,
-    projectId: "2"
-  }
-];
-
-// Dummy data for RFIs
-const dummyRFIs = [
-  {
-    id: "RFI-001",
-    title: "Concrete specifications for foundation",
-    project: "Downtown Office Complex",
-    submittedBy: "Mike Davis",
-    assignedTo: "Sarah Johnson",
-    status: "Open",
-    priority: "High",
-    dateSubmitted: "2024-06-26",
-    dueDate: "2024-06-30",
-    description: "Need clarification on concrete grade for foundation work in section B"
-  },
-  {
-    id: "RFI-002",
-    title: "HVAC system placement",
-    project: "Residential Tower A",
-    submittedBy: "John Smith",
-    assignedTo: "Emily Brown",
-    status: "In Review",
-    priority: "Medium",
-    dateSubmitted: "2024-06-25",
-    dueDate: "2024-07-02",
-    description: "Questions about HVAC unit placement on floors 15-20"
-  },
-  {
-    id: "RFI-003",
-    title: "Fire safety compliance",
-    project: "Shopping Mall Renovation",
-    submittedBy: "Emily Brown",
-    assignedTo: "John Smith",
-    status: "Resolved",
-    priority: "High",
-    dateSubmitted: "2024-06-20",
-    dueDate: "2024-06-28",
-    description: "Fire exit requirements for new layout configuration"
-  }
-];
-
-// Dummy data for issues
-const dummyIssues = [
-  {
-    id: "ISS-001",
-    title: "Delayed material delivery",
-    project: "Downtown Office Complex",
-    reportedBy: "Mike Davis",
-    assignedTo: "John Smith",
-    status: "Open",
-    severity: "Critical",
-    dateReported: "2024-06-27",
-    description: "Steel beams delivery delayed by 2 weeks, impacting schedule"
-  },
-  {
-    id: "ISS-002",
-    title: "Weather damage to equipment",
-    project: "Residential Tower A",
-    reportedBy: "Sarah Johnson",
-    assignedTo: "Mike Davis",
-    status: "In Progress",
-    severity: "Medium",
-    dateReported: "2024-06-26",
-    description: "Rain damage to crane control system, needs repair"
-  },
-  {
-    id: "ISS-003",
-    title: "Permit approval pending",
-    project: "Shopping Mall Renovation",
-    reportedBy: "John Smith",
-    assignedTo: "Emily Brown",
-    status: "Resolved",
-    severity: "Low",
-    dateReported: "2024-06-20",
-    description: "Waiting for city permit approval for electrical work"
-  }
-];
-
-// Dummy messages for selected thread
-const dummyMessages = [
-  {
-    id: "1",
-    sender: "John Smith",
-    message: "Good morning team! Let's start with today's progress update.",
-    timestamp: "2024-06-28T08:00:00Z"
-  },
-  {
-    id: "2",
-    sender: "Mike Davis",
-    message: "Foundation work is on schedule. We completed section A yesterday.",
-    timestamp: "2024-06-28T08:15:00Z"
-  },
-  {
-    id: "3",
-    sender: "Sarah Johnson",
-    message: "Excellent! Any concerns with the concrete quality?",
-    timestamp: "2024-06-28T08:20:00Z"
-  },
-  {
-    id: "4",
-    sender: "Mike Davis",
-    message: "Foundation inspection completed successfully",
-    timestamp: "2024-06-28T10:30:00Z"
-  }
-];
+import { 
+  useThreads, 
+  useCreateThread,
+  useThreadMessages,
+  useSendMessage,
+  useRFIs,
+  type Thread,
+  type CreateThreadDto
+} from "../hooks/useCommunication";
+import { useProjects, type Project } from "../hooks/useProjects";
+import { useUsers } from "../hooks/useUsers";
 
 const Communication = () => {
-  const [activeTab, setActiveTab] = useState("threads");
-  const [selectedThread, setSelectedThread] = useState<typeof dummyThreads[0] | null>(null);
-  const [newMessage, setNewMessage] = useState("");
+  // API hooks
+  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads();
+  const { data: projectsResponse } = useProjects();
+  const projects = projectsResponse?.data || [];
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
+  
+  const createThreadMutation = useCreateThread();
+  const sendMessageMutation = useSendMessage();
 
-  const handleSelectThread = (thread: typeof dummyThreads[0]) => {
+  // State
+  const [activeTab, setActiveTab] = useState("threads");
+  const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  
+  // Create thread modal state
+  const [showCreateThreadModal, setShowCreateThreadModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+
+  // Get messages for selected thread
+  const { data: messages = [] } = useThreadMessages(selectedThread?.id || "");
+
+  const handleSelectThread = (thread: Thread) => {
     setSelectedThread(thread);
+    console.log(thread);
     setActiveTab("chat");
+  };
+
+  // Create thread handlers
+  const handleCreateThread = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    
+    const newThread: CreateThreadDto = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      projectId: formData.get("projectId") as string,
+      participantIds: selectedUsers
+    };
+
+    createThreadMutation.mutate(newThread, {
+      onSuccess: () => {
+        setShowCreateThreadModal(false);
+        (event.target as HTMLFormElement).reset();
+        setSelectedUsers([]);
+      },
+      onError: (error) => {
+        console.error("Failed to create thread:", error);
+      },
+    });
+  };
+
+  const handleAddUser = (userId: string) => {
+    if (!selectedUsers.includes(userId)) {
+      setSelectedUsers(prev => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(id => id !== userId));
   };
 
   const getStatusBadge = (status: string) => {
@@ -183,9 +111,18 @@ const Communication = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      console.log("Sending message:", newMessage);
-      setNewMessage("");
+    if (newMessage.trim() && selectedThread) {
+      sendMessageMutation.mutate({
+        content: newMessage,
+        threadId: selectedThread.id
+      }, {
+        onSuccess: () => {
+          setNewMessage("");
+        },
+        onError: (error) => {
+          console.error("Failed to send message:", error);
+        }
+      });
     }
   };
 
@@ -207,49 +144,69 @@ const Communication = () => {
         {activeTab === "threads" && (
           <div className="tab-content p-5">
             <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-              <h2 className="text-2xl font-bold">Discussion Threads</h2>
-              <p className="text-neutral-500 mb-4">
-                Group conversations and project discussions
-              </p>
-
-              <div className="space-y-4">
-                {dummyThreads.map((thread) => (
-                  <div
-                    key={thread.id}
-                    className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4 cursor-pointer hover:bg-base-50"
-                    onClick={() => handleSelectThread(thread)}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-semibold text-lg">{thread.title}</div>
-                        {thread.unreadCount > 0 && (
-                          <span className="badge badge-error badge-sm">{thread.unreadCount}</span>
-                        )}
-                      </div>
-                      <div className="text-gray-500 text-sm mb-2">{thread.lastMessage}</div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-xs text-gray-400">
-                          {new Date(thread.lastMessageTime).toLocaleString()}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          Participants: {thread.participants.join(", ")}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4 lg:mt-0">
-                      <button className="btn btn-soft btn-accent btn-sm">
-                        Join Chat
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6">
-                <button className="btn btn-primary">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Discussion Threads</h2>
+                  <p className="text-neutral-500">
+                    Group conversations and project discussions
+                  </p>
+                </div>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowCreateThreadModal(true)}
+                >
                   + New Thread
                 </button>
               </div>
+
+              {threadsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : threadsError ? (
+                <div className="text-center py-8 text-error">
+                  Failed to load threads. Please try again.
+                </div>
+              ) : threads.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No threads found. Create your first thread to get started.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {threads.map((thread) => (
+                    <div
+                      key={thread.id}
+                      className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4 cursor-pointer hover:bg-base-50"
+                      onClick={() => handleSelectThread(thread)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-lg">{thread.title}</div>
+                          {thread.project && (
+                            <span className="badge badge-info badge-sm">{thread.project.name}</span>
+                          )}
+                        </div>
+                        {thread.description && (
+                          <div className="text-gray-500 text-sm mb-2">{thread.description}</div>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs text-gray-400">
+                            Created: {new Date(thread.createdAt).toLocaleString()}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            Participants: {thread.users.length}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4 lg:mt-0">
+                        <button className="btn btn-soft btn-accent btn-sm">
+                          Join Chat
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -270,7 +227,7 @@ const Communication = () => {
                   <div>
                     <h2 className="text-xl font-bold">{selectedThread.title}</h2>
                     <p className="text-sm text-gray-500">
-                      Participants: {selectedThread.participants.join(", ")}
+                      Participants: {selectedThread.users.map(u => `${u.firstName} ${u.lastName}`).join(", ")}
                     </p>
                   </div>
                   <button 
@@ -283,17 +240,23 @@ const Communication = () => {
               </div>
 
               <div className="h-96 overflow-y-auto p-4 space-y-4">
-                {dummyMessages.map((message) => (
-                  <div key={message.id} className="chat chat-start">
-                    <div className="chat-header">
-                      {message.sender}
-                      <time className="text-xs opacity-50 ml-2">
-                        {formatTime(message.timestamp)}
-                      </time>
-                    </div>
-                    <div className="chat-bubble">{message.message}</div>
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    No messages yet. Start the conversation!
                   </div>
-                ))}
+                ) : (
+                  messages.map((message) => (
+                    <div key={message.id} className="chat chat-start">
+                      <div className="chat-header">
+                        {message.sender.firstName} {message.sender.lastName}
+                        <time className="text-xs opacity-50 ml-2">
+                          {formatTime(message.createdAt)}
+                        </time>
+                      </div>
+                      <div className="chat-bubble">{message.content}</div>
+                    </div>
+                  ))
+                )}
               </div>
 
               <form onSubmit={handleSendMessage} className="p-4 border-t border-base-300">
@@ -304,9 +267,18 @@ const Communication = () => {
                     placeholder="Type your message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
+                    disabled={sendMessageMutation.isPending}
                   />
-                  <button type="submit" className="btn btn-primary">
-                    Send
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={sendMessageMutation.isPending || !newMessage.trim()}
+                  >
+                    {sendMessageMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : (
+                      "Send"
+                    )}
                   </button>
                 </div>
               </form>
@@ -330,47 +302,70 @@ const Communication = () => {
                 Track information requests and responses
               </p>
 
-              <div className="space-y-4">
-                {dummyRFIs.map((rfi) => (
-                  <div
-                    key={rfi.id}
-                    className="border border-base-300 bg-base-100 rounded-2xl p-4"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="badge badge-neutral">{rfi.id}</span>
-                          <span className={`badge ${getPriorityBadge(rfi.priority)}`}>
-                            {rfi.priority}
-                          </span>
-                          <span className={`badge ${getStatusBadge(rfi.status)}`}>
-                            {rfi.status}
-                          </span>
+              {rfisLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : rfis.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No RFIs found. Create your first RFI to get started.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rfis.map((rfi) => (
+                    <div
+                      key={rfi.id}
+                      className="border border-base-300 bg-base-100 rounded-2xl p-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="badge badge-neutral">{rfi.id}</span>
+                            {rfi.priority && (
+                              <span className={`badge ${getPriorityBadge(rfi.priority)}`}>
+                                {rfi.priority}
+                              </span>
+                            )}
+                            {rfi.status && (
+                              <span className={`badge ${getStatusBadge(rfi.status)}`}>
+                                {rfi.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-semibold text-lg mb-1">{rfi.title}</div>
+                          <div className="text-gray-500 text-sm mb-2">{rfi.description}</div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Thread:</span> {rfi.thread?.title || 'N/A'} | 
+                            <span className="font-medium"> Created by:</span> {rfi.createdBy.firstName} {rfi.createdBy.lastName}
+                            {rfi.assignee && (
+                              <>
+                                | <span className="font-medium"> Assigned to:</span> {rfi.assignee.firstName} {rfi.assignee.lastName}
+                              </>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Created:</span> {new Date(rfi.createdAt).toLocaleDateString()} | 
+                            <span className="font-medium"> Updated:</span> {new Date(rfi.updatedAt).toLocaleDateString()}
+                          </div>
+                          {rfi.response && (
+                            <div className="mt-2 p-2 bg-base-200 rounded text-sm">
+                              <span className="font-medium">Response:</span> {rfi.response}
+                            </div>
+                          )}
                         </div>
-                        <div className="font-semibold text-lg mb-1">{rfi.title}</div>
-                        <div className="text-gray-500 text-sm mb-2">{rfi.description}</div>
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Project:</span> {rfi.project} | 
-                          <span className="font-medium"> Submitted by:</span> {rfi.submittedBy} | 
-                          <span className="font-medium"> Assigned to:</span> {rfi.assignedTo}
+                        <div className="flex gap-2">
+                          <button className="btn btn-soft btn-accent btn-sm">
+                            View Details
+                          </button>
+                          <button className="btn btn-sm btn-outline btn-primary">
+                            Update
+                          </button>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Submitted:</span> {new Date(rfi.dateSubmitted).toLocaleDateString()} | 
-                          <span className="font-medium"> Due:</span> {new Date(rfi.dueDate).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="btn btn-soft btn-accent btn-sm">
-                          View Details
-                        </button>
-                        <button className="btn btn-sm btn-outline btn-primary">
-                          Update
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-6">
                 <button className="btn btn-primary">
@@ -397,45 +392,8 @@ const Communication = () => {
                 Track and resolve project issues
               </p>
 
-              <div className="space-y-4">
-                {dummyIssues.map((issue) => (
-                  <div
-                    key={issue.id}
-                    className="border border-base-300 bg-base-100 rounded-2xl p-4"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="badge badge-neutral">{issue.id}</span>
-                          <span className={`badge ${getPriorityBadge(issue.severity)}`}>
-                            {issue.severity}
-                          </span>
-                          <span className={`badge ${getStatusBadge(issue.status)}`}>
-                            {issue.status}
-                          </span>
-                        </div>
-                        <div className="font-semibold text-lg mb-1">{issue.title}</div>
-                        <div className="text-gray-500 text-sm mb-2">{issue.description}</div>
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Project:</span> {issue.project} | 
-                          <span className="font-medium"> Reported by:</span> {issue.reportedBy} | 
-                          <span className="font-medium"> Assigned to:</span> {issue.assignedTo}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Reported:</span> {new Date(issue.dateReported).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="btn btn-soft btn-accent btn-sm">
-                          View Details
-                        </button>
-                        <button className="btn btn-sm btn-outline btn-primary">
-                          Update
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-8 text-gray-500">
+                Issues tracking feature coming soon...
               </div>
 
               <div className="mt-6">
@@ -466,23 +424,25 @@ const Communication = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="stat bg-base-100 rounded-xl shadow">
                   <div className="stat-title">Active Threads</div>
-                  <div className="stat-value text-primary">{dummyThreads.length}</div>
+                  <div className="stat-value text-primary">{threads.length}</div>
                   <div className="stat-desc">Total discussions</div>
                 </div>
                 <div className="stat bg-base-100 rounded-xl shadow">
                   <div className="stat-title">Open RFIs</div>
-                  <div className="stat-value text-warning">{dummyRFIs.filter(r => r.status === "Open").length}</div>
+                  <div className="stat-value text-warning">{rfis.filter(r => r.status === "Open").length}</div>
                   <div className="stat-desc">Pending responses</div>
                 </div>
                 <div className="stat bg-base-100 rounded-xl shadow">
-                  <div className="stat-title">Open Issues</div>
-                  <div className="stat-value text-error">{dummyIssues.filter(i => i.status === "Open").length}</div>
-                  <div className="stat-desc">Need attention</div>
+                  <div className="stat-title">Total RFIs</div>
+                  <div className="stat-value text-info">{rfis.length}</div>
+                  <div className="stat-desc">All time</div>
                 </div>
                 <div className="stat bg-base-100 rounded-xl shadow">
                   <div className="stat-title">Resolution Rate</div>
-                  <div className="stat-value text-success">78%</div>
-                  <div className="stat-desc">This month</div>
+                  <div className="stat-value text-success">
+                    {rfis.length > 0 ? Math.round((rfis.filter(r => r.status === "Resolved").length / rfis.length) * 100) : 0}%
+                  </div>
+                  <div className="stat-desc">RFI completion</div>
                 </div>
               </div>
 
@@ -542,6 +502,134 @@ const Communication = () => {
           </div>
         )}
       </div>
+
+      {/* Create Thread Modal */}
+      {showCreateThreadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New Thread</h3>
+            
+            <form onSubmit={handleCreateThread} className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Thread Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter thread title..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Add Participants</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">No users available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between">
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {selectedUsers.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveUser(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddUser(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedUsers.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Selected: {selectedUsers.length} participant(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowCreateThreadModal(false);
+                    setSelectedUsers([]);
+                  }}
+                  disabled={createThreadMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createThreadMutation.isPending}
+                >
+                  {createThreadMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Thread"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
