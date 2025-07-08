@@ -1,74 +1,18 @@
-import { useState, useRef } from "react";
-import { useCreateProject } from "../hooks/useProjects";
-// Add these imports for React Leaflet
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { useState, useRef } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
-import Select from "react-select";
-
-// Dummy data for projects
-const dummyProjects = [
-  {
-    id: "1",
-    name: "Downtown Office Complex",
-    status: "In Progress",
-    progress: 75,
-    budget: 5500000,
-    spent: 4125000,
-    startDate: "2024-01-15",
-    endDate: "2024-12-31",
-    manager: "John Smith",
-    location: "Downtown District",
-    coordinates: { lat: 40.7128, lng: -74.006 },
-    logoUrl: "",
-    featuredImageUrl: "",
-    description:
-      "Construction of a 20-story office complex with underground parking",
-    type: "Commercial",
-    squareFeet: 100000,
-  },
-  {
-    id: "2",
-    name: "Residential Tower A",
-    status: "Planning",
-    progress: 25,
-    budget: 8200000,
-    spent: 2050000,
-    startDate: "2024-03-01",
-    endDate: "2025-08-15",
-    manager: "Sarah Johnson",
-    location: "Westside",
-    coordinates: { lat: 34.0522, lng: -118.2437 },
-    logoUrl: "",
-    featuredImageUrl: "",
-    description: "35-story residential tower with retail space on ground floor",
-    type: "Residential",
-    squareFeet: 150000,
-  },
-  {
-    id: "3",
-    name: "Shopping Mall Renovation",
-    status: "Completed",
-    progress: 100,
-    budget: 3200000,
-    spent: 3150000,
-    startDate: "2023-09-01",
-    endDate: "2024-02-28",
-    manager: "Mike Davis",
-    location: "City Center",
-    coordinates: { lat: 37.7749, lng: -122.4194 },
-    logoUrl: "",
-    featuredImageUrl: "",
-    description:
-      "Complete renovation of existing shopping mall including new storefronts",
-    type: "Commercial",
-    squareFeet: 80000,
-  },
-];
+import "leaflet/dist/leaflet.css";
+import { useProjects, useCreateProject, useUpdateProject, type Project, type CreateProjectDto, type UpdateProjectDto } from "../hooks/useProjects";
 
 // Fix default marker icon for leaflet in React
 // You can use CDN links (as shown) or local assets if you prefer.
 // This is only for the marker icon images, not the Marker component itself.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -80,10 +24,12 @@ L.Icon.Default.mergeOptions({
 });
 
 const ProjectOversight = () => {
+  // Fetch projects data
+  const { data: projectsResponse, isLoading, error, refetch } = useProjects();
+  const projects = projectsResponse?.data || [];
+
   const [activeTab, setActiveTab] = useState("projects");
-  const [selectedProject, setSelectedProject] = useState<
-    (typeof dummyProjects)[0] | null
-  >(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   // Add state for logo and photo previews
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -131,12 +77,12 @@ const ProjectOversight = () => {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const handleViewProject = (project: (typeof dummyProjects)[0]) => {
+  const handleViewProject = (project: Project) => {
     setSelectedProject(project);
     setActiveTab("project_details");
   };
 
-  const handleEditProject = (project: (typeof dummyProjects)[0]) => {
+  const handleEditProject = (project: Project) => {
     setSelectedProject(project);
     setActiveTab("edit_project");
     // Reset previews when editing a project
@@ -144,18 +90,16 @@ const ProjectOversight = () => {
     setPhotoPreview(null);
     setLocationText(project.location || "");
     setLocationCoords(project.coordinates || null);
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "In Progress":
-        return "badge-warning";
-      case "Completed":
-        return "badge-success";
-      case "Planning":
-        return "badge-info";
-      default:
-        return "badge-neutral";
+    // Set selected users if available
+    if (project.userProjects) {
+      setSelectedUsers(
+        project.userProjects.map((up) => ({
+          userId: up.userId,
+          projectRole: up.projectRole,
+          accessLevel: up.accessLevel,
+          userName: `${up.user.firstName} ${up.user.lastName}`,
+        }))
+      );
     }
   };
 
@@ -168,27 +112,25 @@ const ProjectOversight = () => {
   };
 
   const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
 
   const handleCreateProject = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const newProject = {
+    
+    const newProject: CreateProjectDto = {
       name: formData.get("projectName") as string,
       description: formData.get("description") as string,
       type: formData.get("type") as string,
-      budget: Number(formData.get("budget")),
-      squareFeet: Number(formData.get("squareFeet")),
-      location: locationText,
-      coordinates: locationCoords
-        ? { lat: locationCoords.lat, lng: locationCoords.lng }
-        : null,
-      logo: formData.get("logo"),
-      photo: formData.get("photo"),
-      logoUrl: "", // Set after upload if needed
-      featuredImageUrl: "", // Set after upload if needed
-      startDate: formData.get("startDate") as string,
-      endDate: formData.get("endDate") as string,
-      users: selectedUsers,
+      budget: Number(formData.get("budget")) || undefined,
+      squareFeet: Number(formData.get("squareFeet")) || undefined,
+      location: locationText || undefined,
+      coordinates: locationCoords || undefined,
+      // logoUrl: "", // Set after upload if needed
+      // featuredImageUrl: "", // Set after upload if needed
+      startDate: formData.get("startDate") as string || undefined,
+      endDate: formData.get("endDate") as string || undefined,
+      users: selectedUsers.length > 0 ? selectedUsers : undefined,
     };
 
     createProject.mutate(newProject, {
@@ -196,19 +138,48 @@ const ProjectOversight = () => {
         console.log("Project created successfully!");
         setActiveTab("projects");
         (event.target as HTMLFormElement).reset();
-        setLocationCoords(null);
-        setLocationText("");
-        setSelectedUsers([]);
+        resetForm();
       },
       onError: (error) => {
         console.error("Failed to create project:", error);
       },
     });
+  };
 
-    // Reset form and go back to projects tab
-    (event.target as HTMLFormElement).reset();
-    setActiveTab("projects");
-    // Reset previews after submit
+  const handleUpdateProject = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedProject) return;
+
+    const formData = new FormData(event.currentTarget);
+    
+    const updatedProject: UpdateProjectDto & { id: string } = {
+      id: selectedProject.id,
+      name: formData.get("projectName") as string,
+      description: formData.get("description") as string,
+      type: formData.get("type") as string,
+      budget: Number(formData.get("budget")) || undefined,
+      squareFeet: Number(formData.get("squareFeet")) || undefined,
+      location: locationText || undefined,
+      coordinates: locationCoords || undefined,
+      logoUrl: selectedProject.logoUrl, // Keep existing logo for now
+      featuredImageUrl: selectedProject.featuredImageUrl, // Keep existing image for now
+      startDate: formData.get("startDate") as string || undefined,
+      endDate: formData.get("endDate") as string || undefined,
+      users: selectedUsers.length > 0 ? selectedUsers : undefined,
+    };
+
+    updateProject.mutate(updatedProject, {
+      onSuccess: () => {
+        console.log("Project updated successfully!");
+        setActiveTab("project_details");
+      },
+      onError: (error) => {
+        console.error("Failed to update project:", error);
+      },
+    });
+  };
+
+  const resetForm = () => {
     setLogoPreview(null);
     setPhotoPreview(null);
     setLocationCoords(null);
@@ -482,67 +453,105 @@ const ProjectOversight = () => {
               </p>
 
               <div className="space-y-4">
-                {dummyProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
-                  >
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg">
-                        {project.name}
-                      </div>
-                      <div className="text-gray-500 text-sm mb-2">
-                        {project.description}
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span
-                          className={`badge ${getStatusBadge(
-                            project.status
-                          )} badge-lg`}
-                        >
-                          {project.status}
-                        </span>
-                        <span className="badge badge-neutral">
-                          {project.manager}
-                        </span>
-                        <span className="badge badge-ghost">
-                          {project.location}
-                        </span>
-                        {project.coordinates && (
-                          <span className="badge badge-info">
-                            {project.coordinates.lat.toFixed(3)},{" "}
-                            {project.coordinates.lng.toFixed(3)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Budget: {formatCurrency(project.budget)} | Spent:{" "}
-                        {formatCurrency(project.spent)} | Progress:{" "}
-                        {project.progress}%
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-success h-2 rounded-full"
-                          style={{ width: `${project.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4 lg:mt-0">
-                      <button
-                        className="btn btn-soft btn-accent btn-sm"
-                        onClick={() => handleViewProject(project)}
-                      >
-                        View Details
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline btn-primary"
-                        onClick={() => handleEditProject(project)}
-                      >
-                        Edit
-                      </button>
-                    </div>
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <span className="loading loading-spinner loading-lg"></span>
                   </div>
-                ))}
+                ) : error ? (
+                  <div className="alert alert-error">
+                    <span>Failed to load projects. Please try again.</span>
+                    <button className="btn btn-sm" onClick={() => refetch()}>
+                      Retry
+                    </button>
+                  </div>
+                ) : projects.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No projects found.</p>
+                    <button
+                      className="btn btn-primary mt-4"
+                      onClick={() => setActiveTab("create_project")}
+                    >
+                      Create Your First Project
+                    </button>
+                  </div>
+                ) : (
+                  projects.map((project: Project) => (
+                    <div
+                      key={project.id}
+                      className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">
+                          {project.name}
+                        </div>
+                        <div className="text-gray-500 text-sm mb-2">
+                          {project.description || "No description provided"}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          <span className="badge badge-neutral">
+                            {project.type || "Unknown Type"}
+                          </span>
+                          <span className="badge badge-ghost">
+                            {project.location || "No location"}
+                          </span>
+                          {project.coordinates && (
+                            <span className="badge badge-info">
+                              📍 Located
+                            </span>
+                          )}
+                          {project._count && (
+                            <>
+                              <span className="badge badge-outline">
+                                📋 {project._count.tasks} Tasks
+                              </span>
+                              <span className="badge badge-outline">
+                                📄 {project._count.documents} Docs
+                              </span>
+                              <span className="badge badge-outline">
+                                💬 {project._count.threads} Threads
+                              </span>
+                              <span className="badge badge-outline">
+                                ⚠️ {project._count.Issue} Issues
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex gap-4 text-sm text-gray-600">
+                          {project.budget && (
+                            <span>Budget: {formatCurrency(project.budget)}</span>
+                          )}
+                          {project.squareFeet && (
+                            <span>Size: {project.squareFeet.toLocaleString()} sq ft</span>
+                          )}
+                          {project.startDate && (
+                            <span>
+                              Start: {new Date(project.startDate).toLocaleDateString()}
+                            </span>
+                          )}
+                          {project.endDate && (
+                            <span>
+                              End: {new Date(project.endDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4 lg:mt-0">
+                        <button
+                          className="btn btn-soft btn-accent btn-sm"
+                          onClick={() => handleViewProject(project)}
+                        >
+                          View Details
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline btn-primary"
+                          onClick={() => handleEditProject(project)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -577,45 +586,62 @@ const ProjectOversight = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="stat bg-base-100 rounded-xl shadow">
-                    <div className="stat-title">Progress</div>
-                    <div className="stat-value text-primary">
-                      {selectedProject.progress}%
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {selectedProject.budget && (
+                    <div className="stat bg-base-100 rounded-xl shadow">
+                      <div className="stat-title">Budget</div>
+                      <div className="stat-value text-sm">
+                        {formatCurrency(selectedProject.budget)}
+                      </div>
+                      <div className="stat-desc">Total allocated</div>
                     </div>
-                    <div className="stat-desc">Project completion</div>
-                  </div>
-                  <div className="stat bg-base-100 rounded-xl shadow">
-                    <div className="stat-title">Budget</div>
-                    <div className="stat-value text-sm">
-                      {formatCurrency(selectedProject.budget)}
+                  )}
+                  
+                  {selectedProject.squareFeet && (
+                    <div className="stat bg-base-100 rounded-xl shadow">
+                      <div className="stat-title">Size</div>
+                      <div className="stat-value text-sm">
+                        {selectedProject.squareFeet.toLocaleString()}
+                      </div>
+                      <div className="stat-desc">Square feet</div>
                     </div>
-                    <div className="stat-desc">Total allocated</div>
-                  </div>
-                  <div className="stat bg-base-100 rounded-xl shadow">
-                    <div className="stat-title">Spent</div>
-                    <div className="stat-value text-sm">
-                      {formatCurrency(selectedProject.spent)}
+                  )}
+
+                  {selectedProject.type && (
+                    <div className="stat bg-base-100 rounded-xl shadow">
+                      <div className="stat-title">Type</div>
+                      <div className="stat-value text-sm">
+                        {selectedProject.type}
+                      </div>
+                      <div className="stat-desc">Project category</div>
                     </div>
-                    <div className="stat-desc">
-                      {(
-                        (selectedProject.spent / selectedProject.budget) *
-                        100
-                      ).toFixed(1)}
-                      % of budget
-                    </div>
-                  </div>
-                  <div className="stat bg-base-100 rounded-xl shadow">
-                    <div className="stat-title">Status</div>
-                    <div
-                      className={`stat-value badge ${getStatusBadge(
-                        selectedProject.status
-                      )} badge-lg`}
-                    >
-                      {selectedProject.status}
-                    </div>
-                    <div className="stat-desc">Current state</div>
-                  </div>
+                  )}
+
+                  {selectedProject._count && (
+                    <>
+                      <div className="stat bg-base-100 rounded-xl shadow">
+                        <div className="stat-title">Tasks</div>
+                        <div className="stat-value text-primary">
+                          {selectedProject._count.tasks}
+                        </div>
+                        <div className="stat-desc">Total tasks</div>
+                      </div>
+                      <div className="stat bg-base-100 rounded-xl shadow">
+                        <div className="stat-title">Documents</div>
+                        <div className="stat-value text-secondary">
+                          {selectedProject._count.documents}
+                        </div>
+                        <div className="stat-desc">Files uploaded</div>
+                      </div>
+                      <div className="stat bg-base-100 rounded-xl shadow">
+                        <div className="stat-title">Issues</div>
+                        <div className="stat-value text-warning">
+                          {selectedProject._count.Issue}
+                        </div>
+                        <div className="stat-desc">Open issues</div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -624,31 +650,45 @@ const ProjectOversight = () => {
                       Project Timeline
                     </h3>
                     <div className="space-y-3">
+                      {selectedProject.startDate && (
+                        <div className="flex justify-between">
+                          <span>Start Date:</span>
+                          <span className="font-medium">
+                            {new Date(selectedProject.startDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {selectedProject.endDate && (
+                        <div className="flex justify-between">
+                          <span>End Date:</span>
+                          <span className="font-medium">
+                            {new Date(selectedProject.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {selectedProject.startDate && selectedProject.endDate && (
+                        <div className="flex justify-between">
+                          <span>Duration:</span>
+                          <span className="font-medium">
+                            {Math.ceil(
+                              (new Date(selectedProject.endDate).getTime() -
+                                new Date(selectedProject.startDate).getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            )}{" "}
+                            days
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
-                        <span>Start Date:</span>
+                        <span>Created:</span>
                         <span className="font-medium">
-                          {new Date(
-                            selectedProject.startDate
-                          ).toLocaleDateString()}
+                          {new Date(selectedProject.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>End Date:</span>
+                        <span>Last Updated:</span>
                         <span className="font-medium">
-                          {new Date(
-                            selectedProject.endDate
-                          ).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Duration:</span>
-                        <span className="font-medium">
-                          {Math.ceil(
-                            (new Date(selectedProject.endDate).getTime() -
-                              new Date(selectedProject.startDate).getTime()) /
-                              (1000 * 60 * 60 * 24)
-                          )}{" "}
-                          days
+                          {new Date(selectedProject.updatedAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -660,15 +700,9 @@ const ProjectOversight = () => {
                     </h3>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span>Manager:</span>
-                        <span className="font-medium">
-                          {selectedProject.manager}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
                         <span>Location:</span>
                         <span className="font-medium">
-                          {selectedProject.location}
+                          {selectedProject.location || "Not specified"}
                           {selectedProject.coordinates &&
                             ` (${selectedProject.coordinates.lat.toFixed(
                               5
@@ -676,13 +710,23 @@ const ProjectOversight = () => {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Remaining Budget:</span>
+                        <span>Description:</span>
                         <span className="font-medium">
-                          {formatCurrency(
-                            selectedProject.budget - selectedProject.spent
-                          )}
+                          {selectedProject.description || "No description provided"}
                         </span>
                       </div>
+                      {selectedProject.userProjects && selectedProject.userProjects.length > 0 && (
+                        <div>
+                          <span>Team Members:</span>
+                          <div className="mt-2">
+                            {selectedProject.userProjects.map((userProject) => (
+                              <div key={userProject.id} className="badge badge-outline mr-2 mb-2">
+                                {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1061,10 +1105,7 @@ const ProjectOversight = () => {
               {selectedProject ? (
                 <form
                   className="space-y-6"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    console.log("Edited project data submitted", { selectedUsers });
-                  }}
+                  onSubmit={handleUpdateProject}
                   encType="multipart/form-data"
                 >
                   <div className="flex justify-between items-center mb-6">
@@ -1116,6 +1157,18 @@ const ProjectOversight = () => {
                         </select>
                       </div>
                     </div>
+                    <div className="mt-4">
+                      <label className="label">
+                        <span className="label-text font-medium">Description</span>
+                      </label>
+                      <textarea
+                        className="textarea textarea-bordered w-full"
+                        name="description"
+                        defaultValue={selectedProject.description || ""}
+                        rows={3}
+                        placeholder="Enter project description..."
+                      />
+                    </div>
                   </div>
 
                   {/* Project Details Section */}
@@ -1162,8 +1215,11 @@ const ProjectOversight = () => {
                           type="date"
                           className="input input-bordered w-full"
                           name="startDate"
-                          defaultValue={selectedProject.startDate}
-                          required
+                          defaultValue={
+                            selectedProject.startDate
+                              ? new Date(selectedProject.startDate).toISOString().split('T')[0]
+                              : ""
+                          }
                         />
                       </div>
                       <div>
@@ -1174,8 +1230,11 @@ const ProjectOversight = () => {
                           type="date"
                           className="input input-bordered w-full"
                           name="endDate"
-                          defaultValue={selectedProject.endDate}
-                          required
+                          defaultValue={
+                            selectedProject.endDate
+                              ? new Date(selectedProject.endDate).toISOString().split('T')[0]
+                              : ""
+                          }
                         />
                       </div>
                     </div>

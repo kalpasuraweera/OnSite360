@@ -23,8 +23,36 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  type?: string;
+  budget?: number;
+  squareFeet?: number;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
+  logoUrl?: string;
+  featuredImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
   updatedAt: string;
+  userProjects?: {
+    id: string;
+    userId: string;
+    projectRole: string;
+    accessLevel: number;
+    isActive: boolean;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }[];
+  _count?: {
+    tasks: number;
+    documents: number;
+    threads: number;
+    Issue: number;
+  };
 }
 
 export const useProjects = () => {
@@ -32,19 +60,58 @@ export const useProjects = () => {
     queryKey: ["projects"],
     queryFn: async () => {
       const { data } = await instance.get("/projects");
-      return data;
+      return data.data; // Extract the data from the API response structure
     },
+  });
+};
+
+export const useProject = (id: string) => {
+  return useQuery({
+    queryKey: ["project", id],
+    queryFn: async () => {
+      const { data } = await instance.get(`/projects/${id}`);
+      return data.data;
+    },
+    enabled: !!id,
   });
 };
 
 export interface CreateProjectDto {
   name: string;
-  budget: number;
-  startDate: string;
-  endDate: string;
-  manager: string;
-  location: string;
   description?: string;
+  type?: string;
+  budget?: number;
+  squareFeet?: number;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
+  logoUrl?: string;
+  featuredImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  users?: {
+    userId: string;
+    projectRole?: string;
+    accessLevel?: number;
+  }[];
+}
+
+export interface UpdateProjectDto {
+  name?: string;
+  description?: string;
+  type?: string;
+  budget?: number;
+  squareFeet?: number;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
+  logoUrl?: string;
+  featuredImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  users?: {
+    userId: string;
+    projectRole?: string;
+    accessLevel?: number;
+  }[];
 }
 
 export const useCreateProject = () => {
@@ -52,11 +119,42 @@ export const useCreateProject = () => {
 
   return useMutation({
     mutationFn: async (newProject: CreateProjectDto) => {
-      const { data } = await instance.post<Project>("/projects", newProject);
-      return data;
+      const { data } = await instance.post("/projects", newProject);
+      return data.data;
     },
     onSuccess: () => {
       // Invalidate and refetch projects list after creation
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+};
+
+export const useUpdateProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updateData }: UpdateProjectDto & { id: string }) => {
+      const { data } = await instance.patch(`/projects/${id}`, updateData);
+      return data.data;
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch projects list and specific project after update
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", data.id] });
+    },
+  });
+};
+
+export const useDeleteProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await instance.delete(`/projects/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch projects list after deletion
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
