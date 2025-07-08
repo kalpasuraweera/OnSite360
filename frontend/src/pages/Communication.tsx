@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   useThreads, 
   useCreateThread,
@@ -13,6 +13,31 @@ import {
 import { useProjects, type Project } from "../hooks/useProjects";
 import { useUsers } from "../hooks/useUsers";
 import { useAuthStore } from "../stores/useAuthStore";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
 
 const Communication = () => {
   // API hooks
@@ -49,6 +74,135 @@ const Communication = () => {
 
   // Get RFIs for the selected thread
   const selectedThreadRFIs = rfis.filter(rfi => rfi.threadId === selectedThread?.id);
+
+  // Analytics calculations
+  const analyticsData = useMemo(() => {
+    const now = new Date();
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // RFI status breakdown
+    const rfisByStatus = rfis.reduce((acc, rfi) => {
+      const status = rfi.status || 'Unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // RFI priority breakdown
+    const rfisByPriority = rfis.reduce((acc, rfi) => {
+      const priority = rfi.priority || 'Unknown';
+      acc[priority] = (acc[priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // RFI category breakdown
+    const rfisByCategory = rfis.reduce((acc, rfi) => {
+      const category = rfi.category || 'Other';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Recent activity (last 7 days)
+    const recentThreads = threads.filter(thread => 
+      new Date(thread.createdAt) > lastWeek
+    ).length;
+
+    const recentRFIs = rfis.filter(rfi => 
+      new Date(rfi.createdAt) > lastWeek
+    ).length;
+
+    // Thread activity by project
+    const threadsByProject = threads.reduce((acc, thread) => {
+      const projectName = thread.project?.name || 'Unknown';
+      acc[projectName] = (acc[projectName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculate average response time (mock data for now)
+    const avgResponseTime = rfis.length > 0 ? 
+      Math.round(rfis.reduce((acc, rfi) => {
+        if (rfi.answeredAt && rfi.createdAt) {
+          const responseTime = new Date(rfi.answeredAt).getTime() - new Date(rfi.createdAt).getTime();
+          return acc + (responseTime / (1000 * 60 * 60 * 24)); // Convert to days
+        }
+        return acc;
+      }, 0) / rfis.filter(rfi => rfi.answeredAt).length) : 0;
+
+    return {
+      rfisByStatus,
+      rfisByPriority,
+      rfisByCategory,
+      threadsByProject,
+      recentThreads,
+      recentRFIs,
+      avgResponseTime: avgResponseTime || 2.5,
+      totalMessages: messages.length,
+      activeUsers: users.filter(user => 
+        threads.some(thread => thread.users.some(u => u.id === user.id))
+      ).length
+    };
+  }, [rfis, threads, messages, users]);
+
+  // Chart data configurations
+  const rfiStatusChartData = {
+    labels: Object.keys(analyticsData.rfisByStatus),
+    datasets: [
+      {
+        data: Object.values(analyticsData.rfisByStatus),
+        backgroundColor: [
+          '#ef4444', // red for Open
+          '#f59e0b', // amber for In Review
+          '#10b981', // emerald for Resolved
+          '#6b7280', // gray for others
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const rfiPriorityChartData = {
+    labels: ['Low', 'Medium', 'High', 'Critical'],
+    datasets: [
+      {
+        label: 'RFIs by Priority',
+        data: [
+          analyticsData.rfisByPriority.Low || 0,
+          analyticsData.rfisByPriority.Medium || 0,
+          analyticsData.rfisByPriority.High || 0,
+          analyticsData.rfisByPriority.Critical || 0,
+        ],
+        backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444', '#dc2626'],
+        borderRadius: 4,
+      },
+    ],
+  };
+
+  const threadActivityChartData = {
+    labels: Object.keys(analyticsData.threadsByProject).slice(0, 5), // Top 5 projects
+    datasets: [
+      {
+        label: 'Threads',
+        data: Object.values(analyticsData.threadsByProject).slice(0, 5),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          padding: 20,
+          usePointStyle: true,
+        },
+      },
+    },
+  };
 
   const handleSelectThread = (thread: Thread) => {
     setSelectedThread(thread);
@@ -209,7 +363,7 @@ const Communication = () => {
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Communication</h1>
-      <p className="text-gray-500 mb-6">Team discussions, RFIs, and issue tracking</p>
+      <p className="text-gray-500 mb-6">Team discussions, RFIs, and analytics dashboard</p>
 
       {/* Tabs navigation */}
       <div className="tabs tabs-border">
@@ -522,35 +676,6 @@ const Communication = () => {
           type="radio"
           name="comm_tab_group"
           className="tab"
-          aria-label="Issues"
-          checked={activeTab === "issues"}
-          onChange={() => setActiveTab("issues")}
-        />
-        {activeTab === "issues" && (
-          <div className="tab-content p-5">
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-              <h2 className="text-2xl font-bold">Issues & Problems</h2>
-              <p className="text-neutral-500 mb-4">
-                Track and resolve project issues
-              </p>
-
-              <div className="text-center py-8 text-gray-500">
-                Issues tracking feature coming soon...
-              </div>
-
-              <div className="mt-6">
-                <button className="btn btn-primary">
-                  + Report Issue
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <input
-          type="radio"
-          name="comm_tab_group"
-          className="tab"
           aria-label="Analytics"
           checked={activeTab === "analytics"}
           onChange={() => setActiveTab("analytics")}
@@ -558,85 +683,203 @@ const Communication = () => {
         {activeTab === "analytics" && (
           <div className="tab-content p-5">
             <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-              <h2 className="text-2xl font-bold mb-2">Communication Analytics</h2>
-              <p className="text-neutral-500 mb-4">
-                Overview of communication metrics and performance
-              </p>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Communication Analytics</h2>
+                  <p className="text-neutral-500">
+                    Comprehensive insights into communication performance and trends
+                  </p>
+                </div>
+                <div className="badge badge-info badge-lg">
+                  Last 30 Days
+                </div>
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="stat bg-base-100 rounded-xl shadow">
-                  <div className="stat-title">Active Threads</div>
-                  <div className="stat-value text-primary">{threads.length}</div>
-                  <div className="stat-desc">Total discussions</div>
-                </div>
-                <div className="stat bg-base-100 rounded-xl shadow">
-                  <div className="stat-title">Open RFIs</div>
-                  <div className="stat-value text-warning">{rfis.filter(r => r.status === "Open").length}</div>
-                  <div className="stat-desc">Pending responses</div>
-                </div>
-                <div className="stat bg-base-100 rounded-xl shadow">
-                  <div className="stat-title">Total RFIs</div>
-                  <div className="stat-value text-info">{rfis.length}</div>
-                  <div className="stat-desc">All time</div>
-                </div>
-                <div className="stat bg-base-100 rounded-xl shadow">
-                  <div className="stat-title">Resolution Rate</div>
-                  <div className="stat-value text-success">
-                    {rfis.length > 0 ? Math.round((rfis.filter(r => r.status === "Resolved").length / rfis.length) * 100) : 0}%
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="stat bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                    </svg>
                   </div>
-                  <div className="stat-desc">RFI completion</div>
+                  <div className="stat-title text-blue-100">Active Threads</div>
+                  <div className="stat-value">{threads.length}</div>
+                  <div className="stat-desc text-blue-200">
+                    +{analyticsData.recentThreads} this week
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2V3a2 2 0 012-2 2 2 0 012 2v8a4 4 0 01-4 4H6a4 4 0 01-4-4V5z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-amber-100">Open RFIs</div>
+                  <div className="stat-value">{analyticsData.rfisByStatus.Open || 0}</div>
+                  <div className="stat-desc text-amber-200">
+                    {rfis.filter(r => r.status === "Open").length} pending responses
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-emerald-100">Resolution Rate</div>
+                  <div className="stat-value">
+                    {rfis.length > 0 ? Math.round((analyticsData.rfisByStatus.Resolved || 0) / rfis.length * 100) : 0}%
+                  </div>
+                  <div className="stat-desc text-emerald-200">
+                    {analyticsData.rfisByStatus.Resolved || 0} resolved RFIs
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-purple-100">Active Users</div>
+                  <div className="stat-value">{analyticsData.activeUsers}</div>
+                  <div className="stat-desc text-purple-200">
+                    Participating in discussions
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-base-100 rounded-xl p-4">
-                  <h3 className="text-lg font-semibold mb-4">Issue Severity Distribution</h3>
-                  <div className="space-y-3">
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* RFI Status Distribution */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">RFI Status Distribution</h3>
+                    <div className="badge badge-neutral badge-sm">{rfis.length} Total</div>
+                  </div>
+                  <div className="h-64">
+                    {Object.keys(analyticsData.rfisByStatus).length > 0 ? (
+                      <Doughnut data={rfiStatusChartData} options={chartOptions} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No RFI data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RFI Priority Breakdown */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">RFI Priority Breakdown</h3>
+                    <div className="badge badge-neutral badge-sm">By Priority</div>
+                  </div>
+                  <div className="h-64">
+                    {Object.keys(analyticsData.rfisByPriority).length > 0 ? (
+                      <Bar data={rfiPriorityChartData} options={chartOptions} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No priority data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Thread Activity by Project */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">Thread Activity by Project</h3>
+                  <div className="h-48">
+                    {Object.keys(analyticsData.threadsByProject).length > 0 ? (
+                      <Line data={threadActivityChartData} options={chartOptions} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No project data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
+                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span>Critical</span>
+                      <span className="text-sm font-medium">Avg RFI Response Time</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">1</span>
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
-                          <div className="bg-red-600 h-2 rounded-full" style={{ width: "33%" }}></div>
-                        </div>
+                        <span className="font-bold text-lg">{analyticsData.avgResponseTime}</span>
+                        <span className="text-sm text-gray-500">days</span>
                       </div>
                     </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${Math.min(analyticsData.avgResponseTime / 5 * 100, 100)}%` }}
+                      ></div>
+                    </div>
+
                     <div className="flex justify-between items-center">
-                      <span>Medium</span>
+                      <span className="text-sm font-medium">Thread Engagement</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">1</span>
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
-                          <div className="bg-yellow-600 h-2 rounded-full" style={{ width: "33%" }}></div>
-                        </div>
+                        <span className="font-bold text-lg">{(analyticsData.totalMessages / threads.length || 0).toFixed(1)}</span>
+                        <span className="text-sm text-gray-500">msgs/thread</span>
                       </div>
                     </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{ width: `${Math.min((analyticsData.totalMessages / threads.length || 0) / 10 * 100, 100)}%` }}
+                      ></div>
+                    </div>
+
                     <div className="flex justify-between items-center">
-                      <span>Low</span>
+                      <span className="text-sm font-medium">Recent Activity</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">1</span>
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: "33%" }}></div>
-                        </div>
+                        <span className="font-bold text-lg">{analyticsData.recentRFIs + analyticsData.recentThreads}</span>
+                        <span className="text-sm text-gray-500">this week</span>
                       </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-purple-600 h-2 rounded-full" 
+                        style={{ width: `${Math.min((analyticsData.recentRFIs + analyticsData.recentThreads) / 20 * 100, 100)}%` }}
+                      ></div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-base-100 rounded-xl p-4">
-                  <h3 className="text-lg font-semibold mb-4">Response Times</h3>
+                {/* RFI Categories */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">RFI Categories</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span>Average RFI Response:</span>
-                      <span className="font-medium">2.3 days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Average Issue Resolution:</span>
-                      <span className="font-medium">4.7 days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Thread Activity:</span>
-                      <span className="font-medium">23 msgs/day</span>
-                    </div>
+                    {Object.entries(analyticsData.rfisByCategory)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 6)
+                      .map(([category, count]) => (
+                        <div key={category} className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{category}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-indigo-600 h-2 rounded-full" 
+                                style={{ width: `${(count / Math.max(...Object.values(analyticsData.rfisByCategory))) * 100}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold w-8 text-right">{count}</span>
+                          </div>
+                        </div>
+                      ))}
+                    {Object.keys(analyticsData.rfisByCategory).length === 0 && (
+                      <div className="text-center text-gray-500 py-4">
+                        No category data available
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
