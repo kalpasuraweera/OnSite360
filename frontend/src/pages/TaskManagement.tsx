@@ -8,17 +8,14 @@ import {
   MdViewColumn,
   MdViewList,
 } from "react-icons/md";
-import { 
-  ControlledBoard, 
-  moveCard
-} from '@caldwell619/react-kanban';
-import type { 
-  KanbanBoard, 
-  OnDragEndNotification, 
+import { ControlledBoard, moveCard } from "@caldwell619/react-kanban";
+import type {
+  KanbanBoard,
+  OnDragEndNotification,
   Card,
-  Column
-} from '@caldwell619/react-kanban';
-import '../styles/kanban.css';
+  Column,
+} from "@caldwell619/react-kanban";
+import "../styles/kanban.css";
 
 // Mock projects
 const mockProjects = [
@@ -122,7 +119,7 @@ const TaskManagement = () => {
   const [selectedProject, setSelectedProject] = useState<string>(
     mockProjects[0].id
   );
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
 
   // Create kanban board structure
   const createKanbanBoard = useCallback((): KanbanBoard<Task> => {
@@ -158,14 +155,20 @@ const TaskManagement = () => {
     return { columns };
   }, [selectedProject, activeTab]);
 
-  const [board, setBoard] = useState<KanbanBoard<Task>>(() => createKanbanBoard());
+  const [board, setBoard] = useState<KanbanBoard<Task>>(() =>
+    createKanbanBoard()
+  );
 
   // Update board when project or tab changes
   useEffect(() => {
     setBoard(createKanbanBoard());
   }, [createKanbanBoard]);
 
-  const handleCardMove: OnDragEndNotification<Task> = (_card, source, destination) => {
+  const handleCardMove: OnDragEndNotification<Task> = (
+    _card,
+    source,
+    destination
+  ) => {
     setBoard((currentBoard) => {
       return moveCard(currentBoard, source, destination);
     });
@@ -207,18 +210,20 @@ const TaskManagement = () => {
       const due = new Date(dueDate);
       const diffTime = due.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) return { color: 'text-error', text: 'Overdue' };
-      if (diffDays <= 3) return { color: 'text-warning', text: 'Due soon' };
-      return { color: 'text-success', text: 'On track' };
+
+      if (diffDays < 0) return { color: "text-error", text: "Overdue" };
+      if (diffDays <= 3) return { color: "text-warning", text: "Due soon" };
+      return { color: "text-success", text: "On track" };
     };
 
     const dueDateStatus = getDueDateStatus(card.dueDate);
 
     return (
-      <div className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/50">
-        <div className="flex justify-between items-start mb-3">
-          <h3 className="font-semibold text-sm text-base-content line-clamp-2 flex-1">{card.name}</h3>
+      <div className="bg-base-200 min-w-[260px] shadow-xl shadow-base-300 mb-2 border border-base-300 rounded-xl p-1 transition-all duration-200 hover:shadow-2xl shadow-base-300">
+        <div className="flex bg-base-300 p-2 w-full rounded-t-xl justify-between items-start mb-3">
+          <h3 className="font-semibold text-sm text-base-content line-clamp-2 flex-1">
+            {card.name}
+          </h3>
           <div className="flex gap-1 ml-2">
             <button
               className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:btn-success"
@@ -240,13 +245,15 @@ const TaskManagement = () => {
             </button>
           </div>
         </div>
-        
-        <div className="space-y-2">
+        {/* Card Content */}
+        <div className="space-y-2 p-4">
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Type:</span>
-            <span className="badge badge-sm badge-outline">{TASK_TYPE_LABELS[card.type]}</span>
+            <span className="badge badge-sm badge-outline">
+              {TASK_TYPE_LABELS[card.type]}
+            </span>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Assigned:</span>
             <div className="flex items-center gap-1">
@@ -258,7 +265,7 @@ const TaskManagement = () => {
               <span className="text-xs font-medium">{card.assignedTo}</span>
             </div>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Due:</span>
             <div className="flex items-center gap-1">
@@ -268,10 +275,12 @@ const TaskManagement = () => {
               </span>
             </div>
           </div>
-          
+
           {card.description && (
             <div className="mt-3 pt-2 border-t border-base-300">
-              <p className="text-xs text-base-content/70 line-clamp-2">{card.description}</p>
+              <p className="text-xs text-base-content/70 line-clamp-2">
+                {card.description}
+              </p>
             </div>
           )}
         </div>
@@ -281,62 +290,63 @@ const TaskManagement = () => {
 
   return (
     <div className="p-8">
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-        {/* Heading with project selector */}
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="text-3xl font-bold">Task Management</h1>
-            <p className="text-gray-500 mt-1">
-              Manage all project tasks: site work, procurement, inspections,
-              handover, and custom tasks.
-            </p>
-          </div>
-          <div className="flex gap-4 items-center">
-            <div className="flex gap-2">
-              <button
-                className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setViewMode('kanban')}
-              >
-                <MdViewColumn />
-                Kanban
-              </button>
-              <button
-                className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setViewMode('table')}
-              >
-                <MdViewList />
-                Table
-              </button>
-            </div>
-            <select
-              className="select select-bordered"
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-            >
-              {mockProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Tabs for task types */}
-        <div className="tabs tabs-border mb-4 mt-6">
-          {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((type) => (
+      <h1 className="text-3xl font-bold">Task Management</h1>
+      <p className="text-gray-500 mt-1">
+        Manage all project tasks: site work, procurement, inspections, handover,
+        and custom tasks.
+      </p>
+      {/* Task view selection */}
+      <div className="flex items-center justify-end mb-1">
+        <div className="flex gap-4 items-center">
+          <div className="flex gap-2">
             <button
-              key={type}
-              className={`tab text-base ${
-                activeTab === type ? "tab-active font-bold" : ""
+              className={`btn btn-sm ${
+                viewMode === "kanban" ? "btn-primary" : "btn-outline"
               }`}
-              onClick={() => setActiveTab(type)}
+              onClick={() => setViewMode("kanban")}
             >
-              {TASK_TYPE_LABELS[type]}
+              <MdViewColumn />
+              Kanban
             </button>
-          ))}
+            <button
+              className={`btn btn-sm ${
+                viewMode === "table" ? "btn-primary" : "btn-outline"
+              }`}
+              onClick={() => setViewMode("table")}
+            >
+              <MdViewList />
+              Table
+            </button>
+          </div>
+          <select
+            className="select select-bordered"
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(e.target.value)}
+          >
+            {mockProjects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
 
+      {/* Tabs for task types */}
+      <div className="tabs tabs-border mb-4 mt-6">
+        {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((type) => (
+          <button
+            key={type}
+            className={`tab text-base ${
+              activeTab === type ? "tab-active font-bold" : ""
+            }`}
+            onClick={() => setActiveTab(type)}
+          >
+            {TASK_TYPE_LABELS[type]}
+          </button>
+        ))}
+      </div>
+      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
         {/* Controls */}
         <div className="flex items-center gap-4 mb-4">
           <button className="btn btn-primary flex items-center gap-2">
@@ -353,14 +363,26 @@ const TaskManagement = () => {
         </div>
 
         {/* Kanban Board or Table View */}
-        {viewMode === 'kanban' ? (
+        {viewMode === "kanban" ? (
           <div className="kanban-container">
-            <ControlledBoard<Task> 
+            <ControlledBoard<Task>
               onCardDragEnd={handleCardMove}
               renderCard={renderCard}
               renderColumnHeader={({ title, cards }) => (
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">{title}</h3>
+                <div
+                  className={`flex justify-between items-center mb-4 p-3 rounded-xl ${
+                    title === "Pending"
+                      ? "bg-info "
+                      : title === "In Progress"
+                      ? "bg-warning "
+                      : title === "Completed"
+                      ? "bg-success "
+                      : title === "Delayed"
+                      ? "bg-error "
+                      : ""
+                  }`}
+                >
+                  <h3 className="font-bold text-lg text-white">{title}</h3>
                   <span className="badge badge-neutral">{cards.length}</span>
                 </div>
               )}

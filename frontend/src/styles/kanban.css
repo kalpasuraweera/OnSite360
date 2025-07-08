@@ -5,16 +5,20 @@
   overflow-x: auto;
   padding: 1rem 0;
   min-height: 400px;
+  max-width: 100%;
 }
 
 .kanban-container .react-kanban-column {
-  min-width: 320px;
-  background: hsl(var(--b2));
+  min-width: 270px;
+  max-width: 280px;
   border-radius: 0.5rem;
-  padding: 1rem;
-  border-top: 4px solid hsl(var(--bc));
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 0.5rem; 
+  margin-right: 10px;
+  /* border-top: 4px solid hsl(var(--bc)); */
+  /* box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); */
+ 
 }
+
 
 /* Column-specific colors matching DaisyUI theme */
 .kanban-container .react-kanban-column:nth-child(1) {
@@ -40,8 +44,8 @@
   margin-bottom: 1rem;
   font-weight: bold;
   font-size: 1.125rem;
-  color: hsl(var(--bc));
-  border-bottom: 1px solid hsl(var(--bc) / 0.1);
+  /* color: hsl(var(--bc)); */
+  /* border-bottom: 1px solid hsl(var(--bc) / 0.1); */
   padding-bottom: 0.5rem;
 }
 
@@ -78,7 +82,13 @@
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
   .kanban-container .react-kanban-column {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    background-color: hsl(var(--b2)); /* Adjusted for DaisyUI dark background */
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .kanban-container .react-kanban-column {
+    background-color: hsl(var(--b1)); /* Adjusted for DaisyUI light background */
   }
 }
 
