@@ -4,6 +4,7 @@ import { useCreateProject } from "../hooks/useProjects";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import Select from "react-select";
 
 // Dummy data for projects
 const dummyProjects = [
@@ -97,6 +98,35 @@ const ProjectOversight = () => {
   // New: modal state for map picker
   const [showMapModal, setShowMapModal] = useState(false);
 
+  // New: state for project users management
+  const [selectedUsers, setSelectedUsers] = useState<
+    { userId: string; projectRole: string; accessLevel: number; userName?: string }[]
+  >([]);
+  const [showUserModal, setShowUserModal] = useState(false);
+
+  // Mock users data - replace with actual user hook
+  const mockUsers = [
+    { id: "1", name: "John Smith", email: "john@example.com" },
+    { id: "2", name: "Sarah Johnson", email: "sarah@example.com" },
+    { id: "3", name: "Mike Davis", email: "mike@example.com" },
+    { id: "4", name: "Emily Brown", email: "emily@example.com" },
+    { id: "5", name: "David Wilson", email: "david@example.com" },
+  ];
+
+  const projectRoleOptions = [
+    { value: "Project Manager", label: "Project Manager" },
+    { value: "Site Supervisor", label: "Site Supervisor" },
+    { value: "Worker", label: "Worker" },
+    { value: "Inspector", label: "Inspector" },
+    { value: "Contractor", label: "Contractor" },
+  ];
+
+  const accessLevelOptions = [
+    { value: 1, label: "Level 1 (Read Only)" },
+    { value: 2, label: "Level 2 (Read/Write)" },
+    { value: 3, label: "Level 3 (Admin Access)" },
+  ];
+
   // Refs for file inputs to support drag-and-drop
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -158,7 +188,7 @@ const ProjectOversight = () => {
       featuredImageUrl: "", // Set after upload if needed
       startDate: formData.get("startDate") as string,
       endDate: formData.get("endDate") as string,
-      manager: formData.get("manager") as string,
+      users: selectedUsers,
     };
 
     createProject.mutate(newProject, {
@@ -168,6 +198,7 @@ const ProjectOversight = () => {
         (event.target as HTMLFormElement).reset();
         setLocationCoords(null);
         setLocationText("");
+        setSelectedUsers([]);
       },
       onError: (error) => {
         console.error("Failed to create project:", error);
@@ -182,6 +213,7 @@ const ProjectOversight = () => {
     setPhotoPreview(null);
     setLocationCoords(null);
     setLocationText("");
+    setSelectedUsers([]);
   };
 
   // Handle file input change for logo
@@ -259,12 +291,136 @@ const ProjectOversight = () => {
     setShowMapModal(false);
   };
 
+  // User management functions
+  const handleAddUser = (userId: string, projectRole: string, accessLevel: number) => {
+    const user = mockUsers.find(u => u.id === userId);
+    if (user && !selectedUsers.find(su => su.userId === userId)) {
+      setSelectedUsers(prev => [...prev, {
+        userId,
+        projectRole,
+        accessLevel,
+        userName: user.name
+      }]);
+    }
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => u.userId !== userId));
+  };
+
+  const handleUpdateUserRole = (userId: string, projectRole: string, accessLevel: number) => {
+    setSelectedUsers(prev => prev.map(u => 
+      u.userId === userId ? { ...u, projectRole, accessLevel } : u
+    ));
+  };
+
+  // User Modal Component
+  const UserSelectionModal = () => {
+    const [tempUserId, setTempUserId] = useState("");
+    const [tempRole, setTempRole] = useState("");
+    const [tempAccessLevel, setTempAccessLevel] = useState(1);
+
+    const handleAddTempUser = () => {
+      if (tempUserId && tempRole) {
+        handleAddUser(tempUserId, tempRole, tempAccessLevel);
+        setTempUserId("");
+        setTempRole("");
+        setTempAccessLevel(1);
+        setShowUserModal(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+          <h3 className="text-lg font-semibold mb-4">Add User to Project</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="label">
+                <span className="label-text font-medium">Select User</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={tempUserId}
+                onChange={(e) => setTempUserId(e.target.value)}
+              >
+                <option value="">Choose a user</option>
+                {mockUsers
+                  .filter(user => !selectedUsers.find(su => su.userId === user.id))
+                  .map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">
+                <span className="label-text font-medium">Project Role</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={tempRole}
+                onChange={(e) => setTempRole(e.target.value)}
+              >
+                <option value="">Select role</option>
+                {projectRoleOptions.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">
+                <span className="label-text font-medium">Access Level</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={tempAccessLevel}
+                onChange={(e) => setTempAccessLevel(Number(e.target.value))}
+              >
+                {accessLevelOptions.map(level => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowUserModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleAddTempUser}
+              disabled={!tempUserId || !tempRole}
+            >
+              Add User
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Project Oversight</h1>
       <p className="text-gray-500 mb-6">
         Monitor and manage construction projects
       </p>
+
+      {/* User Selection Modal */}
+      {showUserModal && <UserSelectionModal />}
 
       {/* Map Modal */}
       {showMapModal && (
@@ -558,232 +714,308 @@ const ProjectOversight = () => {
                 Add a new construction project to the system.
               </p>
               <form
-                className="flex flex-col gap-4"
+                className="space-y-6"
                 onSubmit={handleCreateProject}
                 encType="multipart/form-data"
               >
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Project Name
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      name="projectName"
-                      required
-                    />
-                  </div>
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">Type</span>
-                    </label>
-                    <select
-                      className="select select-bordered w-full"
-                      name="type"
-                      required
-                    >
-                      <option value="">Select type</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Residential">Residential</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Mixed Use">Mixed Use</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">Budget</span>
-                    </label>
-                    <input
-                      type="number"
-                      className="input input-bordered w-full"
-                      name="budget"
-                      required
-                    />
-                  </div>
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Square Feet
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      className="input input-bordered w-full"
-                      name="squareFeet"
-                      min={0}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">Start Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="input input-bordered w-full"
-                      name="startDate"
-                      required
-                    />
-                  </div>
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">End Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="input input-bordered w-full"
-                      name="endDate"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Project Manager
-                      </span>
-                    </label>
-                    <select
-                      className="select select-bordered w-full"
-                      name="manager"
-                      required
-                    >
-                      <option value="">Select a manager</option>
-                      <option>John Smith</option>
-                      <option>Sarah Johnson</option>
-                      <option>Mike Davis</option>
-                      <option>Emily Brown</option>
-                    </select>
-                  </div>
-                  {/* Location picker replaces location/cityCountry/address */}
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Location (Coordinates)
-                      </span>
-                    </label>
-                    <div className="flex gap-2 items-center">
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm"
-                        onClick={handlePickLocation}
+                {/* Basic Information Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Project Name</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        name="projectName"
+                        placeholder="Enter project name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Type</span>
+                      </label>
+                      <select
+                        className="select select-bordered w-full"
+                        name="type"
+                        required
                       >
-                        Pick Location on Map
-                      </button>
-                      {locationCoords && (
-                        <span className="text-xs text-gray-600">
-                          {locationCoords.lat.toFixed(5)},{" "}
-                          {locationCoords.lng.toFixed(5)}
-                        </span>
-                      )}
+                        <option value="">Select type</option>
+                        <option value="Commercial">Commercial</option>
+                        <option value="Residential">Residential</option>
+                        <option value="Industrial">Industrial</option>
+                        <option value="Mixed Use">Mixed Use</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
-                    {/* Location text input */}
-                    <label className="label mt-2">
-                      <span className="label-text font-medium">
-                        Location (Text/Address)
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      name="locationText"
-                      placeholder="Enter address or description"
-                      value={locationText}
-                      onChange={(e) => setLocationText(e.target.value)}
-                      required
-                    />
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4">
-                  {/* Logo upload with preview and drag-and-drop */}
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">Logo</span>
-                    </label>
-                    <div
-                      className="border border-dashed border-base-300 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer bg-base-100"
-                      onDrop={handleLogoDrop}
-                      onDragOver={preventDefault}
-                      onDragEnter={preventDefault}
-                      onClick={() => logoInputRef.current?.click()}
-                      style={{ minHeight: 120 }}
-                    >
-                      {logoPreview ? (
-                        <img
-                          src={logoPreview}
-                          alt="Logo Preview"
-                          className="max-h-24 object-contain mb-2"
-                        />
-                      ) : (
-                        <span className="text-gray-400">
-                          Drag & drop logo here, or click to select
-                        </span>
-                      )}
+                {/* Project Details Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Project Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Budget</span>
+                      </label>
                       <input
-                        type="file"
-                        className="hidden"
-                        name="logo"
-                        accept="image/*"
-                        ref={logoInputRef}
-                        onChange={handleLogoChange}
+                        type="number"
+                        className="input input-bordered w-full"
+                        name="budget"
+                        placeholder="Enter budget amount"
+                        required
                       />
                     </div>
-                  </div>
-                  {/* Photo upload with preview and drag-and-drop */}
-                  <div className="w-full md:w-1/2">
-                    <label className="label">
-                      <span className="label-text font-medium">Photo</span>
-                    </label>
-                    <div
-                      className="border border-dashed border-base-300 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer bg-base-100"
-                      onDrop={handlePhotoDrop}
-                      onDragOver={preventDefault}
-                      onDragEnter={preventDefault}
-                      onClick={() => photoInputRef.current?.click()}
-                      style={{ minHeight: 120 }}
-                    >
-                      {photoPreview ? (
-                        <img
-                          src={photoPreview}
-                          alt="Photo Preview"
-                          className="max-h-24 object-contain mb-2"
-                        />
-                      ) : (
-                        <span className="text-gray-400">
-                          Drag & drop photo here, or click to select
-                        </span>
-                      )}
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Square Feet</span>
+                      </label>
                       <input
-                        type="file"
-                        className="hidden"
-                        name="photo"
-                        accept="image/*"
-                        ref={photoInputRef}
-                        onChange={handlePhotoChange}
+                        type="number"
+                        className="input input-bordered w-full"
+                        name="squareFeet"
+                        placeholder="Enter total square feet"
+                        min={0}
+                        required
                       />
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="label">
-                    <span className="label-text font-medium">
-                      Project Description
-                    </span>
-                  </label>
+                {/* Timeline Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Timeline</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Start Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="input input-bordered w-full"
+                        name="startDate"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">End Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="input input-bordered w-full"
+                        name="endDate"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Members Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Team Members</h3>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setShowUserModal(true)}
+                    >
+                      Add Team Member
+                    </button>
+                  </div>
+                  
+                  {selectedUsers.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="table w-full">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Access Level</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedUsers.map((user) => (
+                            <tr key={user.userId}>
+                              <td className="font-medium">{user.userName}</td>
+                              <td>
+                                <select
+                                  className="select select-bordered select-sm w-full"
+                                  value={user.projectRole}
+                                  onChange={(e) => handleUpdateUserRole(user.userId, e.target.value, user.accessLevel)}
+                                >
+                                  {projectRoleOptions.map(role => (
+                                    <option key={role.value} value={role.value}>
+                                      {role.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <select
+                                  className="select select-bordered select-sm w-full"
+                                  value={user.accessLevel}
+                                  onChange={(e) => handleUpdateUserRole(user.userId, user.projectRole, Number(e.target.value))}
+                                >
+                                  {accessLevelOptions.map(level => (
+                                    <option key={level.value} value={level.value}>
+                                      {level.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn btn-error btn-xs"
+                                  onClick={() => handleRemoveUser(user.userId)}
+                                >
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No team members added yet. Click "Add Team Member" to get started.
+                    </div>
+                  )}
+                </div>
+
+                {/* Location Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Location</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Coordinates</span>
+                      </label>
+                      <div className="flex gap-2 items-center">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm flex-1"
+                          onClick={handlePickLocation}
+                        >
+                          Pick Location on Map
+                        </button>
+                        {locationCoords && (
+                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            {locationCoords.lat.toFixed(5)}, {locationCoords.lng.toFixed(5)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Address/Description</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        name="locationText"
+                        placeholder="Enter address or description"
+                        value={locationText}
+                        onChange={(e) => setLocationText(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Media Upload Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Media</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Logo</span>
+                      </label>
+                      <div
+                        className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
+                        onDrop={handleLogoDrop}
+                        onDragOver={preventDefault}
+                        onDragEnter={preventDefault}
+                        onClick={() => logoInputRef.current?.click()}
+                        style={{ minHeight: 120 }}
+                      >
+                        {logoPreview ? (
+                          <img
+                            src={logoPreview}
+                            alt="Logo Preview"
+                            className="max-h-24 object-contain mb-2"
+                          />
+                        ) : (
+                          <div className="text-center">
+                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span className="text-gray-400 text-sm">
+                              Drag & drop logo here, or click to select
+                            </span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          name="logo"
+                          accept="image/*"
+                          ref={logoInputRef}
+                          onChange={handleLogoChange}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Featured Photo</span>
+                      </label>
+                      <div
+                        className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
+                        onDrop={handlePhotoDrop}
+                        onDragOver={preventDefault}
+                        onDragEnter={preventDefault}
+                        onClick={() => photoInputRef.current?.click()}
+                        style={{ minHeight: 120 }}
+                      >
+                        {photoPreview ? (
+                          <img
+                            src={photoPreview}
+                            alt="Photo Preview"
+                            className="max-h-24 object-contain mb-2"
+                          />
+                        ) : (
+                          <div className="text-center">
+                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-gray-400 text-sm">
+                              Drag & drop photo here, or click to select
+                            </span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          name="photo"
+                          accept="image/*"
+                          ref={photoInputRef}
+                          onChange={handlePhotoChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description Section */}
+                <div className="bg-base-100 p-4 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Description</h3>
                   <textarea
                     className="textarea textarea-bordered w-full"
                     rows={4}
@@ -793,7 +1025,8 @@ const ProjectOversight = () => {
                   ></textarea>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-2">
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3 pt-4">
                   <button
                     type="button"
                     className="btn btn-outline"
@@ -801,8 +1034,12 @@ const ProjectOversight = () => {
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
-                    Create Project
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={createProject.isPending}
+                  >
+                    {createProject.isPending ? "Creating..." : "Create Project"}
                   </button>
                 </div>
               </form>
@@ -823,244 +1060,330 @@ const ProjectOversight = () => {
             <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
               {selectedProject ? (
                 <form
-                  className="flex flex-col gap-4"
+                  className="space-y-6"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    // You would update the project here, using locationCoords if changed
-                    console.log("Edited project data submitted");
+                    console.log("Edited project data submitted", { selectedUsers });
                   }}
                   encType="multipart/form-data"
                 >
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Project Name
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        name="projectName"
-                        defaultValue={selectedProject.name}
-                        required
-                      />
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold">Edit Project</h2>
+                      <p className="text-neutral-500">Modify project details and settings.</p>
                     </div>
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">Type</span>
-                      </label>
-                      <select
-                        className="select select-bordered w-full"
-                        name="type"
-                        defaultValue={selectedProject.type || ""}
-                        required
-                      >
-                        <option value="">Select type</option>
-                        <option value="Commercial">Commercial</option>
-                        <option value="Residential">Residential</option>
-                        <option value="Industrial">Industrial</option>
-                        <option value="Mixed Use">Mixed Use</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setActiveTab("projects")}
+                    >
+                      ← Back to Projects
+                    </button>
                   </div>
 
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">Budget</span>
-                      </label>
-                      <input
-                        type="number"
-                        className="input input-bordered w-full"
-                        name="budget"
-                        defaultValue={selectedProject.budget}
-                        required
-                      />
-                    </div>
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Square Feet
-                        </span>
-                      </label>
-                      <input
-                        type="number"
-                        className="input input-bordered w-full"
-                        name="squareFeet"
-                        defaultValue={selectedProject.squareFeet || 0}
-                        min={0}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Start Date
-                        </span>
-                      </label>
-                      <input
-                        type="date"
-                        className="input input-bordered w-full"
-                        name="startDate"
-                        defaultValue={selectedProject.startDate}
-                        required
-                      />
-                    </div>
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">End Date</span>
-                      </label>
-                      <input
-                        type="date"
-                        className="input input-bordered w-full"
-                        name="endDate"
-                        defaultValue={selectedProject.endDate}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Project Manager
-                        </span>
-                      </label>
-                      <select
-                        className="select select-bordered w-full"
-                        name="manager"
-                        defaultValue={selectedProject.manager}
-                        required
-                      >
-                        <option value="">Select a manager</option>
-                        <option>John Smith</option>
-                        <option>Sarah Johnson</option>
-                        <option>Mike Davis</option>
-                        <option>Emily Brown</option>
-                      </select>
-                    </div>
-                    {/* Location picker for edit */}
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Location (Coordinates)
-                        </span>
-                      </label>
-                      <div className="flex gap-2 items-center">
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={handlePickLocation}
+                  {/* Basic Information Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Project Name</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full"
+                          name="projectName"
+                          defaultValue={selectedProject.name}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Type</span>
+                        </label>
+                        <select
+                          className="select select-bordered w-full"
+                          name="type"
+                          defaultValue={selectedProject.type || ""}
+                          required
                         >
-                          Pick Location on Map
-                        </button>
-                        <span className="text-xs text-gray-600">
-                          {locationCoords
-                            ? `${locationCoords.lat.toFixed(
-                                5
-                              )}, ${locationCoords.lng.toFixed(5)}`
-                            : selectedProject.location}
-                        </span>
+                          <option value="">Select type</option>
+                          <option value="Commercial">Commercial</option>
+                          <option value="Residential">Residential</option>
+                          <option value="Industrial">Industrial</option>
+                          <option value="Mixed Use">Mixed Use</option>
+                          <option value="Other">Other</option>
+                        </select>
                       </div>
-                      {/* Location text input for edit */}
-                      <label className="label mt-2">
-                        <span className="label-text font-medium">
-                          Location (Text/Address)
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        name="locationText"
-                        placeholder="Enter address or description"
-                        value={locationText}
-                        onChange={(e) => setLocationText(e.target.value)}
-                        required
-                      />
                     </div>
                   </div>
 
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">Logo</span>
-                      </label>
-                      <div
-                        className="border border-dashed border-base-300 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer bg-base-100"
-                        onDrop={handleLogoDrop}
-                        onDragOver={preventDefault}
-                        onDragEnter={preventDefault}
-                        onClick={() => logoInputRef.current?.click()}
-                        style={{ minHeight: 120 }}
-                      >
-                        {logoPreview ? (
-                          <img
-                            src={logoPreview}
-                            alt="Logo Preview"
-                            className="max-h-24 object-contain mb-2"
-                          />
-                        ) : (
-                          <span className="text-gray-400">
-                            Drag & drop logo here, or click to select
-                          </span>
-                        )}
+                  {/* Project Details Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Project Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Budget</span>
+                        </label>
                         <input
-                          type="file"
-                          className="hidden"
-                          name="logo"
-                          accept="image/*"
-                          ref={logoInputRef}
-                          onChange={handleLogoChange}
+                          type="number"
+                          className="input input-bordered w-full"
+                          name="budget"
+                          defaultValue={selectedProject.budget}
+                          required
                         />
                       </div>
-                    </div>
-                    <div className="w-full md:w-1/2">
-                      <label className="label">
-                        <span className="label-text font-medium">Photo</span>
-                      </label>
-                      <div
-                        className="border border-dashed border-base-300 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer bg-base-100"
-                        onDrop={handlePhotoDrop}
-                        onDragOver={preventDefault}
-                        onDragEnter={preventDefault}
-                        onClick={() => photoInputRef.current?.click()}
-                        style={{ minHeight: 120 }}
-                      >
-                        {photoPreview ? (
-                          <img
-                            src={photoPreview}
-                            alt="Photo Preview"
-                            className="max-h-24 object-contain mb-2"
-                          />
-                        ) : (
-                          <span className="text-gray-400">
-                            Drag & drop photo here, or click to select
-                          </span>
-                        )}
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Square Feet</span>
+                        </label>
                         <input
-                          type="file"
-                          className="hidden"
-                          name="photo"
-                          accept="image/*"
-                          ref={photoInputRef}
-                          onChange={handlePhotoChange}
+                          type="number"
+                          className="input input-bordered w-full"
+                          name="squareFeet"
+                          defaultValue={selectedProject.squareFeet || 0}
+                          min={0}
+                          required
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Project Description
-                      </span>
-                    </label>
+                  {/* Timeline Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Timeline</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Start Date</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="input input-bordered w-full"
+                          name="startDate"
+                          defaultValue={selectedProject.startDate}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">End Date</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="input input-bordered w-full"
+                          name="endDate"
+                          defaultValue={selectedProject.endDate}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Members Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Team Members</h3>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setShowUserModal(true)}
+                      >
+                        Add Team Member
+                      </button>
+                    </div>
+                    
+                    {selectedUsers.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="table w-full">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Role</th>
+                              <th>Access Level</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUsers.map((user) => (
+                              <tr key={user.userId}>
+                                <td className="font-medium">{user.userName}</td>
+                                <td>
+                                  <select
+                                    className="select select-bordered select-sm w-full"
+                                    value={user.projectRole}
+                                    onChange={(e) => handleUpdateUserRole(user.userId, e.target.value, user.accessLevel)}
+                                  >
+                                    {projectRoleOptions.map(role => (
+                                      <option key={role.value} value={role.value}>
+                                        {role.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td>
+                                  <select
+                                    className="select select-bordered select-sm w-full"
+                                    value={user.accessLevel}
+                                    onChange={(e) => handleUpdateUserRole(user.userId, user.projectRole, Number(e.target.value))}
+                                  >
+                                    {accessLevelOptions.map(level => (
+                                      <option key={level.value} value={level.value}>
+                                        {level.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btn btn-error btn-xs"
+                                    onClick={() => handleRemoveUser(user.userId)}
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        No team members assigned yet. Click "Add Team Member" to get started.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Location Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Location</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Coordinates</span>
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm flex-1"
+                            onClick={handlePickLocation}
+                          >
+                            Pick Location on Map
+                          </button>
+                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            {locationCoords
+                              ? `${locationCoords.lat.toFixed(5)}, ${locationCoords.lng.toFixed(5)}`
+                              : selectedProject.coordinates
+                              ? `${selectedProject.coordinates.lat.toFixed(5)}, ${selectedProject.coordinates.lng.toFixed(5)}`
+                              : "No coordinates"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Address/Description</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full"
+                          name="locationText"
+                          placeholder="Enter address or description"
+                          value={locationText}
+                          onChange={(e) => setLocationText(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Media Upload Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Media</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Logo</span>
+                        </label>
+                        <div
+                          className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
+                          onDrop={handleLogoDrop}
+                          onDragOver={preventDefault}
+                          onDragEnter={preventDefault}
+                          onClick={() => logoInputRef.current?.click()}
+                          style={{ minHeight: 120 }}
+                        >
+                          {logoPreview ? (
+                            <img
+                              src={logoPreview}
+                              alt="Logo Preview"
+                              className="max-h-24 object-contain mb-2"
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-gray-400 text-sm">
+                                Drag & drop logo here, or click to select
+                              </span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            name="logo"
+                            accept="image/*"
+                            ref={logoInputRef}
+                            onChange={handleLogoChange}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Featured Photo</span>
+                        </label>
+                        <div
+                          className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
+                          onDrop={handlePhotoDrop}
+                          onDragOver={preventDefault}
+                          onDragEnter={preventDefault}
+                          onClick={() => photoInputRef.current?.click()}
+                          style={{ minHeight: 120 }}
+                        >
+                          {photoPreview ? (
+                            <img
+                              src={photoPreview}
+                              alt="Photo Preview"
+                              className="max-h-24 object-contain mb-2"
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-gray-400 text-sm">
+                                Drag & drop photo here, or click to select
+                              </span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            name="photo"
+                            accept="image/*"
+                            ref={photoInputRef}
+                            onChange={handlePhotoChange}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Description</h3>
                     <textarea
                       className="textarea textarea-bordered w-full"
                       rows={4}
@@ -1070,7 +1393,8 @@ const ProjectOversight = () => {
                     ></textarea>
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-2">
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4">
                     <button
                       type="button"
                       className="btn btn-outline"
