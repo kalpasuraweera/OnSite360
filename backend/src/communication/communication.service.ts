@@ -737,7 +737,6 @@ export class CommunicationService {
       dueDate?: string;
       answer?: string;
       response?: string;
-      assignedToIds?: string[];
       assignees?: {
         disconnect?: { id: string }[];
         connect?: { id: string }[];
@@ -748,9 +747,6 @@ export class CommunicationService {
 
     // Handle assignees update if assignedToIds is provided
     if (assignedToIds && Array.isArray(assignedToIds)) {
-      // Update the assignedToIds array field
-      updateData.assignedToIds = assignedToIds;
-
       // Get current assignee IDs
       const currentAssigneeIds = rfi.assignees.map((assignee) => assignee.id);
 
