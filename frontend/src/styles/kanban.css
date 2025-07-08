@@ -1,4 +1,14 @@
 /* Kanban Board Styling for DaisyUI Theme */
+/* Hide card adder buttons and forms */
+.kanban-container .react-kanban-card-adder-button,
+.kanban-container .react-kanban-column-adder-button {
+  display: none;
+}
+
+.kanban-container .react-kanban-card-adder-form {
+  display: none;
+}
+
 .kanban-container .react-kanban-board {
   display: flex;
   gap: 1rem;

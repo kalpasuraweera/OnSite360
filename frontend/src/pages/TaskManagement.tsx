@@ -16,6 +16,7 @@ import type {
   Column,
 } from "@caldwell619/react-kanban";
 import "../styles/kanban.css";
+import React from "react";
 
 // Mock projects
 const mockProjects = [
@@ -120,10 +121,23 @@ const TaskManagement = () => {
     mockProjects[0].id
   );
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+
+  // Add Task form state
+  const [newTask, setNewTask] = useState<Omit<Task, "id">>({
+    name: "",
+    type: "site",
+    assignedTo: "",
+    dueDate: "",
+    status: "Pending",
+    projectId: mockProjects[0].id,
+    description: "",
+  });
 
   // Create kanban board structure
   const createKanbanBoard = useCallback((): KanbanBoard<Task> => {
-    const filteredTasks = mockTasks.filter(
+    const filteredTasks = tasks.filter(
       (task) =>
         task.projectId === selectedProject &&
         (activeTab === "all" ? true : task.type === activeTab)
@@ -153,7 +167,7 @@ const TaskManagement = () => {
     ];
 
     return { columns };
-  }, [selectedProject, activeTab]);
+  }, [selectedProject, activeTab, tasks]);
 
   const [board, setBoard] = useState<KanbanBoard<Task>>(() =>
     createKanbanBoard()
@@ -162,7 +176,7 @@ const TaskManagement = () => {
   // Update board when project or tab changes
   useEffect(() => {
     setBoard(createKanbanBoard());
-  }, [createKanbanBoard]);
+  }, [createKanbanBoard, tasks]);
 
   const handleCardMove: OnDragEndNotification<Task> = (
     _card,
@@ -175,7 +189,7 @@ const TaskManagement = () => {
   };
 
   // Filter tasks by project and type for table view
-  const filteredTasks = mockTasks.filter(
+  const filteredTasks = tasks.filter(
     (task) =>
       task.projectId === selectedProject &&
       (activeTab === "all" ? true : task.type === activeTab)
@@ -288,8 +302,128 @@ const TaskManagement = () => {
     );
   };
 
+  // Add Task Modal
+  const AddTaskModal = () => (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.2)" }}
+    >
+      <div className="bg-base-100 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative">
+        <h2 className="text-xl font-bold mb-4">Add New Task</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const id = (
+              Math.max(0, ...tasks.map((t) => Number(t.id))) + 1
+            ).toString();
+            setTasks([
+              ...tasks,
+              {
+                ...newTask,
+                id,
+                status: "Pending",
+                projectId: selectedProject,
+              },
+            ]);
+            setShowAddModal(false);
+            setNewTask({
+              name: "",
+              type: "site",
+              assignedTo: "",
+              dueDate: "",
+              status: "Pending",
+              projectId: selectedProject,
+              description: "",
+            });
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block font-medium mb-1">Task Name</label>
+              <input
+                className="input input-bordered w-full"
+                required
+                value={newTask.name}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, name: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Type</label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.type}
+                onChange={(e) =>
+                  setNewTask((t) => ({
+                    ...t,
+                    type: e.target.value as TaskType,
+                  }))
+                }
+              >
+                {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
+                  .filter((t) => t !== "all")
+                  .map((type) => (
+                    <option key={type} value={type}>
+                      {TASK_TYPE_LABELS[type]}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Assigned To</label>
+              <input
+                className="input input-bordered w-full"
+                required
+                value={newTask.assignedTo}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, assignedTo: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Due Date</label>
+              <input
+                className="input input-bordered w-full"
+                type="date"
+                required
+                value={newTask.dueDate}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Description</label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowAddModal(false)}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Create Task
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="p-8">
+    <div className="p-8 relative">
+      {showAddModal && <AddTaskModal />}
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold">Task Management</h1>
@@ -399,7 +533,10 @@ const TaskManagement = () => {
       <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
         {/* Controls */}
         <div className="flex items-center gap-4 mb-4">
-          <button className="btn btn-primary flex items-center gap-2">
+          <button
+            className="btn btn-primary flex items-center gap-2"
+            onClick={() => setShowAddModal(true)}
+          >
             <MdAddTask />
             Add Task
           </button>
