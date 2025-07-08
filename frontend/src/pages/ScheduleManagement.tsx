@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   MdCalendarToday,
-  MdTimeline,
   MdConstruction,
   MdWbSunny,
   MdGroup,
@@ -168,6 +167,7 @@ interface GanttTask {
   progress: number;
   dependencies?: string;
   custom_class?: string;
+  parent?: string;
 }
 
 interface GanttInstance {
@@ -187,6 +187,33 @@ const mockGanttTasks: GanttTask[] = [
     custom_class: "bar-milestone",
   },
   {
+    id: "task1_1",
+    name: "Clear vegetation",
+    start: "2025-07-01",
+    end: "2025-07-03",
+    progress: 100,
+    parent: "task1",
+    custom_class: "bar-subtask",
+  },
+  {
+    id: "task1_2",
+    name: "Level ground",
+    start: "2025-07-04",
+    end: "2025-07-06",
+    progress: 100,
+    parent: "task1",
+    custom_class: "bar-subtask",
+  },
+  {
+    id: "task1_3",
+    name: "Mark boundaries",
+    start: "2025-07-07",
+    end: "2025-07-10",
+    progress: 100,
+    parent: "task1",
+    custom_class: "bar-subtask",
+  },
+  {
     id: "task2",
     name: "Foundation",
     start: "2025-07-11",
@@ -196,6 +223,33 @@ const mockGanttTasks: GanttTask[] = [
     custom_class: "bar-progress",
   },
   {
+    id: "task2_1",
+    name: "Excavation",
+    start: "2025-07-11",
+    end: "2025-07-15",
+    progress: 100,
+    parent: "task2",
+    custom_class: "bar-subtask",
+  },
+  {
+    id: "task2_2",
+    name: "Pour concrete",
+    start: "2025-07-16",
+    end: "2025-07-20",
+    progress: 100,
+    parent: "task2",
+    custom_class: "bar-subtask",
+  },
+  {
+    id: "task2_3",
+    name: "Curing",
+    start: "2025-07-21",
+    end: "2025-07-25",
+    progress: 50,
+    parent: "task2",
+    custom_class: "bar-subtask",
+  },
+  {
     id: "task3",
     name: "Framing",
     start: "2025-07-26",
@@ -203,6 +257,24 @@ const mockGanttTasks: GanttTask[] = [
     progress: 30,
     dependencies: "task2",
     custom_class: "bar-progress",
+  },
+  {
+    id: "task3_1",
+    name: "First floor",
+    start: "2025-07-26",
+    end: "2025-08-02",
+    progress: 60,
+    parent: "task3",
+    custom_class: "bar-subtask",
+  },
+  {
+    id: "task3_2",
+    name: "Second floor",
+    start: "2025-08-03",
+    end: "2025-08-10",
+    progress: 0,
+    parent: "task3",
+    custom_class: "bar-subtask",
   },
   {
     id: "task4",

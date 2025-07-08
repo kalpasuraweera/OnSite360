@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { CommunicationModule } from './communication/communication.module';
+import { ScheduleModule } from './schedule/schedule.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CommunicationModule } from './communication/communication.module';
     PermissionsModule,
     RolesModule,
     CommunicationModule,
+    ScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -36,6 +36,7 @@ model User {
   documents       Document[]
   requestedRFIs  RFI[]      @relation("RFIRequester") // RFIs requested by this user
   assignedRFIs   RFI[]      @relation("RFIAssignee") // RFIs assigned to this user
+  scheduleEvents ScheduleEvent[] // Events assigned to this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -310,7 +311,6 @@ model DailyLog {
   summary     String // Summary of work done
   issues      String? // Any issues encountered
   notes       String? // Additional notes
-  loggedBy    String // User who created the log
   loggedById  String
   logger      User            @relation(fields: [loggedById], references: [id])
   activities  DailyActivity[]
@@ -327,7 +327,7 @@ model DailyActivity {
   dailyLog    DailyLog  @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
   activity    String // Description of activity
   location    String? // Where the activity took place
-  crewMembers String[] // Array of crew member names involved
+  crewMembers CrewMember[]
   startTime   DateTime?
   endTime     DateTime?
   progress    Float? // Percentage completed (0-100)
@@ -363,17 +363,18 @@ model Issue {
 
 // Crew members (non-system users)
 model CrewMember {
-  id          String           @id @default(uuid())
-  name        String
-  role        String // e.g., "Foreman", "Electrician", "Carpenter"
-  phone       String?
-  email       String?
-  skills      String[] // Array of skills
-  isActive    Boolean          @default(true)
-  hireDate    DateTime?
-  assignments CrewAssignment[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id             String           @id @default(uuid())
+  name           String
+  role           String // e.g., "Foreman", "Electrician", "Carpenter"
+  phone          String?
+  email          String?
+  skills         String[] // Array of skills
+  isActive       Boolean          @default(true)
+  hireDate       DateTime?
+  assignments    CrewAssignment[]
+  dailyActivities DailyActivity[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 // Crew assignments to projects
@@ -395,26 +396,27 @@ model CrewAssignment {
 
 // Schedule events (milestones, tasks, meetings)
 model ScheduleEvent {
-  id           String     @id @default(uuid())
+  id           String          @id @default(uuid())
   projectId    String
-  project      Project    @relation(fields: [projectId], references: [id])
+  project      Project         @relation(fields: [projectId], references: [id])
   title        String
   description  String?
   type         String // e.g., "Milestone", "Task", "Meeting", "Delivery", "Inspection"
   startDate    DateTime
   endDate      DateTime?
-  allDay       Boolean    @default(false)
+  allDay       Boolean         @default(false)
   location     String?
-  assignees    String[] // Array of user IDs or crew member names
-  status       String     @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
-  priority     String     @default("Medium") // "Low", "Medium", "High"
+  assignees    User[] // Users assigned to this event
+  status       String          @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
+  priority     String          @default("Medium") // "Low", "Medium", "High"
   color        String? // For calendar display
   recurrence   Json? // Recurrence rules if applicable
   reminders    DateTime[] // Array of reminder times
-  dependencies String[] // Array of event IDs this depends on
+  dependencies ScheduleEvent[] @relation("EventDependencies")
+  dependents   ScheduleEvent[] @relation("EventDependencies")
   notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
 
 // Project phases for Gantt chart
