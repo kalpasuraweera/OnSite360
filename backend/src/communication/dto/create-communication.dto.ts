@@ -41,10 +41,23 @@ export class CreateRFIDto {
   @IsOptional()
   priority?: string;
 
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  answer?: string;
+
   @IsUUID()
   threadId: string;
 
-  @IsUUID()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
   @IsOptional()
-  assigneeId?: string;
+  assigneeIds?: string[];
 }

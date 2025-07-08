@@ -2,13 +2,19 @@ import { useState, useMemo } from "react";
 import { 
   useThreads, 
   useCreateThread,
+  useUpdateThread,
   useThreadMessages,
   useSendMessage,
   useRFIs,
   useCreateRFI,
+  useUpdateRFI,
+  useDeleteRFI,
   type Thread,
   type CreateThreadDto,
-  type CreateRFIDto
+  type CreateRFIDto,
+  type UpdateThreadDto,
+  type UpdateRFIDto,
+  type RFI
 } from "../hooks/useCommunication";
 import { useProjects, type Project } from "../hooks/useProjects";
 import { useUsers } from "../hooks/useUsers";
@@ -48,7 +54,11 @@ const Communication = () => {
   const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
   
   const createThreadMutation = useCreateThread();
+  const updateThreadMutation = useUpdateThread();
   const sendMessageMutation = useSendMessage();
+  const createRFIMutation = useCreateRFI();
+  const updateRFIMutation = useUpdateRFI();
+  const deleteRFIMutation = useDeleteRFI();
 
   // Auth store
   const { user: currentUser } = useAuthStore();
@@ -67,7 +77,19 @@ const Communication = () => {
   const [selectedRFIThread, setSelectedRFIThread] = useState<string>("");
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   
-  const createRFIMutation = useCreateRFI();
+  // Edit/Update RFI modal state
+  const [showEditRFIModal, setShowEditRFIModal] = useState(false);
+  const [editingRFI, setEditingRFI] = useState<RFI | null>(null);
+  const [editRFISelectedAssignees, setEditRFISelectedAssignees] = useState<string[]>([]);
+  
+  // Update thread modal state
+  const [showEditThreadModal, setShowEditThreadModal] = useState(false);
+  const [editingThread, setEditingThread] = useState<Thread | null>(null);
+  const [editThreadSelectedUsers, setEditThreadSelectedUsers] = useState<string[]>([]);
+  
+  // Delete confirmation state
+  const [showDeleteRFIModal, setShowDeleteRFIModal] = useState(false);
+  const [deletingRFI, setDeletingRFI] = useState<RFI | null>(null);
 
   // Get messages for selected thread
   const { data: messages = [] } = useThreadMessages(selectedThread?.id || "");
@@ -360,6 +382,60 @@ const Communication = () => {
     setSelectedAssignees(prev => prev.filter(id => id !== userId));
   };
 
+  // RFI Edit handlers
+  const handleEditRFI = (rfi: RFI) => {
+    setEditingRFI(rfi);
+    setEditRFISelectedAssignees(rfi.assignedToIds || []);
+    setShowEditRFIModal(true);
+  };
+
+  const handleAddEditAssignee = (userId: string) => {
+    if (!editRFISelectedAssignees.includes(userId)) {
+      setEditRFISelectedAssignees(prev => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditAssignee = (userId: string) => {
+    setEditRFISelectedAssignees(prev => prev.filter(id => id !== userId));
+  };
+
+  // RFI Delete handlers
+  const handleDeleteRFI = (rfi: RFI) => {
+    setDeletingRFI(rfi);
+    setShowDeleteRFIModal(true);
+  };
+
+  const confirmDeleteRFI = () => {
+    if (!deletingRFI) return;
+
+    deleteRFIMutation.mutate(deletingRFI.id, {
+      onSuccess: () => {
+        setShowDeleteRFIModal(false);
+        setDeletingRFI(null);
+      },
+      onError: (error) => {
+        console.error("Failed to delete RFI:", error);
+      },
+    });
+  };
+
+  // Thread Edit handlers
+  const handleEditThread = (thread: Thread) => {
+    setEditingThread(thread);
+    setEditThreadSelectedUsers(thread.users?.map(u => u.id) || []);
+    setShowEditThreadModal(true);
+  };
+
+  const handleAddEditThreadUser = (userId: string) => {
+    if (!editThreadSelectedUsers.includes(userId)) {
+      setEditThreadSelectedUsers(prev => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditThreadUser = (userId: string) => {
+    setEditThreadSelectedUsers(prev => prev.filter(id => id !== userId));
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Communication</h1>
@@ -410,8 +486,7 @@ const Communication = () => {
                   {threads.map((thread) => (
                     <div
                       key={thread.id}
-                      className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4 cursor-pointer hover:bg-base-50"
-                      onClick={() => handleSelectThread(thread)}
+                      className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -433,8 +508,17 @@ const Communication = () => {
                         </div>
                       </div>
                       <div className="flex gap-2 mt-4 lg:mt-0">
-                        <button className="btn btn-soft btn-accent btn-sm">
+                        <button 
+                          className="btn btn-info btn-sm"
+                          onClick={() => handleSelectThread(thread)}
+                        >
                           Join Chat
+                        </button>
+                        <button 
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleEditThread(thread)}
+                        >
+                          Edit
                         </button>
                       </div>
                     </div>
@@ -656,11 +740,17 @@ const Communication = () => {
                               Open Chat
                             </button>
                           )}
-                          <button className="btn btn-soft btn-accent btn-sm">
-                            View Details
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleEditRFI(rfi)}
+                          >
+                            Edit
                           </button>
-                          <button className="btn btn-sm btn-outline btn-primary">
-                            Update
+                          <button 
+                            className="btn btn-error btn-sm"
+                            onClick={() => handleDeleteRFI(rfi)}
+                          >
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -1242,6 +1332,430 @@ const Communication = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit RFI Modal */}
+      {showEditRFIModal && editingRFI && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Edit RFI</h3>
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingRFI) {
+                  const formData = new FormData(e.currentTarget);
+                  const updatedRFI: UpdateRFIDto = {
+                    title: formData.get("title") as string,
+                    description: formData.get("description") as string,
+                    category: formData.get("category") as string || undefined,
+                    priority: formData.get("priority") as string || undefined,
+                    status: formData.get("status") as string || undefined,
+                    assignedToIds: editRFISelectedAssignees,
+                    dueDate: formData.get("dueDate") as string || undefined,
+                    answer: formData.get("answer") as string || undefined,
+                  };
+                  updateRFIMutation.mutate({ id: editingRFI.id, rfi: updatedRFI }, {
+                    onSuccess: () => {
+                      setShowEditRFIModal(false);
+                      setEditingRFI(null);
+                      setEditRFISelectedAssignees([]);
+                    },
+                    onError: (error) => {
+                      console.error("Failed to update RFI:", error);
+                    },
+                  });
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">RFI Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter RFI title..."
+                  defaultValue={editingRFI.title}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  defaultValue={editingRFI.projectId}
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                  defaultValue={editingRFI.description}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Category</span>
+                  </label>
+                  <select
+                    name="category"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.category}
+                  >
+                    <option value="">Select category</option>
+                    <option value="Design">Design</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Materials">Materials</option>
+                    <option value="Specifications">Specifications</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Priority</span>
+                  </label>
+                  <select
+                    name="priority"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.priority}
+                  >
+                    <option value="">Select priority</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Status</span>
+                  </label>
+                  <select
+                    name="status"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.status}
+                  >
+                    <option value="">Select status</option>
+                    <option value="Open">Open</option>
+                    <option value="In Review">In Review</option>
+                    <option value="Answered">Answered</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Due Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    className="input input-bordered w-full"
+                    defaultValue={editingRFI.dueDate ? new Date(editingRFI.dueDate).toISOString().split('T')[0] : ''}
+                  />
+                </div>
+              </div>
+
+              {/* Answer field for RFI */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Answer</span>
+                </label>
+                <textarea
+                  name="answer"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Provide answer to this RFI..."
+                  defaultValue={editingRFI.answer || ''}
+                />
+              </div>
+
+              {/* Assignees Selection */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Assign To</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">No users available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between">
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {editRFISelectedAssignees.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveEditAssignee(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddEditAssignee(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editRFISelectedAssignees.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Assigned to: {editRFISelectedAssignees.length} user(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowEditRFIModal(false);
+                    setEditingRFI(null);
+                    setEditRFISelectedAssignees([]);
+                  }}
+                  disabled={updateRFIMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={updateRFIMutation.isPending}
+                >
+                  {updateRFIMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update RFI"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Thread Modal */}
+      {showEditThreadModal && editingThread && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Update Thread</h3>
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingThread) {
+                  const formData = new FormData(e.currentTarget);
+                  const updatedThread: UpdateThreadDto = {
+                    title: formData.get("title") as string,
+                    description: formData.get("description") as string,
+                    projectId: formData.get("projectId") as string,
+                    participantIds: editThreadSelectedUsers,
+                  };
+                  updateThreadMutation.mutate({ id: editingThread.id, thread: updatedThread }, {
+                    onSuccess: () => {
+                      setShowEditThreadModal(false);
+                      setEditingThread(null);
+                      setEditThreadSelectedUsers([]);
+                    },
+                    onError: (error) => {
+                      console.error("Failed to update thread:", error);
+                    },
+                  });
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Thread Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter thread title..."
+                  defaultValue={editingThread.title}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                  defaultValue={editingThread.description}
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  defaultValue={editingThread.projectId}
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Add Participants</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">Loading users...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">No users available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between">
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {editThreadSelectedUsers.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveEditThreadUser(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddEditThreadUser(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editThreadSelectedUsers.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Selected: {editThreadSelectedUsers.length} participant(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowEditThreadModal(false);
+                    setEditingThread(null);
+                    setEditThreadSelectedUsers([]);
+                  }}
+                  disabled={updateThreadMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={updateThreadMutation.isPending}
+                >
+                  {updateThreadMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Thread"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete RFI Confirmation Modal */}
+      {showDeleteRFIModal && deletingRFI && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to delete this RFI? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowDeleteRFIModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={confirmDeleteRFI}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import {
   CreateMessageDto,
   CreateRFIDto,
 } from './create-communication.dto';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsUUID } from 'class-validator';
 
 export class UpdateThreadDto extends PartialType(CreateThreadDto) {}
 
@@ -18,4 +18,13 @@ export class UpdateRFIDto extends PartialType(CreateRFIDto) {
   @IsString()
   @IsOptional()
   response?: string;
+
+  @IsString()
+  @IsOptional()
+  answer?: string;
+
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  assignedToIds?: string[];
 }

@@ -96,15 +96,92 @@ export class CommunicationService {
           },
         },
       },
+      include: {
+        users: true, // Get current users to compare
+      },
     });
 
     if (!thread) {
       throw new NotFoundException('Thread not found or access denied');
     }
 
+    // Extract participantIds from updateThreadDto
+    const { participantIds, projectId, ...restData } = updateThreadDto;
+
+    // Prepare the update data with proper typing
+    const updateData: {
+      title?: string;
+      description?: string;
+      project?: { connect: { id: string } };
+      users?: {
+        disconnect?: { id: string }[];
+        connect?: { id: string }[];
+      };
+    } = {
+      ...restData,
+    };
+
+    // Handle project update if provided
+    if (projectId) {
+      // Check if project exists and user has access
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+
+      // Check if user has access to the new project
+      const userProject = await this.prisma.userProject.findFirst({
+        where: {
+          userId,
+          projectId: projectId,
+          isActive: true,
+        },
+      });
+
+      if (!userProject) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+
+      updateData.project = {
+        connect: { id: projectId },
+      };
+    }
+
+    // Handle users update if participantIds is provided
+    if (participantIds && Array.isArray(participantIds)) {
+      // Ensure the current user is always included
+      const allParticipantIds = [...new Set([userId, ...participantIds])];
+
+      // Get current user IDs
+      const currentUserIds = thread.users.map((user) => user.id);
+
+      // Find users to disconnect (those not in the new list)
+      const usersToDisconnect = currentUserIds.filter(
+        (id) => !allParticipantIds.includes(id),
+      );
+
+      // Find users to connect (those in the new list but not currently connected)
+      const usersToConnect = allParticipantIds.filter(
+        (id) => !currentUserIds.includes(id),
+      );
+
+      updateData.users = {};
+
+      if (usersToDisconnect.length > 0) {
+        updateData.users.disconnect = usersToDisconnect.map((id) => ({ id }));
+      }
+
+      if (usersToConnect.length > 0) {
+        updateData.users.connect = usersToConnect.map((id) => ({ id }));
+      }
+    }
+
     return this.prisma.thread.update({
       where: { id: threadId },
-      data: updateThreadDto,
+      data: updateData,
       include: {
         users: {
           select: {
@@ -444,14 +521,16 @@ export class CommunicationService {
         title: createRFIDto.title,
         description: createRFIDto.description,
         priority: createRFIDto.priority || 'Medium',
-        status: 'Open',
+        status: createRFIDto.status || 'Open',
         threadId: createRFIDto.threadId,
         projectId: thread.projectId,
         requestedById: userId,
-        assignedToIds: createRFIDto.assigneeId ? [createRFIDto.assigneeId] : [],
-        assignedTo: [], // We'll populate names separately if needed
-        requestedBy: '', // We'll populate from user data
-        category: 'General',
+        assignees: {
+          connect: createRFIDto.assigneeIds
+            ? createRFIDto.assigneeIds.map((id) => ({ id }))
+            : [],
+        },
+        category: createRFIDto.category || 'General',
       },
       include: {
         requester: {
@@ -636,15 +715,73 @@ export class CommunicationService {
           },
         ],
       },
+      include: {
+        assignees: true, // Get current assignees to compare
+      },
     });
 
     if (!rfi) {
       throw new NotFoundException('RFI not found or access denied');
     }
 
+    // Extract assignedToIds from updateRFIDto
+    const { assignedToIds, ...restData } = updateRFIDto;
+
+    // Prepare the update data with proper typing
+    const updateData: {
+      title?: string;
+      description?: string;
+      category?: string;
+      priority?: string;
+      status?: string;
+      dueDate?: string;
+      answer?: string;
+      response?: string;
+      assignedToIds?: string[];
+      assignees?: {
+        disconnect?: { id: string }[];
+        connect?: { id: string }[];
+      };
+    } = {
+      ...restData,
+    };
+
+    // Handle assignees update if assignedToIds is provided
+    if (assignedToIds && Array.isArray(assignedToIds)) {
+      // Update the assignedToIds array field
+      updateData.assignedToIds = assignedToIds;
+
+      // Get current assignee IDs
+      const currentAssigneeIds = rfi.assignees.map((assignee) => assignee.id);
+
+      // Find assignees to disconnect (those not in the new list)
+      const assigneesToDisconnect = currentAssigneeIds.filter(
+        (id) => !assignedToIds.includes(id),
+      );
+
+      // Find assignees to connect (those in the new list but not currently connected)
+      const assigneesToConnect = assignedToIds.filter(
+        (id) => !currentAssigneeIds.includes(id),
+      );
+
+      updateData.assignees = {};
+
+      if (assigneesToDisconnect.length > 0) {
+        updateData.assignees.disconnect = assigneesToDisconnect.map((id) => ({
+          id,
+        }));
+      }
+
+      if (assigneesToConnect.length > 0) {
+        updateData.assignees.connect = assigneesToConnect.map((id) => ({
+          id,
+        }));
+      }
+    }
+
     return this.prisma.rFI.update({
       where: { id: rfiId },
-      data: updateRFIDto,
+      data: updateData,
       include: {
         requester: {
           select: {

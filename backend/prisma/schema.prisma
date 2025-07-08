@@ -197,11 +197,8 @@ model RFI {
   category     String      // e.g., "Design", "Specification", "Clarification"
   priority     String      @default("Medium") // "Low", "Medium", "High", "Urgent"
   status       String      @default("Open") // "Open", "In Review", "Answered", "Closed"
-  requestedBy  String      // Site supervisor name
   requestedById String?
   requester    User?       @relation("RFIRequester", fields: [requestedById], references: [id])
-  assignedTo   String[]    // Array of engineer/architect names
-  assignedToIds String[]   // Array of user IDs
   assignees    User[]      @relation("RFIAssignee")
   threadId     String?     // Link to discussion thread
   thread       Thread?     @relation(fields: [threadId], references: [id])
