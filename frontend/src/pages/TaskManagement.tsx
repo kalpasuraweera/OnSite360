@@ -136,6 +136,7 @@ const AddTaskModal = ({
   const [tags, setTags] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Reset form when modal opens/closes or project changes
   useEffect(() => {
@@ -153,6 +154,7 @@ const AddTaskModal = ({
         tags: [],
       });
       setTags([]); // Reset tags
+      setSubmitSuccess(false); // Reset success state
     }
   }, [showAddModal, selectedProject]);
 
@@ -180,8 +182,11 @@ const AddTaskModal = ({
 
       await createTaskMutation.mutateAsync(taskData);
       
-      // Close modal and reset form
-      setShowAddModal(false);
+      // Show success feedback
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowAddModal(false);
+      }, 1000);
       
       // Show success message (you can replace this with your notification system)
       console.log("Task created successfully!");
@@ -385,10 +390,15 @@ const AddTaskModal = ({
             </button>
             <button 
               type="submit" 
-              className="btn btn-primary"
+              className={`btn ${submitSuccess ? 'btn-success' : 'btn-primary'}`}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
+              {submitSuccess ? (
+                <>
+                  <span className="text-success-content">✓</span>
+                  Task Created!
+                </>
+              ) : isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
                 "Create Task"
@@ -444,6 +454,7 @@ const EditTaskModal = ({
   const [tags, setTags] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Populate form when modal opens with selected task data
   useEffect(() => {
@@ -461,6 +472,7 @@ const EditTaskModal = ({
         tags: selectedTask.tags || [],
       });
       setTags(selectedTask.tags || []); // Set tags
+      setSubmitSuccess(false); // Reset success state
     }
   }, [showEditModal, selectedTask]);
 
@@ -494,8 +506,11 @@ const EditTaskModal = ({
         task: taskData,
       });
       
-      // Close modal
-      setShowEditModal(false);
+      // Show success feedback
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowEditModal(false);
+      }, 1000);
       
       // Show success message
       console.log("Task updated successfully!");
@@ -720,10 +735,15 @@ const EditTaskModal = ({
             </button>
             <button 
               type="submit" 
-              className="btn btn-primary"
+              className={`btn ${submitSuccess ? 'btn-success' : 'btn-primary'}`}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
+              {submitSuccess ? (
+                <>
+                  <span className="text-success-content">✓</span>
+                  Task Updated!
+                </>
+              ) : isSubmitting ? (
                 <span className="loading loading-spinner loading-sm"></span>
               ) : (
                 "Update Task"
@@ -755,6 +775,7 @@ const TaskDetails = ({
   setNewComment: (comment: string) => void;
 }) => {
   const createCommentMutation = useCreateComment();
+  const [commentSuccess, setCommentSuccess] = useState(false);
   
   // Fetch real-time comments for the selected task
   const { data: taskComments = [], isLoading: commentsLoading } = useTaskComments(selectedTask?.id || "");
@@ -771,6 +792,8 @@ const TaskDetails = ({
       });
       
       setNewComment("");
+      setCommentSuccess(true);
+      setTimeout(() => setCommentSuccess(false), 2000);
       // The mutation will automatically invalidate and refetch the task comments
     } catch (error) {
       console.error("Failed to create comment:", error);
@@ -853,8 +876,13 @@ const TaskDetails = ({
           <button
             className="btn btn-error btn-sm"
             onClick={handleDeleteTask}
+            disabled={deleteTaskMutation.isPending}
           >
-            <MdDelete />
+            {deleteTaskMutation.isPending ? (
+              <span className="loading loading-spinner loading-xs"></span>
+            ) : (
+              <MdDelete />
+            )}
             Delete
           </button>
         </div>
@@ -998,19 +1026,28 @@ const TaskDetails = ({
           </div>
           
           <div className="flex gap-2">
-            <input
-              type="text"
-              className="input input-sm input-bordered flex-1"
-              placeholder="Add a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddComment();
-                }
-              }}
-              disabled={createCommentMutation.isPending}
-            />
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                className={`input input-sm input-bordered w-full ${
+                  commentSuccess ? 'input-success' : ''
+                }`}
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddComment();
+                  }
+                }}
+                disabled={createCommentMutation.isPending}
+              />
+              {commentSuccess && (
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <span className="text-success text-xs">✓ Posted!</span>
+                </div>
+              )}
+            </div>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleAddComment}
@@ -1048,6 +1085,7 @@ const TaskManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
 
   // Get auth user
   const { user } = useAuthStore();
@@ -1060,13 +1098,14 @@ const TaskManagement = () => {
   const selectedProjectData = selectedProjectResponse?.data as Project | undefined;
 
   // Fetch tasks for the selected project
-  const { data: apiTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks(
+  const { data: apiTasks = [], isLoading: tasksLoading, refetch: refetchTasks, isFetching: tasksRefetching } = useTasks(
     selectedProject ? { projectId: selectedProject } : undefined
   );
 
   // Task mutations
   const deleteTaskMutation = useDeleteTask();
   const updateTaskMutation = useUpdateTask();
+  const createTaskMutation = useCreateTask();
 
   // Transform API tasks to TaskCard format
   const transformApiTaskToCard = useCallback((task: ApiTask): TaskCard => {
@@ -1105,6 +1144,16 @@ const TaskManagement = () => {
       setSelectedProject(projects[0].id);
     }
   }, [projects, selectedProject]);
+
+  // Keep selectedTask updated with latest data from the tasks array
+  useEffect(() => {
+    if (selectedTask && tasks.length > 0) {
+      const updatedTask = tasks.find(task => task.id === selectedTask.id);
+      if (updatedTask && JSON.stringify(updatedTask) !== JSON.stringify(selectedTask)) {
+        setSelectedTask(updatedTask);
+      }
+    }
+  }, [tasks, selectedTask]);
 
   // Check if projects is available and is an array
   const hasProjects = Array.isArray(projects) && projects.length > 0;
@@ -1221,14 +1270,25 @@ const TaskManagement = () => {
         return;
     }
 
+    // Set loading state for this specific task
+    setMovingTaskId(card.id);
+
     // Update task status in the API
     try {
       await updateTaskMutation.mutateAsync({
         id: card.id,
         task: { status: newStatus }
       });
+      
+      // Update selected task if it's the one being moved
+      if (selectedTask?.id === card.id) {
+        setSelectedTask(prev => prev ? { ...prev, status: newStatus } : null);
+      }
     } catch (error) {
       console.error("Failed to update task status:", error);
+      // You could show an error toast here
+    } finally {
+      setMovingTaskId(null);
     }
   };
 
@@ -1270,15 +1330,30 @@ const TaskManagement = () => {
     };
 
     const dueDateStatus = getDueDateStatus(card.dueDate);
+    const isMoving = movingTaskId === card.id;
 
     return (
       <div 
-        className="bg-base-200 min-w-[260px] shadow-xl mb-2 border border-base-300 rounded-xl p-1 transition-all duration-200 hover:shadow-2xl cursor-pointer hover:scale-105"
+        className={`bg-base-200 min-w-[260px] shadow-xl mb-2 border border-base-300 rounded-xl p-1 transition-all duration-200 hover:shadow-2xl cursor-pointer hover:scale-105 relative ${
+          isMoving ? 'opacity-60' : ''
+        }`}
         onClick={() => {
-          setSelectedTask(card);
-          setMainTab("task-details");
+          if (!isMoving) {
+            setSelectedTask(card);
+            setMainTab("task-details");
+          }
         }}
       >
+        {/* Loading overlay for moving tasks */}
+        {isMoving && (
+          <div className="absolute inset-0 bg-base-300/50 rounded-xl flex items-center justify-center z-10">
+            <div className="flex items-center gap-2 bg-base-100 px-3 py-2 rounded-lg shadow">
+              <span className="loading loading-spinner loading-sm"></span>
+              <span className="text-sm">Updating status...</span>
+            </div>
+          </div>
+        )}
+        
         <div className="flex bg-base-300 p-2 w-full rounded-t-xl justify-between items-start mb-3">
           <h3 className="font-semibold text-sm text-base-content line-clamp-2 flex-1">
             {card.title}
@@ -1658,6 +1733,20 @@ const TaskManagement = () => {
 
   return (
     <div className="p-8 relative">
+      {/* Global loading overlay for mutations */}
+      {(updateTaskMutation.isPending || deleteTaskMutation.isPending || createTaskMutation.isPending) && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-base-100 p-6 rounded-2xl shadow-2xl flex items-center gap-4">
+            <span className="loading loading-spinner loading-lg"></span>
+            <span className="text-lg font-medium">
+              {createTaskMutation.isPending ? "Creating task..." :
+               updateTaskMutation.isPending ? "Updating task..." : 
+               "Deleting task..."}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <AddTaskModal 
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
@@ -1707,12 +1796,15 @@ const TaskManagement = () => {
       {/* Main Tabs */}
       <div className="tabs tabs-border mt-6">
         <button
-          className={`tab text-base ${
+          className={`tab text-base flex items-center gap-2 ${
             mainTab === "all-tasks" ? "tab-active font-bold" : ""
           }`}
           onClick={() => setMainTab("all-tasks")}
         >
           All Tasks
+          {tasksRefetching && (
+            <span className="loading loading-spinner loading-xs"></span>
+          )}
         </button>
         <button
           className={`tab text-base ${
@@ -1768,9 +1860,13 @@ const TaskManagement = () => {
                   <button
                     className="btn btn-primary flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
-                    disabled={!selectedProject || projectDataLoading}
+                    disabled={!selectedProject || projectDataLoading || createTaskMutation.isPending}
                   >
-                    <MdAddTask />
+                    {createTaskMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : (
+                      <MdAddTask />
+                    )}
                     Add Task
                   </button>
                   <button
