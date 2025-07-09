@@ -32,6 +32,8 @@ import {
   LineElement,
 } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { IoClose } from "react-icons/io5";
+import { IoAttach } from "react-icons/io5";
 
 ChartJS.register(
   CategoryScale,
@@ -89,6 +91,9 @@ const Communication = () => {
   const [editThreadSelectedUsers, setEditThreadSelectedUsers] = useState<
     string[]
   >([]);
+
+  // Attach section state
+  const [showAttach, setShowAttach] = useState(false);
 
   // Delete confirmation state
   const [showDeleteRFIModal, setShowDeleteRFIModal] = useState(false);
@@ -565,138 +570,227 @@ const Communication = () => {
           onChange={() => setActiveTab("chat")}
         />
         {activeTab === "chat" && selectedThread && (
-          <div className="tab-content p-5">
-            <div className="bg-base-200 border border-base-300 rounded-2xl overflow-hidden">
-              <div className="bg-base-100 p-4 border-b border-base-300">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-xl font-bold">
-                      {selectedThread.title}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Participants:{" "}
-                      {selectedThread.users
-                        .map((u) => `${u.firstName} ${u.lastName}`)
-                        .join(", ")}
-                    </p>
-                  </div>
+          <div className="tab-content p-5 w-full">
+            <div className="flex gap-3 w-full">
+              {/* Document or Photos to attach */}
+              <div
+                id="attach"
+                className={`bg-base-200 border border-base-300 rounded-2xl p-4 w-1/3 transition-all duration-300 ${
+                  showAttach ? "block" : "hidden"
+                }`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Attach Documents</h2>
                   <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => setActiveTab("threads")}
+                    className="btn btn-circle"
+                    onClick={() => setShowAttach(false)}
                   >
-                    ← Back to Threads
+                    <IoClose size={15} />
                   </button>
                 </div>
-              </div>
 
-              {/* Display RFIs associated with this thread */}
-              {selectedThreadRFIs.length > 0 && (
-                <div className="bg-base-100 p-4 border-b border-base-300">
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                    Related RFIs ({selectedThreadRFIs.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedThreadRFIs.map((rfi) => (
-                      <div
-                        key={rfi.id}
-                        className="flex items-center justify-between bg-base-200 p-2 rounded"
-                      >
-                        <div className="flex-1">
-                          <span className="text-sm font-medium">
-                            {rfi.title}
-                          </span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="badge badge-xs badge-neutral">
-                              {rfi.id}
+                <div className="bg-base-100 text-center border-2 border-dashed rounded-2xl p-4">
+                  <p className="text-sm text-gray-500  mb-4">
+                    Upload documents or photos to share in this chat.
+                  </p>
+                  <input
+                    type="file"
+                    className="file-input file-input-bordered w-full"
+                    multiple
+                  />
+                </div>
+
+                <div className="space-y-4 mt-4">
+                  <button
+                    className="btn btn-primary w-full"
+                    onClick={() => setShowAttach(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+                <div className="flex flex-col p-1 rounded-xl bg-base-100 gap-2 my-2">
+                  <div className="p-3 bg-base-200 rounded-xl">
+                    <h1 className="font-bold">File Name</h1>
+                    <p className="text-sm">File meta data</p>
+                  </div>
+                  <div className="p-3 bg-base-100 rounded-xl">
+                    <h1 className="font-bold">File Name</h1>
+                    <p className="text-sm">File meta data</p>
+                  </div>
+                </div>
+              </div>
+              {/* Chat Screen */}
+              <div className="bg-base-200 border border-base-300 rounded-2xl overflow-hidden w-full">
+                <div className="bg-primary p-4 border-b border-base-300">
+                  <div className="flex justify-between text-primary-content items-center">
+                    <div>
+                      <h2 className="text-xl font-bold">
+                        {selectedThread.title}
+                      </h2>
+                      <p className="text-sm">
+                        Participants:{" "}
+                        {selectedThread.users
+                          .map((u) => `${u.firstName} ${u.lastName}`)
+                          .join(", ")}
+                      </p>
+                    </div>
+                    <button
+                      className="btn btn-active btn-md"
+                      onClick={() => setActiveTab("threads")}
+                    >
+                      Export Thread
+                    </button>
+                  </div>
+                </div>
+
+                {/* Display RFIs associated with this thread */}
+                {selectedThreadRFIs.length > 0 && (
+                  <div className="bg-base-300 p-4 border-b border-base-300">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                      Related RFIs ({selectedThreadRFIs.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedThreadRFIs.map((rfi) => (
+                        <div
+                          key={rfi.id}
+                          className="flex items-center justify-between bg-base-200 p-4 rounded-xl"
+                        >
+                          <div className="flex-1">
+                            <span className="text-lg font-medium">
+                              {rfi.title}
                             </span>
-                            {rfi.status && (
-                              <span
-                                className={`badge badge-xs ${getStatusBadge(
-                                  rfi.status
-                                )}`}
-                              >
-                                {rfi.status}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="badge badge-sm badge-neutral">
+                                {rfi.id}
                               </span>
-                            )}
-                            {rfi.priority && (
-                              <span
-                                className={`badge badge-xs ${getPriorityBadge(
-                                  rfi.priority
-                                )}`}
-                              >
-                                {rfi.priority}
-                              </span>
-                            )}
+                              {rfi.status && (
+                                <span
+                                  className={`badge badge-sm ${getStatusBadge(
+                                    rfi.status
+                                  )}`}
+                                >
+                                  {rfi.status}
+                                </span>
+                              )}
+                              {rfi.priority && (
+                                <span
+                                  className={`badge badge-xs ${getPriorityBadge(
+                                    rfi.priority
+                                  )}`}
+                                >
+                                  {rfi.priority}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            className="btn btn-xs btn-outline"
+                            onClick={() => setActiveTab("rfis")}
+                          >
+                            View RFI
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="h-96 overflow-y-auto p-4 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      No messages yet. Start the conversation!
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      const isCurrentUser =
+                        currentUser?.id === message.senderId;
+                      return (
+                        <div
+                          key={message.id}
+                          className={`chat ${
+                            isCurrentUser ? "chat-end" : "chat-start"
+                          }`}
+                        >
+                          <div className="chat-header">
+                            {message.sender.firstName} {message.sender.lastName}
+                            <time className="text-xs opacity-50 ml-2">
+                              {formatTime(message.createdAt)}
+                            </time>
+                          </div>
+                          <div className="chat-bubble bg-neutral text-neutral-content">
+                            {message.content}
                           </div>
                         </div>
-                        <button
-                          className="btn btn-xs btn-outline"
-                          onClick={() => setActiveTab("rfis")}
+                      );
+                    })
+                  )}
+                </div>
+
+                <form
+                  onSubmit={handleSendMessage}
+                  className="p-4 border-t border-base-300 bg-base-300"
+                >
+                  <div className="flex gap-2 items-center">
+                    {/* User Profile Dropdown */}
+                    <div className="dropdown dropdown-top">
+                      <div className="flex items-center mt-3 gap-2">
+                        <label
+                          tabIndex={0}
+                          className="btn btn-ghost btn-circle avatar bg-base-200 rounded-full p-1"
                         >
-                          View RFI
-                        </button>
+                          <div className="flex items-center justify-center">
+                            <IoAttach size={20} />
+                          </div>
+                        </label>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              <div className="h-96 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    No messages yet. Start the conversation!
-                  </div>
-                ) : (
-                  messages.map((message) => {
-                    const isCurrentUser = currentUser?.id === message.senderId;
-                    return (
-                      <div
-                        key={message.id}
-                        className={`chat ${
-                          isCurrentUser ? "chat-end" : "chat-start"
-                        }`}
+                      {/* User drop down */}
+                      <ul
+                        tabIndex={0}
+                        className="menu menu-compact dropdown-content mt-3 p-4 shadow bg-base-200 rounded-box w-48"
                       >
-                        <div className="chat-header">
-                          {message.sender.firstName} {message.sender.lastName}
-                          <time className="text-xs opacity-50 ml-2">
-                            {formatTime(message.createdAt)}
-                          </time>
-                        </div>
-                        <div className="chat-bubble">{message.content}</div>
-                      </div>
-                    );
-                  })
-                )}
+                        <li className="text-base-content mt-2">
+                          <button
+                            className="flex gap-2 items-center"
+                            onClick={() => setShowAttach(true)}
+                          >
+                            Documents
+                          </button>
+                        </li>
+                        <li className="text-base-content mt-2">
+                          <button
+                            className="flex gap-2 items-center"
+                            onClick={() => setShowAttach(true)}
+                          >
+                            Photos
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <input
+                      type="text"
+                      className="input input-bordered flex-1"
+                      placeholder="Type your message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      disabled={sendMessageMutation.isPending}
+                    />
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={
+                        sendMessageMutation.isPending || !newMessage.trim()
+                      }
+                    >
+                      {sendMessageMutation.isPending ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        "Send"
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
-
-              <form
-                onSubmit={handleSendMessage}
-                className="p-4 border-t border-base-300"
-              >
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="input input-bordered flex-1"
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    disabled={sendMessageMutation.isPending}
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={
-                      sendMessageMutation.isPending || !newMessage.trim()
-                    }
-                  >
-                    {sendMessageMutation.isPending ? (
-                      <span className="loading loading-spinner loading-sm"></span>
-                    ) : (
-                      "Send"
-                    )}
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         )}
