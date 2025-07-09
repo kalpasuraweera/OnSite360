@@ -175,30 +175,6 @@ const AddTaskModal = ({
     setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
   };
 
-  // Suggestions for common construction tags
-  const suggestions = [
-    { id: '1', text: 'foundation' },
-    { id: '2', text: 'excavation' },
-    { id: '3', text: 'concrete' },
-    { id: '4', text: 'steel' },
-    { id: '5', text: 'inspection' },
-    { id: '6', text: 'materials' },
-    { id: '7', text: 'delivery' },
-    { id: '8', text: 'safety' },
-    { id: '9', text: 'electrical' },
-    { id: '10', text: 'plumbing' },
-    { id: '11', text: 'roofing' },
-    { id: '12', text: 'framing' },
-    { id: '13', text: 'drywall' },
-    { id: '14', text: 'flooring' },
-    { id: '15', text: 'hvac' },
-    { id: '16', text: 'insulation' },
-    { id: '17', text: 'painting' },
-    { id: '18', text: 'landscaping' },
-    { id: '19', text: 'permits' },
-    { id: '20', text: 'documentation' },
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -409,7 +385,6 @@ const AddTaskModal = ({
             <div className="relative">
               <ReactTags
                 tags={tags}
-                suggestions={suggestions}
                 handleDelete={handleDelete}
                 handleAddition={handleAddition}
                 handleDrag={handleDrag}
@@ -429,7 +404,6 @@ const AddTaskModal = ({
                   remove: 'ml-1 cursor-pointer hover:text-error font-bold',
                   suggestions: 'absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto w-full',
                   activeSuggestion: 'bg-primary text-primary-content px-3 py-2 cursor-pointer',
-                  suggestion: 'px-3 py-2 cursor-pointer hover:bg-base-200',
                 }}
               />
             </div>
