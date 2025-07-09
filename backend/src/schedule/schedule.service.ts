@@ -504,6 +504,72 @@ export class ScheduleService {
     });
   }
 
+  async getDailyLogsByDate(projectId: string, date: string, userId: string) {
+    // Check if user has access to the project
+    const userProject = await this.prisma.userProject.findFirst({
+      where: {
+        userId,
+        projectId,
+        isActive: true,
+      },
+    });
+
+    if (!userProject) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    // Parse the date and set it to start of day
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    // Create end of day for range query
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.prisma.dailyLog.findMany({
+      where: {
+        projectId,
+        date: {
+          gte: targetDate,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        logger: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        activities: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            dailyLog: {
+              select: {
+                id: true,
+                date: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            activities: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getDailyLog(logId: string, userId: string) {
     const log = await this.prisma.dailyLog.findUnique({
       where: { id: logId },

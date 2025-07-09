@@ -173,6 +173,28 @@ export class ScheduleController {
     return this.scheduleService.getDailyLogs(projectId, req.user.sub);
   }
 
+  @Get('daily-logs/by-date')
+  @ApiOperation({
+    summary: 'Get daily logs with activities by date and project',
+  })
+  @ApiQuery({ name: 'projectId', description: 'Project ID', required: true })
+  @ApiQuery({
+    name: 'date',
+    description: 'Date in YYYY-MM-DD format',
+    required: true,
+  })
+  getDailyLogsByDate(
+    @Query('projectId') projectId: string,
+    @Query('date') date: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.scheduleService.getDailyLogsByDate(
+      projectId,
+      date,
+      req.user.sub,
+    );
+  }
+
   @Get('daily-logs/:id')
   @ApiOperation({ summary: 'Get a specific daily log with activities' })
   @ApiParam({ name: 'id', description: 'Daily log ID' })
