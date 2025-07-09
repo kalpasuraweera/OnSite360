@@ -41,15 +41,6 @@ type TaskType =
   | "handover"
   | "custom";
 
-const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  all: "All Tasks",
-  site: "Site Tasks",
-  procurement: "Procurement",
-  inspection: "Inspections",
-  handover: "Handover",
-  custom: "Custom Tasks",
-};
-
 interface Task extends Card {
   name: string;
   type: TaskType;
@@ -214,8 +205,7 @@ const AddTaskModal = ({
   setNewTask, 
   tasks, 
   setTasks, 
-  selectedProject,
-  TASK_TYPE_LABELS 
+  selectedProject
 }: {
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
@@ -224,7 +214,6 @@ const AddTaskModal = ({
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   selectedProject: string;
-  TASK_TYPE_LABELS: Record<TaskType, string>;
 }) => {
   if (!showAddModal) return null;
 
@@ -292,13 +281,11 @@ const AddTaskModal = ({
                   }))
                 }
               >
-                {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
-                  .filter((t) => t !== "all")
-                  .map((type) => (
-                    <option key={type} value={type}>
-                      {TASK_TYPE_LABELS[type]}
-                    </option>
-                  ))}
+                <option value="site">Site Tasks</option>
+                <option value="procurement">Procurement</option>
+                <option value="inspection">Inspections</option>
+                <option value="handover">Handover</option>
+                <option value="custom">Custom Tasks</option>
               </select>
             </div>
             <div>
@@ -475,7 +462,7 @@ const TaskManagement = () => {
       tasks
         .map(
           (t) =>
-            `${t.name},${TASK_TYPE_LABELS[t.type]},${t.assignedTo},${
+            `${t.name},${t.type},${t.assignedTo},${
               t.dueDate
             },${t.status},${t.description || ""}`
         )
@@ -532,7 +519,7 @@ const TaskManagement = () => {
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Type:</span>
             <span className="badge badge-sm badge-outline">
-              {TASK_TYPE_LABELS[card.type]}
+              {card.type}
             </span>
           </div>
 
@@ -623,13 +610,11 @@ const TaskManagement = () => {
               }}
             >
               <option value="">All Types</option>
-              {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
-                .filter(type => type !== "all")
-                .map(type => (
-                  <option key={type} value={type}>
-                    {TASK_TYPE_LABELS[type]}
-                  </option>
-                ))}
+              <option value="site">Site Tasks</option>
+              <option value="procurement">Procurement</option>
+              <option value="inspection">Inspections</option>
+              <option value="handover">Handover</option>
+              <option value="custom">Custom Tasks</option>
             </select>
           </div>
 
@@ -739,7 +724,7 @@ const TaskManagement = () => {
     const handleDownloadTask = () => {
       const taskData = {
         name: selectedTask.name,
-        type: TASK_TYPE_LABELS[selectedTask.type],
+        type: selectedTask.type,
         assignedTo: selectedTask.assignedTo,
         dueDate: selectedTask.dueDate,
         status: selectedTask.status,
@@ -811,7 +796,7 @@ const TaskManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Type</label>
-                  <span className="badge badge-outline">{TASK_TYPE_LABELS[selectedTask.type]}</span>
+                  <span className="badge badge-outline">{selectedTask.type}</span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Priority</label>
@@ -1074,7 +1059,7 @@ const TaskManagement = () => {
             <div className="space-y-3">
               {Object.entries(typeCounts).map(([type, count]) => (
                 <div key={type} className="flex justify-between items-center">
-                  <span className="text-sm">{TASK_TYPE_LABELS[type as TaskType]}</span>
+                  <span className="text-sm">{type}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 bg-base-300 rounded-full h-2">
                       <div 
@@ -1103,7 +1088,6 @@ const TaskManagement = () => {
         tasks={tasks}
         setTasks={setTasks}
         selectedProject={selectedProject}
-        TASK_TYPE_LABELS={TASK_TYPE_LABELS}
       />
       
       <div className="flex items-end justify-between">
@@ -1268,7 +1252,7 @@ const TaskManagement = () => {
                         filteredTasks.map((task) => (
                           <tr key={task.id} className="hover:bg-base-200">
                             <td className="font-medium">{task.name}</td>
-                            <td>{TASK_TYPE_LABELS[task.type]}</td>
+                            <td>{task.type}</td>
                             <td>
                               <span className={`badge badge-sm ${
                                 task.priority === "High" ? "badge-error" :
