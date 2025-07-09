@@ -51,6 +51,8 @@ export class ScheduleService {
     return this.prisma.projectPhase.create({
       data: {
         ...createProjectPhaseDto,
+        startDate: new Date(createProjectPhaseDto.startDate),
+        endDate: new Date(createProjectPhaseDto.endDate),
         order: nextOrder,
       },
       include: {
@@ -153,7 +155,15 @@ export class ScheduleService {
 
     return this.prisma.projectPhase.update({
       where: { id: phaseId },
-      data: updateProjectPhaseDto,
+      data: {
+        ...updateProjectPhaseDto,
+        startDate: updateProjectPhaseDto.startDate
+          ? new Date(updateProjectPhaseDto.startDate)
+          : undefined,
+        endDate: updateProjectPhaseDto.endDate
+          ? new Date(updateProjectPhaseDto.endDate)
+          : undefined,
+      },
       include: {
         project: {
           select: {
@@ -215,6 +225,8 @@ export class ScheduleService {
     return this.prisma.scheduleEvent.create({
       data: {
         ...eventData,
+        startDate: new Date(createScheduleEventDto.startDate),
+        endDate: new Date(createScheduleEventDto.endDate),
         allDay: createScheduleEventDto.isAllDay || false,
         assignees: assignedUserId
           ? {
@@ -350,6 +362,12 @@ export class ScheduleService {
       where: { id: eventId },
       data: {
         ...updateData,
+        startDate: updateScheduleEventDto.startDate
+          ? new Date(updateScheduleEventDto.startDate)
+          : undefined,
+        endDate: updateScheduleEventDto.endDate
+          ? new Date(updateScheduleEventDto.endDate)
+          : undefined,
         allDay: isAllDay !== undefined ? isAllDay : undefined,
         assignees: assignedUserId
           ? {
@@ -436,6 +454,7 @@ export class ScheduleService {
     return this.prisma.dailyLog.create({
       data: {
         ...logData,
+        date: new Date(createDailyLogDto.date),
         summary: notes || 'Daily log entry',
         loggedById: userId,
       },
@@ -648,6 +667,9 @@ export class ScheduleService {
       where: { id: logId },
       data: {
         ...updateData,
+        date: updateDailyLogDto.date
+          ? new Date(updateDailyLogDto.date)
+          : undefined,
         summary: notes || log.summary,
       },
       include: {
