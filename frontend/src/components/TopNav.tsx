@@ -27,6 +27,28 @@ const TopNav = ({
     setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
   };
 
+  // Notifications array
+  const notifications = [
+    {
+      id: 1,
+      title: "System Maintenance Alert",
+      description: "This is a small description about the alert",
+      time: "2 mins ago",
+    },
+    {
+      id: 2,
+      title: "Budget Overrun Alert",
+      description: "This is a small description about the alert",
+      time: "2 mins ago",
+    },
+    {
+      id: 3,
+      title: "New Document Uploaded",
+      description: "A new document was uploaded to your project.",
+      time: "just now",
+    },
+  ];
+
   return (
     <div className="navbar flex justify-between items-center gap-4 bg-base-100 py-2 px-5">
       <button className="btn btn-ghost btn-circle" onClick={toggleSidebar}>
@@ -68,7 +90,7 @@ const TopNav = ({
           <button tabIndex={0} className="btn btn-circle relative">
             <HiOutlineBell className="w-6 h-6" />
             <span className="badge badge-success badge-xs absolute top-0 right-0">
-              3
+              {notifications.length}
             </span>
           </button>
 
@@ -77,22 +99,20 @@ const TopNav = ({
             tabIndex={0}
             className="menu menu-compact dropdown-content mt-3 shadow-lg shadow-neutral/10 bg-base-200 rounded-box w-90"
           >
-            <li>
-              <div className="flex flex-col items-start text-base-content">
-                <p className="font-bold text-base">System Maintenance Alert</p>
-                <p>This is a small description about the alert</p>
-                <p className="text-secondary-content/70 text-sm">2 mins ago</p>
-              </div>
-            </li>
-
-            <hr className="text-neutral/20 my-2" />
-            <li>
-              <div className="flex flex-col items-start text-base-content">
-                <p className="font-bold text-base">Budget Overrun Alert</p>
-                <p>This is a small description about the alert</p>
-                <p className="text-secondary-content/70 text-sm">2 mins ago</p>
-              </div>
-            </li>
+            {notifications.map((notif, idx) => (
+              <li key={notif.id} onClick={() => onNavigate("/notifications")}>
+                <div className="flex flex-col items-start text-base-content">
+                  <p className="font-bold text-base">{notif.title}</p>
+                  <p>{notif.description}</p>
+                  <p className="text-secondary-content/70 text-sm">
+                    {notif.time}
+                  </p>
+                </div>
+                {idx < notifications.length - 1 && (
+                  <hr className="text-neutral/20 my-2" />
+                )}
+              </li>
+            ))}
           </ul>
         </div>
 
