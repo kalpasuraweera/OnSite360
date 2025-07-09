@@ -79,7 +79,7 @@ const Home = () => {
   // Dashboard screenshots
   const screenshots = [
     {
-      src: "/main-m.png",
+      src: "/middle_2.png",
       alt: "Project Status Distribution",
       key: "chart1",
     },
@@ -141,7 +141,7 @@ const Home = () => {
         </div> */}
 
       <div className="bg-white flex flex-row justify-center w-full">
-        <div className="bg-white overflow-hidden w-full flex flex-col justify-center h-[3411px] relative">
+        <div className="bg-white overflow-hidden w-full flex flex-col justify-center h-[4560px] relative">
           {/* Header Navigation */}
 
           <button className="w-[126px] h-[47px] absolute top-[45px] left-[1280px] bg-[#3b3b3b] rounded-[10px] hover:bg-[#2a2a2a]">
@@ -279,17 +279,28 @@ const Home = () => {
             </button>
 
             {/* Charts Section under CTA */}
-            <div className="absolute flex justify-center top-[420px] w-full z-10">
+            <div className="absolute flex justify-center top-[450px] left-[50px] w-full z-10">
               {/* Chart 1 */}
               <img
                 src={screenshots[0].src}
                 alt={screenshots[0].alt}
-                className="object-contain w-1/2 h-full"
+                className="object-contain w-2/3 h-full"
+              />
+            </div>
+
+            <div className="flex flex-col w-full justify-center items-center top-[1400px] absolute gap-10  left-[50px]">
+              <h1 className="[font-family:'Figtree',Helvetica] text-4xl text-[#a45505] font-normal">
+                The best in building own their success with OnSite360
+              </h1>
+              <img
+                src="/company_scroll.png"
+                alt="companies"
+                className="w-1/2 "
               />
             </div>
 
             {/* Communication Section */}
-            <div className="absolute top-[1132px] left-[412px] flex items-center  gap-2">
+            <div className="absolute top-[2232px] left-[350px] flex items-center  gap-2">
               <img src="main-m.png" alt="" className="w-1/2 h-full" />
               <div className="relative h-[265px]">
                 <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
@@ -305,6 +316,10 @@ const Home = () => {
                   easy for everyone to have a clear understanding of what needs
                   to get done every day to stay on schedule and prevent rework.
                 </p>
+                <br />
+                <button className="btn btn-primary mt-60">
+                  Request a Demo
+                </button>
               </div>
             </div>
 
@@ -330,6 +345,10 @@ const Home = () => {
                   <br />
                   <br />
                   Mitigate risks with accurate data logs
+                  <br />
+                  <button className="btn btn-primary mt-5">
+                    Request a Demo
+                  </button>
                 </div>
               </div>
               <img
@@ -339,28 +358,64 @@ const Home = () => {
               />
             </div>
 
-            {/* Stats Section */}
-            <div className="absolute w-[1367px] h-[840px] top-[1537px] left-[386px] mt-64">
-              <div className="top-24 left-[909px] bg-[#fdc70085] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
+            {/* Visibility Section */}
+            <div className="absolute top-[2700px] mt-36 left-[444px] flex items-center">
+              <div className="relative h-[265px]">
+                <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
+                  VISIBILITY
+                </div>
 
-              <div className="absolute w-[1294px] h-[300px] top-[540px] left-0 bg-[#29261b] rounded-[50px] border-none p-10 flex justify-center items-center gap-12">
-                <h1 className="text-9xl font-black text-[#fdc700]">300+</h1>
-                <div className="flex flex-col gap-5">
-                  <h1 className="font-bold text-white text-8xl">Projects</h1>
-                  <p className="font-bold text-white text-4xl">
-                    Succeeded with OnSite360
-                  </p>
+                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-[#1c1c1c] text-[52px] tracking-[0] leading-[normal]">
+                  Stay ahead of your projects.
+                </h2>
+
+                <div className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] text-[#434343] tracking-[0] leading-[normal]">
+                  Quickly identify potential issues and their impact to schedule
+                  and budgets. Avoid unwanted surprises with better project
+                  visibility.
+                  <br />
+                  <br />
+                  Project overview gives a complete picture of any outstanding
+                  items.
+                  <br />
+                  <br />
+                  Track all steps and speed up the approval process.
+                </div>
+                <div className="flex absolute w-[570px] top-80 gap-3 left-[5px]">
+                  <button className="btn btn-primary">Request a Demo</button>
+                  <button
+                    onClick={handleInstallClick}
+                    className="btn btn-neutral"
+                  >
+                    Get Mobile App
+                  </button>
                 </div>
               </div>
+              <img
+                src="mobile.jpeg"
+                alt=""
+                className="relative left-[670px] w-1/3 h-full"
+              />
             </div>
-          </div>
 
-          <div className="flex w-full justify-center">
-            <img
-              src="/companies.png"
-              alt="companies"
-              className="absolute top-[3000px] w-3/4 "
-            />
+            {/* Visibility Section */}
+            <div className="absolute top-[3500px] w-[1600px] mt-36 left-[312px] px-20 flex items-center bg-accent">
+              <div className="relative h-[270px]">
+                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-white text-[52px] tracking-[0] leading-[normal]">
+                  See how Project Management can work for your team.
+                </h2>
+                <div className="flex absolute w-[570px] top-64 gap-3 left-[5px]">
+                  <button className="btn btn-primary">Request a Demo</button>
+                </div>
+              </div>
+              <img
+                src="footer_img.webp"
+                alt=""
+                className="relative left-[670px] w-1/2 h-full"
+              />
+            </div>
+
+            {/* Stats Section */}
           </div>
 
           {/* Subtitle */}
