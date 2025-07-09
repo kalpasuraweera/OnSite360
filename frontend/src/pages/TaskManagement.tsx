@@ -26,8 +26,10 @@ import type {
 } from "@caldwell619/react-kanban";
 import "../styles/kanban.css";
 import { useCreateTask, type CreateTaskDto, type TaskStatus, type TaskPriority } from "../hooks/useTasks";
+import { useUserProjects } from "../hooks/useUsers";
+import { useAuthStore } from "../stores/useAuthStore";
 
-// Mock projects
+// Remove or keep mockProjects for fallback
 const mockProjects = [
   { id: "p1", name: "Downtown Tower" },
   { id: "p2", name: "Greenfield Mall" },
@@ -225,13 +227,13 @@ const AddTaskModal = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when modal opens/closes
+  // Reset form when modal opens/closes or project changes
   useEffect(() => {
     if (showAddModal) {
       setNewTask({
         title: "",
         description: "",
-        projectId: selectedProject,
+        projectId: selectedProject, // Use the selected project ID
         assigneeId: "",
         status: "Pending",
         priority: "Medium",
@@ -248,10 +250,10 @@ const AddTaskModal = ({
     setIsSubmitting(true);
 
     try {
-      // Prepare the task data
+      // Ensure we're using the current selected project ID
       const taskData: CreateTaskDto = {
         ...newTask,
-        projectId: selectedProject,
+        projectId: selectedProject, // Always use the current selected project
         // Convert empty strings to undefined for optional fields
         description: newTask.description?.trim() || undefined,
         assigneeId: newTask.assigneeId?.trim() || undefined,
@@ -486,9 +488,7 @@ const AddTaskModal = ({
 
 const TaskManagement = () => {
   const [mainTab, setMainTab] = useState<MainTab>("all-tasks");
-  const [selectedProject, setSelectedProject] = useState<string>(
-    mockProjects[0].id
-  );
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [showAddModal, setShowAddModal] = useState(false);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
@@ -501,6 +501,22 @@ const TaskManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [newComment, setNewComment] = useState("");
+
+  // Get auth user
+  const { user } = useAuthStore();
+
+  // Fetch user projects
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(user?.id || "");
+
+  // Set default project when projects load
+  useEffect(() => {
+    if (Array.isArray(projects) && projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0].id);
+    }
+  }, [projects, selectedProject]);
+
+  // Check if projects is available and is an array
+  const hasProjects = Array.isArray(projects) && projects.length > 0;
 
   // Filter tasks based on current filters
   const getFilteredTasks = useCallback(() => {
@@ -1205,6 +1221,30 @@ const TaskManagement = () => {
     );
   };
 
+  // If no projects available, show a message
+  if (!projectsLoading && !hasProjects) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center min-h-[500px]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📋</div>
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">
+              No Projects Available
+            </h2>
+            <p className="text-gray-500">
+              You don't have access to any projects or no projects have been
+              created yet.
+            </p>
+            <p className="text-gray-500 mt-2">
+              Please contact your administrator or create a new project to get
+              started with task management.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 relative">
       <AddTaskModal 
@@ -1227,12 +1267,19 @@ const TaskManagement = () => {
               className="select select-bordered"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
+              disabled={projectsLoading}
             >
-              {mockProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : hasProjects ? (
+                projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
             </select>
           </div>
         </div>
