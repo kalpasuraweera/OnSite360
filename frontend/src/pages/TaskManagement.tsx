@@ -25,54 +25,63 @@ import type {
   Column,
 } from "@caldwell619/react-kanban";
 import "../styles/kanban.css";
-import { useCreateTask, type CreateTaskDto, type TaskStatus, type TaskPriority } from "../hooks/useTasks";
+import { 
+  useCreateTask, 
+  useTasks,
+  useDeleteTask,
+  useUpdateTask,
+  type CreateTaskDto, 
+  type TaskStatus, 
+  type TaskPriority,
+  type Task as ApiTask,
+} from "../hooks/useTasks";
 import { useUserProjects } from "../hooks/useUsers";
-import { useProject } from "../hooks/useProjects";
+import { useProject, type Project } from "../hooks/useProjects";
 import { useAuthStore } from "../stores/useAuthStore";
 import { WithContext as ReactTags } from 'react-tag-input';
 
-// Remove or keep mockProjects for fallback
-const mockProjects = [
-  { id: "p1", name: "Downtown Tower" },
-  { id: "p2", name: "Greenfield Mall" },
-  { id: "p3", name: "Harbor Bridge" },
-];
-
-type TaskType =
-  | "all"
-  | "site"
-  | "procurement"
-  | "inspection"
-  | "handover"
-  | "custom";
-
-interface Task extends Card {
-  name: string;
-  type: TaskType;
-  assignedTo: string;
-  dueDate: string;
-  status: "Pending" | "In Progress" | "Completed" | "Delayed";
+// Convert ApiTask to Card interface for Kanban board
+interface TaskCard extends Card {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   projectId: string;
+  assigneeId?: string;
+  assignee?: {
+    id: string;
+    firstName: string;
+    lastName?: string;
+    email: string;
+  };
+  dueDate?: string;
   description?: string;
-  priority?: "Low" | "Medium" | "High";
-  tags?: string[];
-  documents?: string[];
-  comments?: Comment[];
+  tags: string[];
+  progress: number;
+  estimatedHours?: number;
+  actualHours?: number;
   createdAt: string;
   updatedAt: string;
-}
-
-interface Comment {
-  id: string;
-  author: string;
-  message: string;
-  timestamp: string;
-  avatar?: string;
+  comments?: Array<{
+    id: string;
+    content: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName?: string;
+    };
+    createdAt: string;
+  }>;
+  attachments?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+  }>;
 }
 
 interface TaskFilters {
-  types: TaskType[];
-  statuses: Task["status"][];
+  statuses: TaskStatus[];
   assignees: string[];
   dateRange: {
     start: string;
@@ -81,126 +90,6 @@ interface TaskFilters {
 }
 
 type MainTab = "all-tasks" | "task-details" | "analytics";
-
-const mockTasks: Task[] = [
-  {
-    id: "1",
-    name: "Excavation",
-    type: "site",
-    assignedTo: "Alice",
-    dueDate: "2024-07-05",
-    status: "Completed",
-    projectId: "p1",
-    description: "Complete site excavation for foundation.",
-    priority: "High",
-    tags: ["foundation", "excavation"],
-    documents: ["excavation_plan.pdf", "safety_guidelines.pdf"],
-    comments: [
-      {
-        id: "c1",
-        author: "Alice",
-        message: "Excavation completed successfully. Foundation is ready for concrete pour.",
-        timestamp: "2024-07-05T10:30:00Z",
-      },
-    ],
-    createdAt: "2024-07-01T08:00:00Z",
-    updatedAt: "2024-07-05T10:30:00Z",
-  },
-  {
-    id: "2",
-    name: "Order Concrete",
-    type: "procurement",
-    assignedTo: "Bob",
-    dueDate: "2024-07-03",
-    status: "Completed",
-    projectId: "p1",
-    description: "Order concrete for foundation pour.",
-    priority: "Medium",
-    tags: ["concrete", "materials"],
-    documents: ["concrete_order.pdf"],
-    comments: [],
-    createdAt: "2024-06-28T09:00:00Z",
-    updatedAt: "2024-07-03T14:00:00Z",
-  },
-  {
-    id: "3",
-    name: "Foundation Inspection",
-    type: "inspection",
-    assignedTo: "Diana",
-    dueDate: "2024-07-10",
-    status: "Pending",
-    projectId: "p1",
-    description: "Schedule and complete foundation inspection.",
-    priority: "High",
-    tags: ["inspection", "foundation"],
-    documents: ["inspection_checklist.pdf"],
-    comments: [],
-    createdAt: "2024-07-04T11:00:00Z",
-    updatedAt: "2024-07-04T11:00:00Z",
-  },
-  {
-    id: "4",
-    name: "Material Delivery",
-    type: "procurement",
-    assignedTo: "Eve",
-    dueDate: "2024-07-08",
-    status: "In Progress",
-    projectId: "p2",
-    description: "Receive and check steel beams delivery.",
-    priority: "Medium",
-    tags: ["steel", "delivery"],
-    documents: ["delivery_manifest.pdf"],
-    comments: [
-      {
-        id: "c2",
-        author: "Eve",
-        message: "Steel beams are on the way. Expected delivery tomorrow morning.",
-        timestamp: "2024-07-07T16:00:00Z",
-      },
-    ],
-    createdAt: "2024-07-02T10:00:00Z",
-    updatedAt: "2024-07-07T16:00:00Z",
-  },
-  {
-    id: "5",
-    name: "Final Handover",
-    type: "handover",
-    assignedTo: "Charlie",
-    dueDate: "2024-08-15",
-    status: "Pending",
-    projectId: "p3",
-    description: "Prepare documents and site for final handover.",
-    priority: "Low",
-    tags: ["handover", "documentation"],
-    documents: ["handover_checklist.pdf"],
-    comments: [],
-    createdAt: "2024-07-01T12:00:00Z",
-    updatedAt: "2024-07-01T12:00:00Z",
-  },
-  {
-    id: "6",
-    name: "Custom Task Example",
-    type: "custom",
-    assignedTo: "Mike",
-    dueDate: "2024-07-20",
-    status: "Delayed",
-    projectId: "p1",
-    description: "Any custom task for project needs.",
-    priority: "Medium",
-    tags: ["custom"],
-    documents: [],
-    comments: [
-      {
-        id: "c3",
-        author: "Mike",
-        message: "Delayed due to equipment issues. Will resume next week.",
-        timestamp: "2024-07-19T09:00:00Z",
-      },
-    ],
-    createdAt: "2024-07-15T13:00:00Z",
-    updatedAt: "2024-07-19T09:00:00Z",
-  },
-];
 
 // Add Task Modal Component (moved outside to prevent re-creation)
 const AddTaskModal = ({ 
@@ -583,10 +472,8 @@ const TaskManagement = () => {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskCard | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
-    types: [],
     statuses: [],
     assignees: [],
     dateRange: { start: "", end: "" },
@@ -601,7 +488,47 @@ const TaskManagement = () => {
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects(user?.id || "");
 
   // Fetch selected project details including users
-  const { data: selectedProjectData, isLoading: projectDataLoading } = useProject(selectedProject);
+  const { data: selectedProjectData, isLoading: projectDataLoading } = useProject(selectedProject) as { data: Project | undefined, isLoading: boolean };
+
+  // Fetch tasks for the selected project
+  const { data: apiTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks(
+    selectedProject ? { projectId: selectedProject } : undefined
+  );
+
+  // Task mutations
+  const deleteTaskMutation = useDeleteTask();
+  const updateTaskMutation = useUpdateTask();
+
+  // Transform API tasks to TaskCard format
+  const transformApiTaskToCard = useCallback((task: ApiTask): TaskCard => {
+    return {
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      projectId: task.projectId,
+      assigneeId: task.assigneeId,
+      assignee: task.assignee,
+      dueDate: task.dueDate ? task.dueDate.split('T')[0] : undefined,
+      description: task.description,
+      tags: task.tags || [],
+      progress: task.progress,
+      estimatedHours: task.estimatedHours,
+      actualHours: task.actualHours,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      comments: task.comments?.map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        user: comment.user,
+        createdAt: comment.createdAt,
+      })),
+      attachments: task.attachments,
+    };
+  }, []);
+
+  // Transform API tasks to cards
+  const tasks = apiTasks.map(transformApiTaskToCard);
 
   // Set default project when projects load
   useEffect(() => {
@@ -615,37 +542,39 @@ const TaskManagement = () => {
 
   // Filter tasks based on current filters
   const getFilteredTasks = useCallback(() => {
-    let filtered = tasks.filter((task) => task.projectId === selectedProject);
+    let filtered = tasks;
 
     // Apply filters
-    if (filters.types.length > 0) {
-      filtered = filtered.filter((task) => filters.types.includes(task.type));
-    }
-
     if (filters.statuses.length > 0) {
       filtered = filtered.filter((task) => filters.statuses.includes(task.status));
     }
 
     if (filters.assignees.length > 0) {
-      filtered = filtered.filter((task) => filters.assignees.includes(task.assignedTo));
+      filtered = filtered.filter((task) => 
+        task.assigneeId && filters.assignees.includes(task.assigneeId)
+      );
     }
 
-    if (filters.dateRange.start) {
-      filtered = filtered.filter((task) => task.dueDate >= filters.dateRange.start);
+    if (filters.dateRange.start && task.dueDate) {
+      filtered = filtered.filter((task) => 
+        task.dueDate && task.dueDate >= filters.dateRange.start
+      );
     }
 
-    if (filters.dateRange.end) {
-      filtered = filtered.filter((task) => task.dueDate <= filters.dateRange.end);
+    if (filters.dateRange.end && task.dueDate) {
+      filtered = filtered.filter((task) => 
+        task.dueDate && task.dueDate <= filters.dateRange.end
+      );
     }
 
     return filtered;
-  }, [tasks, selectedProject, filters]);
+  }, [tasks, filters]);
 
   // Create kanban board structure
-  const createKanbanBoard = useCallback((): KanbanBoard<Task> => {
+  const createKanbanBoard = useCallback((): KanbanBoard<TaskCard> => {
     const filteredTasks = getFilteredTasks();
-
-    const columns: Column<Task>[] = [
+console.log("Filtered Tasks:", filteredTasks);
+    const columns: Column<TaskCard>[] = [
       {
         id: "pending",
         title: "Pending",
@@ -662,47 +591,79 @@ const TaskManagement = () => {
         cards: filteredTasks.filter((task) => task.status === "Completed"),
       },
       {
-        id: "delayed",
-        title: "Delayed",
-        cards: filteredTasks.filter((task) => task.status === "Delayed"),
+        id: "cancelled",
+        title: "Cancelled",
+        cards: filteredTasks.filter((task) => task.status === "Cancelled"),
       },
     ];
 
     return { columns };
   }, [getFilteredTasks]);
 
-  const [board, setBoard] = useState<KanbanBoard<Task>>(() =>
+  const [board, setBoard] = useState<KanbanBoard<TaskCard>>(() =>
     createKanbanBoard()
   );
 
-  // Update board when project or tab changes
+  // Update board when tasks change
   useEffect(() => {
     setBoard(createKanbanBoard());
-  }, [createKanbanBoard, tasks]);
+  }, [createKanbanBoard]);
 
-  const handleCardMove: OnDragEndNotification<Task> = (
-    _card,
+  const handleCardMove: OnDragEndNotification<TaskCard> = async (
+    card,
     source,
     destination
   ) => {
+    // Update board optimistically
     setBoard((currentBoard) => {
       return moveCard(currentBoard, source, destination);
     });
+
+    // Determine new status based on destination column
+    let newStatus: TaskStatus;
+    switch (destination.toColumnId) {
+      case "pending":
+        newStatus = "Pending";
+        break;
+      case "in-progress":
+        newStatus = "In Progress";
+        break;
+      case "completed":
+        newStatus = "Completed";
+        break;
+      case "cancelled":
+        newStatus = "Cancelled";
+        break;
+      default:
+        return;
+    }
+
+    // Update task status in the API
+    try {
+      await updateTaskMutation.mutateAsync({
+        id: card.id,
+        task: { status: newStatus }
+      });
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+      // Revert the board state on error
+      setBoard(createKanbanBoard());
+    }
   };
 
   // Filter tasks by project and type for table view
   const filteredTasks = getFilteredTasks();
 
   const handleExport = () => {
-    const tasks = filteredTasks;
+    const exportTasks = filteredTasks;
     const csv =
-      "Name,Type,Assigned To,Due Date,Status,Description\n" +
-      tasks
+      "Title,Status,Priority,Assigned To,Due Date,Progress,Description\n" +
+      exportTasks
         .map(
           (t) =>
-            `${t.name},${t.type},${t.assignedTo},${
-              t.dueDate
-            },${t.status},${t.description || ""}`
+            `${t.title},${t.status},${t.priority},${
+              t.assignee ? `${t.assignee.firstName} ${t.assignee.lastName || ''}` : 'Unassigned'
+            },${t.dueDate || ''},${t.progress}%,${t.description || ""}`
         )
         .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -710,14 +671,16 @@ const TaskManagement = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `Tasks_${
-      mockProjects.find((p) => p.id === selectedProject)?.name || "Project"
+      projects.find((p: Project) => p.id === selectedProject)?.name || "Project"
     }.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const renderCard = (card: Task) => {
-    const getDueDateStatus = (dueDate: string) => {
+  const renderCard = (card: TaskCard) => {
+    const getDueDateStatus = (dueDate?: string) => {
+      if (!dueDate) return { color: "text-base-content", text: "No due date" };
+      
       const today = new Date();
       const due = new Date(dueDate);
       const diffTime = due.getTime() - today.getTime();
@@ -740,10 +703,11 @@ const TaskManagement = () => {
       >
         <div className="flex bg-base-300 p-2 w-full rounded-t-xl justify-between items-start mb-3">
           <h3 className="font-semibold text-sm text-base-content line-clamp-2 flex-1">
-            {card.name}
+            {card.title}
           </h3>
           <div className="flex items-center gap-1">
             <span className={`badge badge-xs ${
+              card.priority === "Critical" ? "badge-error" :
               card.priority === "High" ? "badge-error" : 
               card.priority === "Medium" ? "badge-warning" : 
               "badge-success"
@@ -755,28 +719,36 @@ const TaskManagement = () => {
         {/* Card Content */}
         <div className="space-y-2 p-4">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-base-content/60">Type:</span>
-            <span className="badge badge-sm badge-outline">
-              {card.type}
+            <span className="text-xs text-base-content/60">Progress:</span>
+            <span className="text-xs font-medium">
+              {card.progress}%
             </span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Assigned:</span>
             <div className="flex items-center gap-1">
-              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-xs font-medium text-primary">
-                  {card.assignedTo.charAt(0)}
-                </span>
-              </div>
-              <span className="text-xs font-medium">{card.assignedTo}</span>
+              {card.assignee ? (
+                <>
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary">
+                      {card.assignee.firstName.charAt(0)}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium">
+                    {card.assignee.firstName} {card.assignee.lastName || ''}
+                  </span>
+                </>
+              ) : (
+                <span className="text-xs text-base-content/50">Unassigned</span>
+              )}
             </div>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-xs text-base-content/60">Due:</span>
             <div className="flex items-center gap-1">
-              <span className="text-xs">{card.dueDate}</span>
+              <span className="text-xs">{card.dueDate || 'No due date'}</span>
               <span className={`text-xs font-medium ${dueDateStatus.color}`}>
                 ({dueDateStatus.text})
               </span>
@@ -803,6 +775,14 @@ const TaskManagement = () => {
               </p>
             </div>
           )}
+
+          {/* Progress Bar */}
+          <div className="w-full bg-base-300 rounded-full h-1 mt-2">
+            <div
+              className="bg-primary h-1 rounded-full transition-all duration-300"
+              style={{ width: `${card.progress}%` }}
+            ></div>
+          </div>
         </div>
       </div>
     );
@@ -810,8 +790,6 @@ const TaskManagement = () => {
 
   // Filter Panel Component
   const FilterPanel = () => {
-    const uniqueAssignees = [...new Set(tasks.map(task => task.assignedTo))];
-    
     // Get unique assignees from project users
     const projectAssignees = selectedProjectData?.userProjects
       ?.filter(userProject => userProject.isActive)
@@ -831,7 +809,6 @@ const TaskManagement = () => {
           <button
             className="btn btn-xs btn-outline"
             onClick={() => setFilters({
-              types: [],
               statuses: [],
               assignees: [],
               dateRange: { start: "", end: "" },
@@ -841,30 +818,7 @@ const TaskManagement = () => {
           </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Task Types */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Task Type</label>
-            <select
-              className="select select-sm select-bordered w-full"
-              value={filters.types.length > 0 ? filters.types[0] : ""}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setFilters(prev => ({ ...prev, types: [e.target.value as TaskType] }));
-                } else {
-                  setFilters(prev => ({ ...prev, types: [] }));
-                }
-              }}
-            >
-              <option value="">All Types</option>
-              <option value="site">Site Tasks</option>
-              <option value="procurement">Procurement</option>
-              <option value="inspection">Inspections</option>
-              <option value="handover">Handover</option>
-              <option value="custom">Custom Tasks</option>
-            </select>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Status Filter */}
           <div>
             <label className="block text-sm font-medium mb-2">Status</label>
@@ -873,14 +827,14 @@ const TaskManagement = () => {
               value={filters.statuses.length > 0 ? filters.statuses[0] : ""}
               onChange={(e) => {
                 if (e.target.value) {
-                  setFilters(prev => ({ ...prev, statuses: [e.target.value as Task["status"]] }));
+                  setFilters(prev => ({ ...prev, statuses: [e.target.value as TaskStatus] }));
                 } else {
                   setFilters(prev => ({ ...prev, statuses: [] }));
                 }
               }}
             >
               <option value="">All Statuses</option>
-              {(["Pending", "In Progress", "Completed", "Delayed"] as Task["status"][]).map(status => (
+              {(["Pending", "In Progress", "Completed", "Cancelled"] as TaskStatus[]).map(status => (
                 <option key={status} value={status}>
                   {status}
                 </option>
@@ -908,12 +862,6 @@ const TaskManagement = () => {
                   {assignee.name} ({assignee.role})
                 </option>
               ))}
-              {/* Also include legacy assignees from mock data */}
-              {uniqueAssignees.map(assignee => (
-                <option key={`legacy-${assignee}`} value={assignee}>
-                  {assignee} (Legacy)
-                </option>
-              ))}
             </select>
           </div>
 
@@ -926,14 +874,16 @@ const TaskManagement = () => {
                 className="input input-sm input-bordered w-full"
                 placeholder="Start date"
                 value={filters.dateRange.start}
-                onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: e.target.value } }))}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: e.target.value } }))
+                }
               />
               <input
                 type="date"
                 className="input input-sm input-bordered w-full"
                 placeholder="End date"
                 value={filters.dateRange.end}
-                onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: e.target.value } }))}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: e.target.value } }))
+                }
               />
             </div>
           </div>
@@ -946,46 +896,34 @@ const TaskManagement = () => {
   const TaskDetails = () => {
     if (!selectedTask) return null;
 
-    const handleAddComment = () => {
-      if (newComment.trim()) {
-        const comment: Comment = {
-          id: Date.now().toString(),
-          author: "Current User", // Replace with actual user
-          message: newComment,
-          timestamp: new Date().toISOString(),
-        };
-        
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === selectedTask.id 
-              ? { ...task, comments: [...(task.comments || []), comment] }
-              : task
-          )
-        );
-        
-        setSelectedTask(prev => prev ? { ...prev, comments: [...(prev.comments || []), comment] } : null);
-        setNewComment("");
+    const handleDeleteTask = async () => {
+      if (window.confirm("Are you sure you want to delete this task?")) {
+        try {
+          await deleteTaskMutation.mutateAsync(selectedTask.id);
+          setMainTab("all-tasks");
+          setSelectedTask(null);
+          refetchTasks(); // Refresh the task list
+        } catch (error) {
+          console.error("Error deleting task:", error);
+        }
       }
-    };
-
-    const handleDeleteTask = () => {
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== selectedTask.id));
-      setMainTab("all-tasks");
-      setSelectedTask(null);
     };
 
     const handleDownloadTask = () => {
       const taskData = {
-        name: selectedTask.name,
-        type: selectedTask.type,
-        assignedTo: selectedTask.assignedTo,
-        dueDate: selectedTask.dueDate,
+        title: selectedTask.title,
         status: selectedTask.status,
         priority: selectedTask.priority,
-        description: selectedTask.description,
+        assignedTo: selectedTask.assignee ? 
+          `${selectedTask.assignee.firstName} ${selectedTask.assignee.lastName || ''}` : 
+          'Unassigned',
+        dueDate: selectedTask.dueDate || 'No due date',
+        progress: `${selectedTask.progress}%`,
+        description: selectedTask.description || 'No description',
         tags: selectedTask.tags?.join(", ") || "",
-        documents: selectedTask.documents?.join(", ") || "",
-        comments: selectedTask.comments?.map(c => `${c.author}: ${c.message}`).join("\n") || "",
+        estimatedHours: selectedTask.estimatedHours || 'Not specified',
+        actualHours: selectedTask.actualHours || 'Not specified',
+        comments: selectedTask.comments?.map(c => `${c.user.firstName}: ${c.content}`).join("\n") || "",
       };
 
       const content = Object.entries(taskData)
@@ -996,7 +934,7 @@ const TaskManagement = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Task_${selectedTask.name}.txt`;
+      a.download = `Task_${selectedTask.title}.txt`;
       a.click();
       URL.revokeObjectURL(url);
     };
@@ -1012,7 +950,7 @@ const TaskManagement = () => {
               <MdClose />
               Back to All Tasks
             </button>
-            <h1 className="text-2xl font-bold">{selectedTask.name}</h1>
+            <h1 className="text-2xl font-bold">{selectedTask.title}</h1>
           </div>
           <div className="flex gap-2">
             <button
@@ -1048,12 +986,20 @@ const TaskManagement = () => {
               <h3 className="font-semibold mb-4">Task Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Type</label>
-                  <span className="badge badge-outline">{selectedTask.type}</span>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <span className={`badge ${
+                    selectedTask.status === "Completed" ? "badge-success" :
+                    selectedTask.status === "In Progress" ? "badge-warning" :
+                    selectedTask.status === "Cancelled" ? "badge-error" :
+                    "badge-neutral"
+                  }`}>
+                    {selectedTask.status}
+                  </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Priority</label>
                   <span className={`badge ${
+                    selectedTask.priority === "Critical" ? "badge-error" :
                     selectedTask.priority === "High" ? "badge-error" :
                     selectedTask.priority === "Medium" ? "badge-warning" :
                     "badge-success"
@@ -1062,30 +1008,43 @@ const TaskManagement = () => {
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Status</label>
-                  <span className={`badge ${
-                    selectedTask.status === "Completed" ? "badge-success" :
-                    selectedTask.status === "In Progress" ? "badge-warning" :
-                    selectedTask.status === "Delayed" ? "badge-error" :
-                    "badge-neutral"
-                  }`}>
-                    {selectedTask.status}
-                  </span>
+                  <label className="block text-sm font-medium mb-1">Progress</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full"
+                        style={{ width: `${selectedTask.progress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm">{selectedTask.progress}%</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Due Date</label>
-                  <span className="text-sm">{selectedTask.dueDate}</span>
+                  <span className="text-sm">{selectedTask.dueDate || 'No due date'}</span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Assigned To</label>
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-sm font-medium text-primary">
-                        {selectedTask.assignedTo.charAt(0)}
-                      </span>
-                    </div>
-                    <span className="text-sm">{selectedTask.assignedTo}</span>
+                    {selectedTask.assignee ? (
+                      <>
+                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">
+                            {selectedTask.assignee.firstName.charAt(0)}
+                          </span>
+                        </div>
+                        <span className="text-sm">
+                          {selectedTask.assignee.firstName} {selectedTask.assignee.lastName || ''}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-base-content/50">Unassigned</span>
+                    )}
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Estimated Hours</label>
+                  <span className="text-sm">{selectedTask.estimatedHours || 'Not specified'}</span>
                 </div>
               </div>
             </div>
@@ -1110,14 +1069,14 @@ const TaskManagement = () => {
               </div>
             )}
 
-            {selectedTask.documents && selectedTask.documents.length > 0 && (
+            {selectedTask.attachments && selectedTask.attachments.length > 0 && (
               <div className="bg-base-100 p-4 rounded-xl">
-                <h3 className="font-semibold mb-4">Documents</h3>
+                <h3 className="font-semibold mb-4">Attachments</h3>
                 <div className="space-y-2">
-                  {selectedTask.documents.map((doc, index) => (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-base-200 rounded">
+                  {selectedTask.attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center gap-2 p-2 bg-base-200 rounded">
                       <MdAttachFile className="text-primary" />
-                      <span className="text-sm">{doc}</span>
+                      <span className="text-sm">{attachment.name}</span>
                     </div>
                   ))}
                 </div>
@@ -1135,15 +1094,17 @@ const TaskManagement = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                         <span className="text-xs font-medium text-primary">
-                          {comment.author.charAt(0)}
+                          {comment.user.firstName.charAt(0)}
                         </span>
                       </div>
-                      <span className="text-sm font-medium">{comment.author}</span>
+                      <span className="text-sm font-medium">
+                        {comment.user.firstName} {comment.user.lastName || ''}
+                      </span>
                       <span className="text-xs text-base-content/60">
-                        {new Date(comment.timestamp).toLocaleDateString()}
+                        {new Date(comment.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-base-content/80">{comment.message}</p>
+                    <p className="text-sm text-base-content/80">{comment.content}</p>
                   </div>
                 ))
               ) : (
@@ -1160,13 +1121,19 @@ const TaskManagement = () => {
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === "Enter") {
-                    handleAddComment();
+                    // TODO: Implement comment creation using useCreateComment
+                    console.log("Add comment:", newComment);
+                    setNewComment("");
                   }
                 }}
               />
               <button
                 className="btn btn-primary btn-sm"
-                onClick={handleAddComment}
+                onClick={() => {
+                  // TODO: Implement comment creation using useCreateComment
+                  console.log("Add comment:", newComment);
+                  setNewComment("");
+                }}
               >
                 <MdSend />
               </button>
@@ -1179,25 +1146,24 @@ const TaskManagement = () => {
 
   // Analytics Component
   const Analytics = () => {
-    const projectTasks = tasks.filter(task => task.projectId === selectedProject);
-    
     const statusCounts = {
-      pending: projectTasks.filter(t => t.status === "Pending").length,
-      inProgress: projectTasks.filter(t => t.status === "In Progress").length,
-      completed: projectTasks.filter(t => t.status === "Completed").length,
-      delayed: projectTasks.filter(t => t.status === "Delayed").length,
+      pending: tasks.filter(t => t.status === "Pending").length,
+      inProgress: tasks.filter(t => t.status === "In Progress").length,
+      completed: tasks.filter(t => t.status === "Completed").length,
+      cancelled: tasks.filter(t => t.status === "Cancelled").length,
     };
 
-    const typeCounts = {
-      site: projectTasks.filter(t => t.type === "site").length,
-      procurement: projectTasks.filter(t => t.type === "procurement").length,
-      inspection: projectTasks.filter(t => t.type === "inspection").length,
-      handover: projectTasks.filter(t => t.type === "handover").length,
-      custom: projectTasks.filter(t => t.type === "custom").length,
+    const priorityCounts = {
+      low: tasks.filter(t => t.priority === "Low").length,
+      medium: tasks.filter(t => t.priority === "Medium").length,
+      high: tasks.filter(t => t.priority === "High").length,
+      critical: tasks.filter(t => t.priority === "Critical").length,
     };
 
-    const totalTasks = projectTasks.length;
+    const totalTasks = tasks.length;
     const completionRate = totalTasks > 0 ? (statusCounts.completed / totalTasks) * 100 : 0;
+    const averageProgress = totalTasks > 0 ? 
+      tasks.reduce((sum, task) => sum + task.progress, 0) / totalTasks : 0;
 
     return (
       <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
@@ -1241,11 +1207,11 @@ const TaskManagement = () => {
           
           <div className="stats shadow">
             <div className="stat">
-              <div className="stat-figure text-error">
+              <div className="stat-figure text-info">
                 <MdCalendarToday className="text-2xl" />
               </div>
-              <div className="stat-title">Delayed</div>
-              <div className="stat-value text-error">{statusCounts.delayed}</div>
+              <div className="stat-title">Avg Progress</div>
+              <div className="stat-value text-info">{averageProgress.toFixed(1)}%</div>
             </div>
           </div>
         </div>
@@ -1292,31 +1258,36 @@ const TaskManagement = () => {
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Delayed</span>
+                <span className="text-sm">Cancelled</span>
                 <div className="flex items-center gap-2">
                   <div className="w-32 bg-base-300 rounded-full h-2">
                     <div 
                       className="bg-error h-2 rounded-full" 
-                      style={{ width: `${totalTasks > 0 ? (statusCounts.delayed / totalTasks) * 100 : 0}%` }}
+                      style={{ width: `${totalTasks > 0 ? (statusCounts.cancelled / totalTasks) * 100 : 0}%` }}
                     ></div>
                   </div>
-                  <span className="text-sm w-8 text-right">{statusCounts.delayed}</span>
+                  <span className="text-sm w-8 text-right">{statusCounts.cancelled}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Task Type Distribution */}
+          {/* Priority Distribution */}
           <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Task Type Distribution</h3>
+            <h3 className="font-semibold mb-4">Priority Distribution</h3>
             <div className="space-y-3">
-              {Object.entries(typeCounts).map(([type, count]) => (
-                <div key={type} className="flex justify-between items-center">
-                  <span className="text-sm">{type}</span>
+              {Object.entries(priorityCounts).map(([priority, count]) => (
+                <div key={priority} className="flex justify-between items-center">
+                  <span className="text-sm capitalize">{priority}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 bg-base-300 rounded-full h-2">
                       <div 
-                        className="bg-primary h-2 rounded-full" 
+                        className={`h-2 rounded-full ${
+                          priority === "critical" ? "bg-error" :
+                          priority === "high" ? "bg-warning" :
+                          priority === "medium" ? "bg-info" :
+                          "bg-success"
+                        }`}
                         style={{ width: `${totalTasks > 0 ? (count / totalTasks) * 100 : 0}%` }}
                       ></div>
                     </div>
@@ -1458,6 +1429,7 @@ const TaskManagement = () => {
                   <button
                     className="btn btn-outline flex items-center gap-2"
                     onClick={handleExport}
+                    disabled={filteredTasks.length === 0}
                   >
                     <MdFileDownload />
                     Export Tasks (CSV)
@@ -1487,45 +1459,74 @@ const TaskManagement = () => {
               </div>
 
               {/* Kanban Board or Table View */}
-              {viewMode === "kanban" ? (
-                <div className="kanban-container">
-                  <ControlledBoard<Task>
-                    onCardDragEnd={handleCardMove}
-                    renderCard={renderCard}
-                    renderColumnHeader={({ title, cards }) => (
-                      <div
-                        className={`flex justify-between items-center mb-4 p-3 rounded-xl ${
-                          title === "Pending"
-                            ? "bg-info "
-                            : title === "In Progress"
-                            ? "bg-warning "
-                            : title === "Completed"
-                            ? "bg-success "
-                            : title === "Delayed"
-                            ? "bg-error "
-                            : ""
-                        }`}
-                      >
-                        <h3 className="font-bold text-lg text-white">{title}</h3>
-                        <span className="badge badge-neutral">{cards.length}</span>
-                      </div>
-                    )}
-                  >
-                    {board}
-                  </ControlledBoard>
+              {tasksLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                  <span className="ml-2">Loading tasks...</span>
                 </div>
+              ) : viewMode === "kanban" ? (
+                filteredTasks.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl text-base-content/20 mb-4">📋</div>
+                    <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                      No tasks found
+                    </h3>
+                    <p className="text-base-content/50 mb-6">
+                      {selectedProject ? 
+                        "No tasks have been created for this project yet." :
+                        "Select a project to view its tasks."
+                      }
+                    </p>
+                    {selectedProject && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowAddModal(true)}
+                      >
+                        <MdAddTask className="mr-2" />
+                        Add First Task
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="kanban-container">
+                    <ControlledBoard<TaskCard>
+                      onCardDragEnd={handleCardMove}
+                      renderCard={renderCard}
+                      renderColumnHeader={({ title, cards }) => (
+                        <div
+                          className={`flex justify-between items-center mb-4 p-3 rounded-xl ${
+                            title === "Pending"
+                              ? "bg-info "
+                              : title === "In Progress"
+                              ? "bg-warning "
+                              : title === "Completed"
+                              ? "bg-success "
+                              : title === "Cancelled"
+                              ? "bg-error "
+                              : ""
+                          }`}
+                        >
+                          <h3 className="font-bold text-lg text-white">{title}</h3>
+                          <span className="badge badge-neutral">{cards.length}</span>
+                        </div>
+                      )}
+                    >
+                      {board}
+                    </ControlledBoard>
+                  </div>
+                )
               ) : (
                 /* Tasks Table */
                 <div className="overflow-x-auto">
                   <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
                     <thead>
                       <tr>
-                        <th>Name</th>
-                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Status</th>
                         <th>Priority</th>
                         <th>Assigned To</th>
                         <th>Due Date</th>
-                        <th>Status</th>
+                        <th>Progress</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -1533,19 +1534,7 @@ const TaskManagement = () => {
                       {filteredTasks.length > 0 ? (
                         filteredTasks.map((task) => (
                           <tr key={task.id} className="hover:bg-base-200">
-                            <td className="font-medium">{task.name}</td>
-                            <td>{task.type}</td>
-                            <td>
-                              <span className={`badge badge-sm ${
-                                task.priority === "High" ? "badge-error" :
-                                task.priority === "Medium" ? "badge-warning" :
-                                "badge-success"
-                              }`}>
-                                {task.priority}
-                              </span>
-                            </td>
-                            <td>{task.assignedTo}</td>
-                            <td>{task.dueDate}</td>
+                            <td className="font-medium">{task.title}</td>
                             <td>
                               <span
                                 className={`badge ${
@@ -1553,13 +1542,41 @@ const TaskManagement = () => {
                                     ? "badge-success"
                                     : task.status === "In Progress"
                                     ? "badge-warning"
-                                    : task.status === "Delayed"
+                                    : task.status === "Cancelled"
                                     ? "badge-error"
                                     : "badge-neutral"
                                 }`}
                               >
                                 {task.status}
                               </span>
+                            </td>
+                            <td>
+                              <span className={`badge badge-sm ${
+                                task.priority === "Critical" ? "badge-error" :
+                                task.priority === "High" ? "badge-error" :
+                                task.priority === "Medium" ? "badge-warning" :
+                                "badge-success"
+                              }`}>
+                                {task.priority}
+                              </span>
+                            </td>
+                            <td>
+                              {task.assignee ? 
+                                `${task.assignee.firstName} ${task.assignee.lastName || ''}` : 
+                                'Unassigned'
+                              }
+                            </td>
+                            <td>{task.dueDate || 'No due date'}</td>
+                            <td>
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 bg-base-300 rounded-full h-2">
+                                  <div
+                                    className="bg-primary h-2 rounded-full"
+                                    style={{ width: `${task.progress}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs">{task.progress}%</span>
+                              </div>
                             </td>
                             <td>
                               <button
@@ -1577,7 +1594,7 @@ const TaskManagement = () => {
                       ) : (
                         <tr>
                           <td colSpan={7} className="text-center text-gray-500 py-8">
-                            No tasks found in this project.
+                            {tasksLoading ? "Loading tasks..." : "No tasks found in this project."}
                           </td>
                         </tr>
                       )}
