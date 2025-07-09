@@ -493,7 +493,8 @@ const TaskManagement = () => {
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects(user?.id || "");
 
   // Fetch selected project details including users
-  const { data: selectedProjectData, isLoading: projectDataLoading } = useProject(selectedProject) as { data: Project | undefined, isLoading: boolean };
+  const { data: selectedProjectResponse, isLoading: projectDataLoading } = useProject(selectedProject);
+  const selectedProjectData = selectedProjectResponse?.data as Project | undefined;
 
   // Fetch tasks for the selected project
   const { data: apiTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks(
@@ -805,6 +806,7 @@ const TaskManagement = () => {
   // Filter Panel Component
   const FilterPanel = () => {
     // Get unique assignees from project users
+    console.log("Selected Project Data:", selectedProjectData);
     const projectAssignees = selectedProjectData?.userProjects
       ?.filter(userProject => userProject.isActive)
       ?.map(userProject => ({
