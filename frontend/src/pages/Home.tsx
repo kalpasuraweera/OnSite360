@@ -159,6 +159,7 @@ const Home = () => {
             </span>
           </button>
 
+          {/* Navigation bar */}
           <div className="flex w-1/3 h-[74px] items-center justify-center p-3 absolute top-8 left-[438px] bg-[#ebebeb] rounded-[20px]">
             <div className="flex gap-10 justify-evenly">
               {navItems.map((item, index) => (
@@ -169,6 +170,14 @@ const Home = () => {
                       ? "py-4 px-12 bg-white rounded-[20px]"
                       : "flex items-center justify-center"
                   }
+                  onClick={() => {
+                    const section = document.getElementById(
+                      item.name.toLowerCase()
+                    );
+                    if (section) {
+                      section.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
                 >
                   <span
                     className={`[font-family:'Figtree',Helvetica] font-semibold ${
