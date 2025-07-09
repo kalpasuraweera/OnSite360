@@ -30,6 +30,8 @@ import {
   useTasks,
   useDeleteTask,
   useUpdateTask,
+  useCreateComment,
+  useTaskComments,
   type CreateTaskDto, 
   type TaskStatus, 
   type TaskPriority,
@@ -752,7 +754,29 @@ const TaskDetails = ({
   newComment: string;
   setNewComment: (comment: string) => void;
 }) => {
+  const createCommentMutation = useCreateComment();
+  
+  // Fetch real-time comments for the selected task
+  const { data: taskComments = [], isLoading: commentsLoading } = useTaskComments(selectedTask?.id || "");
+  
   if (!selectedTask) return null;
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    
+    try {
+      await createCommentMutation.mutateAsync({
+        taskId: selectedTask.id,
+        content: newComment.trim(),
+      });
+      
+      setNewComment("");
+      // The mutation will automatically invalidate and refetch the task comments
+    } catch (error) {
+      console.error("Failed to create comment:", error);
+      // Handle error (you can replace this with your error notification system)
+    }
+  };
 
   const handleDeleteTask = async () => {
     if (window.confirm("Are you sure you want to delete this task?")) {
@@ -945,8 +969,12 @@ const TaskDetails = ({
         <div className="bg-base-100 p-4 rounded-xl">
           <h3 className="font-semibold mb-4">Comments</h3>
           <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
-            {selectedTask.comments && selectedTask.comments.length > 0 ? (
-              selectedTask.comments.map((comment) => (
+            {commentsLoading ? (
+              <div className="flex justify-center">
+                <span className="loading loading-spinner loading-sm"></span>
+              </div>
+            ) : taskComments && taskComments.length > 0 ? (
+              taskComments.map((comment) => (
                 <div key={comment.id} className="bg-base-200 p-3 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
@@ -976,16 +1004,23 @@ const TaskDetails = ({
               placeholder="Add a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddComment();
+                }
+              }}
+              disabled={createCommentMutation.isPending}
             />
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => {
-                // TODO: Implement comment creation using useCreateComment
-                console.log("Add comment:", newComment);
-                setNewComment("");
-              }}
+              onClick={handleAddComment}
+              disabled={createCommentMutation.isPending || !newComment.trim()}
             >
-              <MdSend />
+              {createCommentMutation.isPending ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              ) : (
+                <MdSend />
+              )}
             </button>
           </div>
         </div>
