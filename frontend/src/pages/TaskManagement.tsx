@@ -399,11 +399,347 @@ const AddTaskModal = ({
   );
 };
 
+// Edit Task Modal Component
+const EditTaskModal = ({ 
+  showEditModal, 
+  setShowEditModal, 
+  selectedTask,
+  projectUsers
+}: {
+  showEditModal: boolean;
+  setShowEditModal: (show: boolean) => void;
+  selectedTask: TaskCard | null;
+  projectUsers: Array<{
+    id: string;
+    userId: string;
+    projectRole: string;
+    accessLevel: number;
+    isActive: boolean;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>;
+}) => {
+  const updateTaskMutation = useUpdateTask();
+  
+  const [editTask, setEditTask] = useState({
+    title: "",
+    description: "",
+    assigneeId: "",
+    status: "Pending" as TaskStatus,
+    priority: "Medium" as TaskPriority,
+    progress: 0,
+    estimatedHours: undefined as number | undefined,
+    actualHours: undefined as number | undefined,
+    dueDate: "",
+    tags: [] as string[],
+  });
+
+  // Transform tags array to simple string array for react-tag-input-component
+  const [tags, setTags] = useState<string[]>([]);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Populate form when modal opens with selected task data
+  useEffect(() => {
+    if (showEditModal && selectedTask) {
+      setEditTask({
+        title: selectedTask.title,
+        description: selectedTask.description || "",
+        assigneeId: selectedTask.assigneeId || "",
+        status: selectedTask.status,
+        priority: selectedTask.priority,
+        progress: selectedTask.progress,
+        estimatedHours: selectedTask.estimatedHours,
+        actualHours: selectedTask.actualHours,
+        dueDate: selectedTask.dueDate || "",
+        tags: selectedTask.tags || [],
+      });
+      setTags(selectedTask.tags || []); // Set tags
+    }
+  }, [showEditModal, selectedTask]);
+
+  // Update tags in editTask when tags state changes
+  useEffect(() => {
+    setEditTask(prev => ({ ...prev, tags }));
+  }, [tags]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask) return;
+    
+    setIsSubmitting(true);
+
+    try {
+      const taskData = {
+        title: editTask.title.trim(),
+        description: editTask.description?.trim() || undefined,
+        assigneeId: editTask.assigneeId?.trim() || undefined,
+        status: editTask.status,
+        priority: editTask.priority,
+        progress: editTask.progress,
+        estimatedHours: editTask.estimatedHours || undefined,
+        actualHours: editTask.actualHours || undefined,
+        dueDate: editTask.dueDate || undefined,
+        tags: tags,
+      };
+
+      await updateTaskMutation.mutateAsync({
+        id: selectedTask.id,
+        task: taskData,
+      });
+      
+      // Close modal
+      setShowEditModal(false);
+      
+      // Show success message
+      console.log("Task updated successfully!");
+      
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      // Handle error
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!showEditModal || !selectedTask) return null;
+
+  return (
+    <div className="modal modal-open">
+      <div className="modal-box w-11/12 max-w-2xl">
+        <h3 className="font-bold text-lg mb-4">Edit Task</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">
+                Task Title <span className="text-error">*</span>
+              </span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered"
+              required
+              value={editTask.title}
+              onChange={(e) =>
+                setEditTask((t) => ({ ...t, title: e.target.value }))
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Priority</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={editTask.priority}
+                onChange={(e) =>
+                  setEditTask((t) => ({
+                    ...t,
+                    priority: e.target.value as TaskPriority,
+                  }))
+                }
+                disabled={isSubmitting}
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Status</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={editTask.status}
+                onChange={(e) =>
+                  setEditTask((t) => ({
+                    ...t,
+                    status: e.target.value as TaskStatus,
+                  }))
+                }
+                disabled={isSubmitting}
+              >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Assignee</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={editTask.assigneeId || ""}
+                onChange={(e) =>
+                  setEditTask((t) => ({ ...t, assigneeId: e.target.value }))
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">Select assignee (optional)</option>
+                {projectUsers.map((userProject) => (
+                  <option key={userProject.user.id} value={userProject.user.id}>
+                    {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Due Date</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={editTask.dueDate || ""}
+                onChange={(e) =>
+                  setEditTask((t) => ({ ...t, dueDate: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Estimated Hours</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered"
+                min="0"
+                step="0.5"
+                value={editTask.estimatedHours || ""}
+                onChange={(e) =>
+                  setEditTask((t) => ({ 
+                    ...t, 
+                    estimatedHours: e.target.value ? Number(e.target.value) : undefined 
+                  }))
+                }
+                placeholder="Enter estimated hours"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Actual Hours</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered"
+                min="0"
+                step="0.5"
+                value={editTask.actualHours || ""}
+                onChange={(e) =>
+                  setEditTask((t) => ({ 
+                    ...t, 
+                    actualHours: e.target.value ? Number(e.target.value) : undefined 
+                  }))
+                }
+                placeholder="Enter actual hours"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Progress (%)</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered"
+                min="0"
+                max="100"
+                value={editTask.progress}
+                onChange={(e) =>
+                  setEditTask((t) => ({ 
+                    ...t, 
+                    progress: Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                  }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Description</span>
+            </label>
+            <textarea
+              className="textarea textarea-bordered"
+              rows={3}
+              value={editTask.description}
+              onChange={(e) =>
+                setEditTask((t) => ({ ...t, description: e.target.value }))
+              }
+              placeholder="Enter task description (optional)"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Tags</span>
+            </label>
+            <TagsInput
+              value={tags}
+              onChange={setTags}
+              placeholder="Enter tags"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="modal-action">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setShowEditModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                "Update Task"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const TaskManagement = () => {
   const [mainTab, setMainTab] = useState<MainTab>("all-tasks");
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskCard | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     statuses: [],
@@ -914,7 +1250,7 @@ const TaskManagement = () => {
             <button
               className="btn btn-primary btn-sm"
               onClick={() => {
-                // Edit functionality can be added here
+                setShowEditModal(true);
               }}
             >
               <MdEdit />
@@ -1070,13 +1406,6 @@ const TaskManagement = () => {
                 placeholder="Add a comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    // TODO: Implement comment creation using useCreateComment
-                    console.log("Add comment:", newComment);
-                    setNewComment("");
-                  }
-                }}
               />
               <button
                 className="btn btn-primary btn-sm"
@@ -1283,6 +1612,13 @@ const TaskManagement = () => {
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
         selectedProject={selectedProject}
+        projectUsers={selectedProjectData?.userProjects?.filter(up => up.isActive) || []}
+      />
+      
+      <EditTaskModal
+        showEditModal={showEditModal}
+        setShowEditModal={setShowEditModal}
+        selectedTask={selectedTask}
         projectUsers={selectedProjectData?.userProjects?.filter(up => up.isActive) || []}
       />
       
