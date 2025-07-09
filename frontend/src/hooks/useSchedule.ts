@@ -50,6 +50,12 @@ export interface ScheduleEvent {
     lastName: string;
     email: string;
   }[];
+  createdBy: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   project?: {
     id: string;
     name: string;

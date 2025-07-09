@@ -228,6 +228,7 @@ export class ScheduleService {
         startDate: new Date(createScheduleEventDto.startDate),
         endDate: new Date(createScheduleEventDto.endDate),
         allDay: createScheduleEventDto.isAllDay || false,
+        createdById: userId,
         assignees: assignedUserId
           ? {
               connect: { id: assignedUserId },
@@ -242,6 +243,14 @@ export class ScheduleService {
           },
         },
         assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -284,6 +293,14 @@ export class ScheduleService {
             email: true,
           },
         },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
       orderBy: { startDate: 'asc' },
     });
@@ -300,6 +317,14 @@ export class ScheduleService {
           },
         },
         assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -356,6 +381,11 @@ export class ScheduleService {
       throw new ForbiddenException('You do not have access to this project');
     }
 
+    // Check if user is the creator of the event
+    if (event.createdById !== userId) {
+      throw new ForbiddenException('You can only edit events you created');
+    }
+
     const { assignedUserId, isAllDay, ...updateData } = updateScheduleEventDto;
 
     return this.prisma.scheduleEvent.update({
@@ -390,6 +420,14 @@ export class ScheduleService {
             email: true,
           },
         },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
   }
@@ -414,6 +452,11 @@ export class ScheduleService {
 
     if (!userProject) {
       throw new ForbiddenException('You do not have access to this project');
+    }
+
+    // Check if user is the creator of the event
+    if (event.createdById !== userId) {
+      throw new ForbiddenException('You can only delete events you created');
     }
 
     return this.prisma.scheduleEvent.delete({
