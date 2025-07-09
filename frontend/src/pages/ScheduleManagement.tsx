@@ -29,13 +29,18 @@ import {
   useDeleteScheduleEvent,
   useCreateDailyLog,
   useUpdateDailyLog,
+  useCreateDailyActivity,
+  useUpdateDailyActivity,
   type ProjectPhase,
   type ScheduleEvent,
   type DailyLog,
+  type DailyActivity,
   type CreateProjectPhaseDto,
   type CreateScheduleEventDto,
   type CreateDailyLogDto,
   type UpdateDailyLogDto,
+  type CreateDailyActivityDto,
+  type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
 
 // Set up the localizer
@@ -354,6 +359,22 @@ const ScheduleManagement = () => {
     workersPresent: 0,
   });
 
+  // Daily Activity modal state
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<DailyActivity | null>(null);
+  const [selectedLogForActivity, setSelectedLogForActivity] = useState<DailyLog | null>(null);
+  const [activityForm, setActivityForm] = useState({
+    description: "",
+    dailyLogId: "",
+    startTime: "",
+    endTime: "",
+    duration: 0,
+    workersInvolved: 0,
+    progress: 0,
+    status: "NOT_STARTED" as 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED',
+    notes: "",
+  });
+
   // Get auth user
   const { user } = useAuthStore();
 
@@ -397,6 +418,10 @@ const ScheduleManagement = () => {
   // Log mutations
   const createLogMutation = useCreateDailyLog();
   const updateLogMutation = useUpdateDailyLog();
+
+  // Activity mutations
+  const createActivityMutation = useCreateDailyActivity();
+  const updateActivityMutation = useUpdateDailyActivity();
 
   // Transform project phases to Gantt tasks
   const transformPhaseToGanttTask = (phase: ProjectPhase): GanttTask => {
@@ -651,6 +676,95 @@ const ScheduleManagement = () => {
     } catch (error) {
       console.error("Error saving log:", error);
     }
+  };
+
+  // Activity handling functions
+  const handleActivitySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLogForActivity) return;
+
+    try {
+      if (editingActivity) {
+        // Update existing activity
+        const activityData: UpdateDailyActivityDto = {
+          description: activityForm.description || undefined,
+          startTime: activityForm.startTime || undefined,
+          endTime: activityForm.endTime || undefined,
+          workersInvolved: activityForm.workersInvolved || undefined,
+          progress: activityForm.progress || undefined,
+          status: activityForm.status,
+          notes: activityForm.notes || undefined,
+        };
+        await updateActivityMutation.mutateAsync({
+          id: editingActivity.id,
+          activity: activityData,
+        });
+      } else {
+        // Create new activity
+        const activityData: CreateDailyActivityDto = {
+          description: activityForm.description,
+          dailyLogId: selectedLogForActivity.id,
+          startTime: activityForm.startTime || undefined,
+          endTime: activityForm.endTime || undefined,
+          workersInvolved: activityForm.workersInvolved || undefined,
+          progress: activityForm.progress || undefined,
+          status: activityForm.status,
+          notes: activityForm.notes || undefined,
+        };
+        await createActivityMutation.mutateAsync(activityData);
+      }
+      
+      setShowActivityModal(false);
+      setEditingActivity(null);
+      setSelectedLogForActivity(null);
+      setActivityForm({
+        description: "",
+        dailyLogId: "",
+        startTime: "",
+        endTime: "",
+        duration: 0,
+        workersInvolved: 0,
+        progress: 0,
+        status: "NOT_STARTED",
+        notes: "",
+      });
+    } catch (error) {
+      console.error("Error saving activity:", error);
+    }
+  };
+
+  const handleAddActivity = (log: DailyLog) => {
+    setSelectedLogForActivity(log);
+    setEditingActivity(null);
+    setActivityForm({
+      description: "",
+      dailyLogId: log.id,
+      startTime: "",
+      endTime: "",
+      duration: 0,
+      workersInvolved: 0,
+      progress: 0,
+      status: "NOT_STARTED",
+      notes: "",
+    });
+    setShowActivityModal(true);
+  };
+
+  const handleEditActivity = (activity: DailyActivity) => {
+    setEditingActivity(activity);
+    setSelectedLogForActivity(activity.dailyLog || null);
+    setActivityForm({
+      description: activity.description,
+      dailyLogId: activity.dailyLogId,
+      startTime: activity.startTime || "",
+      endTime: activity.endTime || "",
+      duration: activity.duration || 0,
+      workersInvolved: activity.workersInvolved || 0,
+      progress: activity.progress || 0,
+      status: activity.status,
+      notes: activity.notes || "",
+    });
+    setShowActivityModal(true);
   };
 
   // Helper function to organize phases hierarchically
@@ -1207,9 +1321,20 @@ const ScheduleManagement = () => {
                       </div>
 
                       {/* Activities */}
-                      {log.activities && log.activities.length > 0 && (
-                        <div className="border-t border-base-300 pt-4">
-                          <h4 className="font-semibold mb-3">Activities</h4>
+                      <div className="border-t border-base-300 pt-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-semibold">Activities</h4>
+                          {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
+                            <button
+                              className="btn btn-xs btn-primary"
+                              onClick={() => handleAddActivity(log)}
+                            >
+                              <MdAdd className="mr-1" />
+                              Add Activity
+                            </button>
+                          )}
+                        </div>
+                        {log.activities && log.activities.length > 0 ? (
                           <div className="space-y-3">
                             {log.activities.map((activity) => (
                               <div
@@ -1266,9 +1391,7 @@ const ScheduleManagement = () => {
                                   <div className="flex gap-1">
                                     <button
                                       className="btn btn-xs btn-ghost"
-                                      onClick={() => {
-                                        // Handle edit activity
-                                      }}
+                                      onClick={() => handleEditActivity(activity)}
                                     >
                                       <MdEdit />
                                     </button>
@@ -1285,8 +1408,12 @@ const ScheduleManagement = () => {
                               </div>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="text-center py-4 text-base-content/60">
+                            <p className="text-sm">No activities recorded for this log.</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2009,6 +2136,178 @@ const ScheduleManagement = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Modal */}
+      {showActivityModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">
+              {editingActivity ? "Edit Activity" : "Add Activity"}
+            </h3>
+            <form onSubmit={handleActivitySubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Description *</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={activityForm.description}
+                  onChange={(e) =>
+                    setActivityForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  placeholder="Describe the activity..."
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Start Time</span>
+                  </label>
+                  <input
+                    type="time"
+                    className="input input-bordered"
+                    value={activityForm.startTime}
+                    onChange={(e) =>
+                      setActivityForm((prev) => ({ ...prev, startTime: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">End Time</span>
+                  </label>
+                  <input
+                    type="time"
+                    className="input input-bordered"
+                    value={activityForm.endTime}
+                    onChange={(e) =>
+                      setActivityForm((prev) => ({ ...prev, endTime: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Workers Involved</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  value={activityForm.workersInvolved}
+                  onChange={(e) =>
+                    setActivityForm((prev) => ({ ...prev, workersInvolved: parseInt(e.target.value) || 0 }))
+                  }
+                  min="0"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Progress (%)</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={activityForm.progress}
+                    onChange={(e) =>
+                      setActivityForm((prev) => ({ ...prev, progress: parseInt(e.target.value) || 0 }))
+                    }
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Status</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={activityForm.status}
+                    onChange={(e) =>
+                      setActivityForm((prev) => ({ 
+                        ...prev, 
+                        status: e.target.value as 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED'
+                      }))
+                    }
+                  >
+                    <option value="NOT_STARTED">Not Started</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="ON_HOLD">On Hold</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Notes</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered"
+                  value={activityForm.notes}
+                  onChange={(e) =>
+                    setActivityForm((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  rows={3}
+                  placeholder="Additional notes about this activity..."
+                />
+              </div>
+
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setShowActivityModal(false);
+                    setEditingActivity(null);
+                    setSelectedLogForActivity(null);
+                    setActivityForm({
+                      description: "",
+                      dailyLogId: "",
+                      startTime: "",
+                      endTime: "",
+                      duration: 0,
+                      workersInvolved: 0,
+                      progress: 0,
+                      status: "NOT_STARTED",
+                      notes: "",
+                    });
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createActivityMutation.isPending || updateActivityMutation.isPending}
+                >
+                  {createActivityMutation.isPending || updateActivityMutation.isPending ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : editingActivity ? (
+                    <>
+                      <MdEdit className="mr-2" />
+                      Update Activity
+                    </>
+                  ) : (
+                    <>
+                      <MdAdd className="mr-2" />
+                      Add Activity
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
