@@ -734,6 +734,266 @@ const EditTaskModal = ({
   );
 };
 
+// Task Details Component (moved outside to prevent re-rendering)
+const TaskDetails = ({ 
+  selectedTask,
+  setMainTab,
+  setShowEditModal,
+  deleteTaskMutation,
+  refetchTasks,
+  newComment,
+  setNewComment
+}: {
+  selectedTask: TaskCard | null;
+  setMainTab: (tab: MainTab) => void;
+  setShowEditModal: (show: boolean) => void;
+  deleteTaskMutation: ReturnType<typeof useDeleteTask>;
+  refetchTasks: () => void;
+  newComment: string;
+  setNewComment: (comment: string) => void;
+}) => {
+  if (!selectedTask) return null;
+
+  const handleDeleteTask = async () => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteTaskMutation.mutateAsync(selectedTask.id);
+        setMainTab("all-tasks");
+        refetchTasks(); // Refresh the task list
+      } catch (error) {
+        console.error("Error deleting task:", error);
+      }
+    }
+  };
+
+  const handleDownloadTask = () => {
+    const taskData = {
+      title: selectedTask.title,
+      status: selectedTask.status,
+      priority: selectedTask.priority,
+      assignedTo: selectedTask.assignee ? 
+        `${selectedTask.assignee.firstName} ${selectedTask.assignee.lastName || ''}` : 
+        'Unassigned',
+      dueDate: selectedTask.dueDate || 'No due date',
+      progress: `${selectedTask.progress}%`,
+      description: selectedTask.description || 'No description',
+      tags: selectedTask.tags?.join(", ") || "",
+      estimatedHours: selectedTask.estimatedHours || 'Not specified',
+      actualHours: selectedTask.actualHours || 'Not specified',
+      comments: selectedTask.comments?.map(c => `${c.user.firstName}: ${c.content}`).join("\n") || "",
+    };
+
+    const content = Object.entries(taskData)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Task_${selectedTask.title}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setMainTab("all-tasks")}
+          >
+            <MdClose />
+            Back to All Tasks
+          </button>
+          <h1 className="text-2xl font-bold">{selectedTask.title}</h1>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="btn btn-success btn-sm"
+            onClick={handleDownloadTask}
+          >
+            <MdDownload />
+            Download
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setShowEditModal(true);
+            }}
+          >
+            <MdEdit />
+            Edit
+          </button>
+          <button
+            className="btn btn-error btn-sm"
+            onClick={handleDeleteTask}
+          >
+            <MdDelete />
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Task Details */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-base-100 p-4 rounded-xl">
+            <h3 className="font-semibold mb-4">Task Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <span className={`badge ${
+                  selectedTask.status === "Completed" ? "badge-success" :
+                  selectedTask.status === "In Progress" ? "badge-warning" :
+                  selectedTask.status === "Cancelled" ? "badge-error" :
+                  "badge-neutral"
+                }`}>
+                  {selectedTask.status}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Priority</label>
+                <span className={`badge ${
+                  selectedTask.priority === "Critical" ? "badge-error" :
+                  selectedTask.priority === "High" ? "badge-error" :
+                  selectedTask.priority === "Medium" ? "badge-warning" :
+                  "badge-success"
+                }`}>
+                  {selectedTask.priority}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Progress</label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-base-300 rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${selectedTask.progress}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm">{selectedTask.progress}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Due Date</label>
+                <span className="text-sm">{selectedTask.dueDate || 'No due date'}</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Assigned To</label>
+                <div className="flex items-center gap-2">
+                  {selectedTask.assignee ? (
+                    <>
+                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">
+                          {selectedTask.assignee.firstName.charAt(0)}
+                        </span>
+                      </div>
+                      <span className="text-sm">
+                        {selectedTask.assignee.firstName} {selectedTask.assignee.lastName || ''}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-base-content/50">Unassigned</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Estimated Hours</label>
+                <span className="text-sm">{selectedTask.estimatedHours || 'Not specified'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-base-100 p-4 rounded-xl">
+            <h3 className="font-semibold mb-4">Description</h3>
+            <p className="text-sm text-base-content/70">
+              {selectedTask.description || "No description provided"}
+            </p>
+          </div>
+
+          {selectedTask.tags && selectedTask.tags.length > 0 && (
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedTask.tags.map((tag, index) => (
+                  <span key={index} className="badge badge-secondary">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedTask.attachments && selectedTask.attachments.length > 0 && (
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Attachments</h3>
+              <div className="space-y-2">
+                {selectedTask.attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex items-center gap-2 p-2 bg-base-200 rounded">
+                    <MdAttachFile className="text-primary" />
+                    <span className="text-sm">{attachment.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-base-100 p-4 rounded-xl">
+          <h3 className="font-semibold mb-4">Comments</h3>
+          <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
+            {selectedTask.comments && selectedTask.comments.length > 0 ? (
+              selectedTask.comments.map((comment) => (
+                <div key={comment.id} className="bg-base-200 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">
+                        {comment.user.firstName.charAt(0)}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {comment.user.firstName} {comment.user.lastName || ''}
+                    </span>
+                    <span className="text-xs text-base-content/60">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-base-content/80">{comment.content}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-base-content/60">No comments yet</p>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input input-sm input-bordered flex-1"
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                // TODO: Implement comment creation using useCreateComment
+                console.log("Add comment:", newComment);
+                setNewComment("");
+              }}
+            >
+              <MdSend />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TaskManagement = () => {
   const [mainTab, setMainTab] = useState<MainTab>("all-tasks");
   const [selectedProject, setSelectedProject] = useState<string>("");
@@ -1172,251 +1432,6 @@ const TaskManagement = () => {
                 onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: e.target.value } }))
                 }
               />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Task Details Component
-  const TaskDetails = () => {
-    if (!selectedTask) return null;
-
-    const handleDeleteTask = async () => {
-      if (window.confirm("Are you sure you want to delete this task?")) {
-        try {
-          await deleteTaskMutation.mutateAsync(selectedTask.id);
-          setMainTab("all-tasks");
-          setSelectedTask(null);
-          refetchTasks(); // Refresh the task list
-        } catch (error) {
-          console.error("Error deleting task:", error);
-        }
-      }
-    };
-
-    const handleDownloadTask = () => {
-      const taskData = {
-        title: selectedTask.title,
-        status: selectedTask.status,
-        priority: selectedTask.priority,
-        assignedTo: selectedTask.assignee ? 
-          `${selectedTask.assignee.firstName} ${selectedTask.assignee.lastName || ''}` : 
-          'Unassigned',
-        dueDate: selectedTask.dueDate || 'No due date',
-        progress: `${selectedTask.progress}%`,
-        description: selectedTask.description || 'No description',
-        tags: selectedTask.tags?.join(", ") || "",
-        estimatedHours: selectedTask.estimatedHours || 'Not specified',
-        actualHours: selectedTask.actualHours || 'Not specified',
-        comments: selectedTask.comments?.map(c => `${c.user.firstName}: ${c.content}`).join("\n") || "",
-      };
-
-      const content = Object.entries(taskData)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join("\n");
-
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Task_${selectedTask.title}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    return (
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setMainTab("all-tasks")}
-            >
-              <MdClose />
-              Back to All Tasks
-            </button>
-            <h1 className="text-2xl font-bold">{selectedTask.title}</h1>
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="btn btn-success btn-sm"
-              onClick={handleDownloadTask}
-            >
-              <MdDownload />
-              Download
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setShowEditModal(true);
-              }}
-            >
-              <MdEdit />
-              Edit
-            </button>
-            <button
-              className="btn btn-error btn-sm"
-              onClick={handleDeleteTask}
-            >
-              <MdDelete />
-              Delete
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Task Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-base-100 p-4 rounded-xl">
-              <h3 className="font-semibold mb-4">Task Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status</label>
-                  <span className={`badge ${
-                    selectedTask.status === "Completed" ? "badge-success" :
-                    selectedTask.status === "In Progress" ? "badge-warning" :
-                    selectedTask.status === "Cancelled" ? "badge-error" :
-                    "badge-neutral"
-                  }`}>
-                    {selectedTask.status}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Priority</label>
-                  <span className={`badge ${
-                    selectedTask.priority === "Critical" ? "badge-error" :
-                    selectedTask.priority === "High" ? "badge-error" :
-                    selectedTask.priority === "Medium" ? "badge-warning" :
-                    "badge-success"
-                  }`}>
-                    {selectedTask.priority}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Progress</label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-base-300 rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${selectedTask.progress}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm">{selectedTask.progress}%</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Due Date</label>
-                  <span className="text-sm">{selectedTask.dueDate || 'No due date'}</span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assigned To</label>
-                  <div className="flex items-center gap-2">
-                    {selectedTask.assignee ? (
-                      <>
-                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {selectedTask.assignee.firstName.charAt(0)}
-                          </span>
-                        </div>
-                        <span className="text-sm">
-                          {selectedTask.assignee.firstName} {selectedTask.assignee.lastName || ''}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-sm text-base-content/50">Unassigned</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Estimated Hours</label>
-                  <span className="text-sm">{selectedTask.estimatedHours || 'Not specified'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-base-100 p-4 rounded-xl">
-              <h3 className="font-semibold mb-4">Description</h3>
-              <p className="text-sm text-base-content/70">
-                {selectedTask.description || "No description provided"}
-              </p>
-            </div>
-
-            {selectedTask.tags && selectedTask.tags.length > 0 && (
-              <div className="bg-base-100 p-4 rounded-xl">
-                <h3 className="font-semibold mb-4">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTask.tags.map((tag, index) => (
-                    <span key={index} className="badge badge-secondary">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedTask.attachments && selectedTask.attachments.length > 0 && (
-              <div className="bg-base-100 p-4 rounded-xl">
-                <h3 className="font-semibold mb-4">Attachments</h3>
-                <div className="space-y-2">
-                  {selectedTask.attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center gap-2 p-2 bg-base-200 rounded">
-                      <MdAttachFile className="text-primary" />
-                      <span className="text-sm">{attachment.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Comments Section */}
-          <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Comments</h3>
-            <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
-              {selectedTask.comments && selectedTask.comments.length > 0 ? (
-                selectedTask.comments.map((comment) => (
-                  <div key={comment.id} className="bg-base-200 p-3 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">
-                          {comment.user.firstName.charAt(0)}
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium">
-                        {comment.user.firstName} {comment.user.lastName || ''}
-                      </span>
-                      <span className="text-xs text-base-content/60">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-base-content/80">{comment.content}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-base-content/60">No comments yet</p>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="input input-sm input-bordered flex-1"
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  // TODO: Implement comment creation using useCreateComment
-                  console.log("Add comment:", newComment);
-                  setNewComment("");
-                }}
-              >
-                <MdSend />
-              </button>
             </div>
           </div>
         </div>
@@ -1903,7 +1918,17 @@ const TaskManagement = () => {
           </>
         )}
 
-        {mainTab === "task-details" && <TaskDetails />}
+        {mainTab === "task-details" && (
+          <TaskDetails 
+            selectedTask={selectedTask}
+            setMainTab={setMainTab}
+            setShowEditModal={setShowEditModal}
+            deleteTaskMutation={deleteTaskMutation}
+            refetchTasks={refetchTasks}
+            newComment={newComment}
+            setNewComment={setNewComment}
+          />
+        )}
         {mainTab === "analytics" && <Analytics />}
       </div>
     </div>
