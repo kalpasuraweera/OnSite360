@@ -1,21 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   MdCalendarToday,
-  MdConstruction,
   MdWbSunny,
   MdGroup,
   MdSecurity,
-  MdLocalShipping,
-  MdBuild,
-  MdCheckCircle,
-  MdWarning,
-  MdAssignment,
   MdSchedule,
+  MdAdd,
+  MdEdit,
+  MdDelete,
 } from "react-icons/md";
 import { Calendar, momentLocalizer, type View } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "../styles/gantt.css";
+import { useProjects, type Project } from "../hooks/useProjects";
+import { useAuthStore } from "../stores/useAuthStore";
+import {
+  useProjectPhases,
+  useScheduleEvents,
+  useDailyLogsByDate,
+  useCreateProjectPhase,
+  useUpdateProjectPhase,
+  useDeleteProjectPhase,
+  useDeleteDailyLog,
+  useDeleteDailyActivity,
+  type ProjectPhase,
+  type ScheduleEvent,
+  type CreateProjectPhaseDto,
+} from "../hooks/useSchedule";
 
 // Set up the localizer
 const localizer = momentLocalizer(moment);
@@ -40,13 +52,21 @@ const eventStyleGetter = (event: { resource: string }) => {
       backgroundColor = "#f59e0b"; // yellow
       borderColor = "#f59e0b";
       break;
-    case "order":
+    case "task":
       backgroundColor = "#ef4444"; // red
       borderColor = "#ef4444";
       break;
     case "milestone":
       backgroundColor = "#8b5cf6"; // purple
       borderColor = "#8b5cf6";
+      break;
+    case "meeting":
+      backgroundColor = "#3b82f6"; // blue
+      borderColor = "#3b82f6";
+      break;
+    case "other":
+      backgroundColor = "#6b7280"; // gray
+      borderColor = "#6b7280";
       break;
     default:
       backgroundColor = "#3174ad"; // blue
@@ -63,98 +83,6 @@ const eventStyleGetter = (event: { resource: string }) => {
     },
   };
 };
-
-// Helper function to get icon for log types
-const getLogIcon = (title: string) => {
-  const lowerTitle = title.toLowerCase();
-
-  if (lowerTitle.includes("weather"))
-    return <MdWbSunny className="text-yellow-500" />;
-  if (lowerTitle.includes("delivery") || lowerTitle.includes("delivered"))
-    return <MdLocalShipping className="text-green-500" />;
-  if (lowerTitle.includes("meeting") || lowerTitle.includes("briefing"))
-    return <MdGroup className="text-blue-500" />;
-  if (lowerTitle.includes("safety") || lowerTitle.includes("security"))
-    return <MdSecurity className="text-red-500" />;
-  if (
-    lowerTitle.includes("inspection") ||
-    lowerTitle.includes("check") ||
-    lowerTitle.includes("quality")
-  )
-    return <MdCheckCircle className="text-green-600" />;
-  if (
-    lowerTitle.includes("equipment") ||
-    lowerTitle.includes("tools") ||
-    lowerTitle.includes("prep")
-  )
-    return <MdBuild className="text-gray-600" />;
-  if (
-    lowerTitle.includes("foundation") ||
-    lowerTitle.includes("framing") ||
-    lowerTitle.includes("construction") ||
-    lowerTitle.includes("installation")
-  )
-    return <MdConstruction className="text-orange-500" />;
-  if (
-    lowerTitle.includes("order") ||
-    lowerTitle.includes("material") ||
-    lowerTitle.includes("planning")
-  )
-    return <MdAssignment className="text-purple-500" />;
-  if (lowerTitle.includes("holiday") || lowerTitle.includes("delay"))
-    return <MdWarning className="text-amber-500" />;
-
-  return <MdSchedule className="text-blue-400" />; // Default icon
-};
-
-// Helper function to get log category color
-const getLogCategoryColor = (title: string) => {
-  const lowerTitle = title.toLowerCase();
-
-  if (lowerTitle.includes("weather")) return "bg-warning/5 border-warning/40";
-  if (lowerTitle.includes("delivery") || lowerTitle.includes("delivered"))
-    return "bg-success/5 border-success/40";
-  if (lowerTitle.includes("meeting") || lowerTitle.includes("briefing"))
-    return "bg-info/5 border-info/40";
-  if (lowerTitle.includes("safety") || lowerTitle.includes("security"))
-    return "bg-error/5 border-error/40";
-  if (
-    lowerTitle.includes("inspection") ||
-    lowerTitle.includes("check") ||
-    lowerTitle.includes("quality")
-  )
-    return "bg-success/5 border-success/40";
-  if (
-    lowerTitle.includes("equipment") ||
-    lowerTitle.includes("tools") ||
-    lowerTitle.includes("prep")
-  )
-    return "bg-info/5 border-info/40";
-  if (
-    lowerTitle.includes("foundation") ||
-    lowerTitle.includes("framing") ||
-    lowerTitle.includes("construction") ||
-    lowerTitle.includes("installation")
-  )
-    return "bg-warning/5 border-warning/40";
-  if (
-    lowerTitle.includes("order") ||
-    lowerTitle.includes("material") ||
-    lowerTitle.includes("planning")
-  )
-    return "bg-info/5 border-info/40";
-  if (lowerTitle.includes("holiday") || lowerTitle.includes("delay"))
-    return "bg-error/5 border-error/40";
-
-  return "bg-secondary/5 border-secondary/40"; // Default
-};
-
-// Mock projects
-const mockProjects = [
-  { id: "p1", name: "Downtown Tower" },
-  { id: "p2", name: "Greenfield Mall" },
-  { id: "p3", name: "Harbor Bridge" },
-];
 
 type ScheduleTab = "gantt" | "timeline" | "calendar" | "logs";
 
@@ -175,525 +103,6 @@ interface GanttInstance {
   refresh: (tasks: GanttTask[]) => void;
   [key: string]: unknown;
 }
-
-// Mock schedule data for frappe-gantt
-const mockGanttTasks: GanttTask[] = [
-  {
-    id: "task1",
-    name: "Site Preparation",
-    start: "2025-07-01",
-    end: "2025-07-10",
-    progress: 100,
-    custom_class: "bar-milestone",
-  },
-  {
-    id: "task1_1",
-    name: "Clear vegetation",
-    start: "2025-07-01",
-    end: "2025-07-03",
-    progress: 100,
-    parent: "task1",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task1_2",
-    name: "Level ground",
-    start: "2025-07-04",
-    end: "2025-07-06",
-    progress: 100,
-    parent: "task1",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task1_3",
-    name: "Mark boundaries",
-    start: "2025-07-07",
-    end: "2025-07-10",
-    progress: 100,
-    parent: "task1",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task2",
-    name: "Foundation",
-    start: "2025-07-11",
-    end: "2025-07-25",
-    progress: 80,
-    dependencies: "task1",
-    custom_class: "bar-progress",
-  },
-  {
-    id: "task2_1",
-    name: "Excavation",
-    start: "2025-07-11",
-    end: "2025-07-15",
-    progress: 100,
-    parent: "task2",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task2_2",
-    name: "Pour concrete",
-    start: "2025-07-16",
-    end: "2025-07-20",
-    progress: 100,
-    parent: "task2",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task2_3",
-    name: "Curing",
-    start: "2025-07-21",
-    end: "2025-07-25",
-    progress: 50,
-    parent: "task2",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task3",
-    name: "Framing",
-    start: "2025-07-26",
-    end: "2025-08-10",
-    progress: 30,
-    dependencies: "task2",
-    custom_class: "bar-progress",
-  },
-  {
-    id: "task3_1",
-    name: "First floor",
-    start: "2025-07-26",
-    end: "2025-08-02",
-    progress: 60,
-    parent: "task3",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task3_2",
-    name: "Second floor",
-    start: "2025-08-03",
-    end: "2025-08-10",
-    progress: 0,
-    parent: "task3",
-    custom_class: "bar-subtask",
-  },
-  {
-    id: "task4",
-    name: "Roofing",
-    start: "2025-08-11",
-    end: "2025-08-20",
-    progress: 0,
-    dependencies: "task3",
-    custom_class: "bar-pending",
-  },
-  {
-    id: "task5",
-    name: "Electrical Work",
-    start: "2025-08-15",
-    end: "2025-08-30",
-    progress: 0,
-    dependencies: "task4",
-    custom_class: "bar-pending",
-  },
-  {
-    id: "task6",
-    name: "Plumbing",
-    start: "2025-08-20",
-    end: "2025-09-05",
-    progress: 0,
-    dependencies: "task4",
-    custom_class: "bar-pending",
-  },
-  {
-    id: "task7",
-    name: "Interior Finishing",
-    start: "2025-09-06",
-    end: "2025-09-20",
-    progress: 0,
-    dependencies: "task5, task6",
-    custom_class: "bar-pending",
-  },
-  {
-    id: "task8",
-    name: "Final Inspection",
-    start: "2025-09-21",
-    end: "2025-09-22",
-    progress: 0,
-    dependencies: "task7",
-    custom_class: "bar-milestone",
-  },
-];
-
-const mockTimeline = [
-  { date: "2025-07-01", event: "Site cleared" },
-  { date: "2025-07-02", event: "Land surveying completed" },
-  { date: "2025-07-03", event: "Foundation preparation" },
-  { date: "2025-07-04", event: "Holiday - No work" },
-  { date: "2025-07-05", event: "Concrete delivery" },
-  { date: "2025-07-06", event: "Foundation pour" },
-  { date: "2025-07-07", event: "Foundation curing" },
-  { date: "2025-07-08", event: "Lumber delivery" },
-  { date: "2025-07-09", event: "Framing started" },
-  { date: "2025-07-10", event: "Framing continued" },
-  { date: "2025-07-11", event: "Foundation officially approved" },
-  { date: "2025-07-12", event: "Roof installation" },
-  { date: "2025-07-13", event: "Roofing progress" },
-  { date: "2025-07-15", event: "First inspection" },
-  { date: "2025-07-26", event: "Framing phase complete" },
-];
-
-const mockCalendar = [
-  {
-    id: 1,
-    title: "Site cleared",
-    start: new Date(2025, 6, 1, 9, 0), // July 1, 2025 9:00 AM
-    end: new Date(2025, 6, 1, 17, 0), // July 1, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 2,
-    title: "Land surveying",
-    start: new Date(2025, 6, 2, 8, 0), // July 2, 2025 8:00 AM
-    end: new Date(2025, 6, 2, 12, 0), // July 2, 2025 12:00 PM
-    resource: "inspection",
-  },
-  {
-    id: 3,
-    title: "Foundation prep",
-    start: new Date(2025, 6, 3, 8, 0), // July 3, 2025 8:00 AM
-    end: new Date(2025, 6, 3, 17, 0), // July 3, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 4,
-    title: "Holiday - No work",
-    start: new Date(2025, 6, 4, 0, 0), // July 4, 2025 All day
-    end: new Date(2025, 6, 4, 23, 59), // July 4, 2025 All day
-    resource: "milestone",
-  },
-  {
-    id: 5,
-    title: "Concrete delivery",
-    start: new Date(2025, 6, 5, 8, 0), // July 5, 2025 8:00 AM
-    end: new Date(2025, 6, 5, 9, 0), // July 5, 2025 9:00 AM
-    resource: "delivery",
-  },
-  {
-    id: 6,
-    title: "Foundation pour",
-    start: new Date(2025, 6, 6, 7, 0), // July 6, 2025 7:00 AM
-    end: new Date(2025, 6, 6, 15, 0), // July 6, 2025 3:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 7,
-    title: "Foundation curing",
-    start: new Date(2025, 6, 7, 9, 0), // July 7, 2025 9:00 AM
-    end: new Date(2025, 6, 7, 17, 0), // July 7, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 8,
-    title: "Lumber delivery",
-    start: new Date(2025, 6, 8, 10, 0), // July 8, 2025 10:00 AM
-    end: new Date(2025, 6, 8, 11, 0), // July 8, 2025 11:00 AM
-    resource: "delivery",
-  },
-  {
-    id: 9,
-    title: "Framing start",
-    start: new Date(2025, 6, 9, 8, 0), // July 9, 2025 8:00 AM
-    end: new Date(2025, 6, 9, 17, 0), // July 9, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 10,
-    title: "Framing continued",
-    start: new Date(2025, 6, 10, 8, 0), // July 10, 2025 8:00 AM
-    end: new Date(2025, 6, 10, 17, 0), // July 10, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 11,
-    title: "Foundation started",
-    start: new Date(2025, 6, 11, 8, 0), // July 11, 2025 8:00 AM
-    end: new Date(2025, 6, 11, 17, 0), // July 11, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 12,
-    title: "Roof installation",
-    start: new Date(2025, 6, 12, 7, 0), // July 12, 2025 7:00 AM
-    end: new Date(2025, 6, 12, 16, 0), // July 12, 2025 4:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 13,
-    title: "Roofing progress",
-    start: new Date(2025, 6, 13, 8, 0), // July 13, 2025 8:00 AM
-    end: new Date(2025, 6, 13, 17, 0), // July 13, 2025 5:00 PM
-    resource: "milestone",
-  },
-  {
-    id: 14,
-    title: "Inspection",
-    start: new Date(2025, 6, 15, 10, 0), // July 15, 2025 10:00 AM
-    end: new Date(2025, 6, 15, 12, 0), // July 15, 2025 12:00 PM
-    resource: "inspection",
-  },
-  {
-    id: 15,
-    title: "Material order",
-    start: new Date(2025, 6, 28, 14, 0), // July 28, 2025 2:00 PM
-    end: new Date(2025, 6, 28, 15, 0), // July 28, 2025 3:00 PM
-    resource: "order",
-  },
-];
-
-const mockLogs: Record<string, { title: string; details: string }[]> = {
-  "2025-07-01": [
-    {
-      title: "Site cleared",
-      details:
-        "Site preparation completed. All debris removed and ground leveled.",
-    },
-    { title: "Weather", details: "Cloudy, 22°C. Light rain in the afternoon." },
-    { title: "Equipment", details: "Excavator and bulldozer on site." },
-  ],
-  "2025-07-02": [
-    {
-      title: "Surveying",
-      details: "Land surveyor completed boundary marking and elevation checks.",
-    },
-    { title: "Weather", details: "Partly cloudy, 24°C." },
-    {
-      title: "Team Meeting",
-      details: "Daily briefing with construction crew at 7:00 AM.",
-    },
-    {
-      title: "Permit Review",
-      details: "Building permits reviewed and approved by city inspector.",
-    },
-    {
-      title: "Site Access",
-      details: "Temporary access road completed for heavy equipment.",
-    },
-    {
-      title: "Utilities",
-      details:
-        "Utility lines marked and verified with city utilities department.",
-    },
-    {
-      title: "Safety Setup",
-      details:
-        "Construction barriers and safety signage installed around perimeter.",
-    },
-    {
-      title: "Equipment Check",
-      details:
-        "All surveying equipment calibrated and GPS coordinates verified.",
-    },
-  ],
-  "2025-07-03": [
-    {
-      title: "Foundation prep",
-      details: "Excavation started for foundation. Marked utility lines.",
-    },
-    { title: "Weather", details: "Sunny, 26°C. Perfect working conditions." },
-    {
-      title: "Safety",
-      details: "Safety inspection completed. All workers equipped with PPE.",
-    },
-  ],
-  "2025-07-04": [
-    {
-      title: "Holiday",
-      details: "No work scheduled - Independence Day holiday.",
-    },
-    {
-      title: "Security",
-      details: "Security guard on site for equipment protection.",
-    },
-  ],
-  "2025-07-05": [
-    {
-      title: "Concrete delivered",
-      details: "50 cubic meters delivered at 8:00 AM.",
-    },
-    { title: "Weather", details: "Sunny, 28°C." },
-    {
-      title: "Foundation work",
-      details: "Foundation forms set up and reinforcement placed.",
-    },
-    {
-      title: "Quality Control",
-      details: "Concrete samples taken for compression testing.",
-    },
-    {
-      title: "Rebar Installation",
-      details:
-        "Steel reinforcement bars positioned according to structural plans.",
-    },
-    {
-      title: "Form Inspection",
-      details:
-        "Foundation forms inspected and approved by structural engineer.",
-    },
-    {
-      title: "Concrete Testing",
-      details: "Slump test performed - concrete meets specifications.",
-    },
-    {
-      title: "Pump Setup",
-      details:
-        "Concrete pump positioned and hoses laid out for efficient pour.",
-    },
-    {
-      title: "Crew Briefing",
-      details:
-        "Pour sequence and safety procedures reviewed with concrete crew.",
-    },
-    {
-      title: "Tools Ready",
-      details:
-        "Vibrators, floats, and finishing tools prepared for tomorrow's pour.",
-    },
-  ],
-  "2025-07-06": [
-    {
-      title: "Foundation pour",
-      details: "Foundation concrete poured. Quality control tests completed.",
-    },
-    { title: "Weather", details: "Hot and sunny, 32°C." },
-    {
-      title: "Inspection",
-      details: "Building inspector approved foundation work.",
-    },
-  ],
-  "2025-07-07": [
-    {
-      title: "Curing process",
-      details:
-        "Foundation curing in progress. Water applied for proper hydration.",
-    },
-    { title: "Weather", details: "Sunny, 30°C. High humidity." },
-    {
-      title: "Material delivery",
-      details: "Lumber delivery scheduled for tomorrow.",
-    },
-    {
-      title: "Foundation Inspection",
-      details:
-        "Foundation cure monitored - 72 hours complete, strength developing well.",
-    },
-    {
-      title: "Lumber Prep",
-      details: "Lumber order verified and delivery truck access route planned.",
-    },
-    {
-      title: "Site Organization",
-      details:
-        "Material storage areas cleared and organized for incoming lumber.",
-    },
-    {
-      title: "Form Removal",
-      details:
-        "Foundation forms partially removed - concrete surface looks excellent.",
-    },
-    {
-      title: "Waterproofing",
-      details: "Foundation waterproofing membrane applied to exterior walls.",
-    },
-    {
-      title: "Backfill Prep",
-      details:
-        "Backfill material tested and approved for compaction requirements.",
-    },
-    {
-      title: "Next Phase Planning",
-      details:
-        "Framing crew scheduled and tools/equipment inventory completed.",
-    },
-    {
-      title: "Quality Check",
-      details:
-        "Foundation dimensions verified against architectural plans - all within tolerance.",
-    },
-  ],
-  "2025-07-08": [
-    {
-      title: "Lumber delivery",
-      details: "Framing lumber delivered and organized on site.",
-    },
-    { title: "Weather", details: "Overcast, 25°C." },
-    {
-      title: "Preparation",
-      details: "Tools and equipment prepared for framing work.",
-    },
-  ],
-  "2025-07-09": [
-    {
-      title: "Framing start",
-      details: "Wall framing begun. First floor walls erected.",
-    },
-    {
-      title: "Weather",
-      details: "Light rain, 23°C. Work continued under tarps.",
-    },
-    { title: "Progress", details: "30% of first floor framing completed." },
-  ],
-  "2025-07-10": [
-    {
-      title: "Framing continued",
-      details: "Second floor framing started. Roof trusses delivered.",
-    },
-    { title: "Weather", details: "Clearing up, 27°C." },
-    {
-      title: "Quality check",
-      details: "Structural engineer reviewed framing work.",
-    },
-  ],
-  "2025-07-11": [
-    {
-      title: "Foundation started",
-      details: "Foundation work officially signed off and approved.",
-    },
-    { title: "Weather", details: "Sunny, 29°C." },
-    {
-      title: "Roof prep",
-      details: "Roof trusses positioned and ready for installation.",
-    },
-  ],
-  "2025-07-12": [
-    {
-      title: "Roof installation",
-      details: "Roof trusses installed. Sheathing work begun.",
-    },
-    { title: "Weather", details: "Partly cloudy, 26°C. Light breeze." },
-    {
-      title: "Safety meeting",
-      details: "Height safety briefing conducted for roof work.",
-    },
-  ],
-  "2025-07-13": [
-    {
-      title: "Roofing progress",
-      details:
-        "Roof sheathing 70% complete. Preparing for shingle installation.",
-    },
-    { title: "Weather", details: "Sunny, 31°C. Excellent conditions." },
-    {
-      title: "Material order",
-      details: "Roofing materials and gutters ordered for next week.",
-    },
-  ],
-  "2025-07-15": [
-    { title: "Inspection", details: "Passed all safety checks." },
-    { title: "Notes", details: "Minor delay due to equipment maintenance." },
-  ],
-  "2025-07-28": [
-    { title: "Material order", details: "Steel beams ordered for next phase." },
-  ],
-};
 
 // GanttChart component using frappe-gantt
 const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
@@ -886,15 +295,192 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
 const ScheduleManagement = () => {
   const [activeTab, setActiveTab] = useState<ScheduleTab>("gantt");
-  const [selectedProject, setSelectedProject] = useState<string>(
-    mockProjects[0].id
-  );
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<View>("month");
+  const [showPhaseModal, setShowPhaseModal] = useState(false);
+  const [editingPhase, setEditingPhase] = useState<ProjectPhase | null>(null);
+  const [phaseForm, setPhaseForm] = useState<CreateProjectPhaseDto>({
+    name: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    projectId: "",
+    color: "#3174ad",
+    progress: 0,
+  });
 
-  // Filtered data by project (mock: all data shown for all projects)
-  // In real app, filter by selectedProject
+  // Get auth user
+  const { user } = useAuthStore();
+
+  // Fetch projects
+  const { data: projectsResponse = [], isLoading: projectsLoading } =
+    useProjects();
+  const projects = useMemo(() => projectsResponse?.data || [], [projectsResponse]);
+
+  // Set default project when projects load
+  useEffect(() => {
+    if (Array.isArray(projects) && projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0].id);
+    }
+  }, [projects, selectedProject]);
+
+  // Fetch project phases
+  const { data: projectPhases = [], isLoading: phasesLoading } =
+    useProjectPhases(selectedProject);
+
+  // Fetch schedule events
+  const { data: scheduleEvents = [], isLoading: eventsLoading } =
+    useScheduleEvents(selectedProject);
+
+  // Fetch daily logs for selected date
+  const { data: dailyLogs = [], isLoading: logsLoading } = useDailyLogsByDate(
+    selectedProject,
+    selectedDate || ""
+  );
+
+  // Mutations
+  const createPhaseMutation = useCreateProjectPhase();
+  const updatePhaseMutation = useUpdateProjectPhase();
+  const deletePhaseMutation = useDeleteProjectPhase();
+  const deleteLogMutation = useDeleteDailyLog();
+  const deleteActivityMutation = useDeleteDailyActivity();
+
+  // Transform project phases to Gantt tasks
+  const transformPhaseToGanttTask = (phase: ProjectPhase): GanttTask => {
+    return {
+      id: phase.id,
+      name: phase.name,
+      start: moment(phase.startDate).format("YYYY-MM-DD"),
+      end: moment(phase.endDate).format("YYYY-MM-DD"),
+      progress: phase.progress,
+      custom_class: phase.progress === 100 ? "bar-milestone" : "bar-progress",
+      dependencies: phase.parentId ? phase.parentId : "",
+    };
+  };
+
+  // Transform schedule events to calendar events
+  const transformEventToCalendarEvent = (event: ScheduleEvent) => {
+    return {
+      id: event.id,
+      title: event.title,
+      start: new Date(event.startDate),
+      end: new Date(event.endDate || event.startDate),
+      resource: event.type.toLowerCase(),
+      allDay: event.allDay,
+    };
+  };
+
+  // Handle phase form
+  const handlePhaseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      if (editingPhase) {
+        await updatePhaseMutation.mutateAsync({
+          id: editingPhase.id,
+          phase: phaseForm,
+        });
+      } else {
+        await createPhaseMutation.mutateAsync({
+          ...phaseForm,
+          projectId: selectedProject,
+        });
+      }
+      setShowPhaseModal(false);
+      setEditingPhase(null);
+      setPhaseForm({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        projectId: "",
+        color: "#3174ad",
+        progress: 0,
+      });
+    } catch (error) {
+      console.error("Error saving phase:", error);
+    }
+  };
+
+  const handleEditPhase = (phase: ProjectPhase) => {
+    setEditingPhase(phase);
+    setPhaseForm({
+      name: phase.name,
+      description: phase.description || "",
+      startDate: moment(phase.startDate).format("YYYY-MM-DDTHH:mm"),
+      endDate: moment(phase.endDate).format("YYYY-MM-DDTHH:mm"),
+      projectId: phase.projectId,
+      color: phase.color || "#3174ad",
+      progress: phase.progress,
+    });
+    setShowPhaseModal(true);
+  };
+
+  const handleDeletePhase = async (phaseId: string) => {
+    if (window.confirm("Are you sure you want to delete this phase?")) {
+      try {
+        await deletePhaseMutation.mutateAsync(phaseId);
+      } catch (error) {
+        console.error("Error deleting phase:", error);
+      }
+    }
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (window.confirm("Are you sure you want to delete this log?")) {
+      try {
+        await deleteLogMutation.mutateAsync(logId);
+      } catch (error) {
+        console.error("Error deleting log:", error);
+      }
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: string) => {
+    if (window.confirm("Are you sure you want to delete this activity?")) {
+      try {
+        await deleteActivityMutation.mutateAsync(activityId);
+      } catch (error) {
+        console.error("Error deleting activity:", error);
+      }
+    }
+  };
+
+  // Get Gantt tasks from project phases
+  const ganttTasks = projectPhases.map(transformPhaseToGanttTask);
+
+  // Get calendar events from schedule events
+  const calendarEvents = scheduleEvents.map(transformEventToCalendarEvent);
+
+  // Check if projects is available and is an array
+  const hasProjects = Array.isArray(projects) && projects.length > 0;
+
+  // If no projects available, show a message
+  if (!projectsLoading && !hasProjects) {
+    return (
+      <div className="p-8">
+        <div className="flex items-center justify-center min-h-[500px]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📅</div>
+            <h2 className="text-2xl font-bold text-gray-700 mb-2">
+              No Projects Available
+            </h2>
+            <p className="text-gray-500">
+              You don't have access to any projects or no projects have been
+              created yet.
+            </p>
+            <p className="text-gray-500 mt-2">
+              Please contact your administrator or create a new project to get
+              started.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -914,16 +500,24 @@ const ScheduleManagement = () => {
               className="select select-bordered"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
+              disabled={projectsLoading}
             >
-              {mockProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : hasProjects ? (
+                projects.map((project: Project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
             </select>
           </div>
         </div>
       </div>
+
       {/* Tabs for schedule types */}
       <div className="tabs tabs-border mt-6">
         <button
@@ -965,38 +559,156 @@ const ScheduleManagement = () => {
           {/* Gantt Chart */}
           {activeTab === "gantt" && (
             <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
-              <GanttChart tasks={mockGanttTasks} />
+              {phasesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                </div>
+              ) : ganttTasks.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl text-base-content/20 mb-4">📊</div>
+                  <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                    No project phases to display
+                  </h3>
+                  <p className="text-base-content/50 mb-6">
+                    Create project phases to see them in the Gantt chart
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setActiveTab("timeline")}
+                  >
+                    <MdAdd className="mr-2" />
+                    Add Project Phase
+                  </button>
+                </div>
+              ) : (
+                <GanttChart tasks={ganttTasks} />
+              )}
             </div>
           )}
 
           {/* Timeline */}
           {activeTab === "timeline" && (
             <div className="my-1">
-              <div className="flex flex-col gap-5">
-                {mockTimeline.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-4 h-16 rounded-xl cursor-pointer ${
-                      selectedDate === item.date
-                        ? "shadow-xl shadow-base-300 bg-neutral text-base-content"
-                        : "bg-base-100"
-                    } p-1`}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Project Phases</h2>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditingPhase(null);
+                    setPhaseForm({
+                      name: "",
+                      description: "",
+                      startDate: "",
+                      endDate: "",
+                      projectId: selectedProject,
+                      color: "#3174ad",
+                      progress: 0,
+                    });
+                    setShowPhaseModal(true);
+                  }}
+                >
+                  <MdAdd className="mr-2" />
+                  Add Phase
+                </button>
+              </div>
+
+              {phasesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                </div>
+              ) : projectPhases.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl text-base-content/20 mb-4">📋</div>
+                  <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                    No project phases yet
+                  </h3>
+                  <p className="text-base-content/50 mb-6">
+                    Create your first project phase to get started with timeline
+                    management
+                  </p>
+                  <button
+                    className="btn btn-primary"
                     onClick={() => {
-                      setSelectedDate(item.date);
-                      setActiveTab("logs");
+                      setEditingPhase(null);
+                      setPhaseForm({
+                        name: "",
+                        description: "",
+                        startDate: "",
+                        endDate: "",
+                        projectId: selectedProject,
+                        color: "#3174ad",
+                        progress: 0,
+                      });
+                      setShowPhaseModal(true);
                     }}
                   >
+                    <MdAdd className="mr-2" />
+                    Add First Phase
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {projectPhases.map((phase) => (
                     <div
-                      className={`w-32 bg-base-300 p-4 rounded-xl font-semibold ${
-                        selectedDate === item.date ? "text-base-content" : ""
-                      }`}
+                      key={phase.id}
+                      className="flex items-center gap-4 p-4 rounded-xl bg-base-100 border border-base-300 hover:shadow-md transition-shadow"
                     >
-                      {item.date}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">
+                            {phase.name}
+                          </h3>
+                          <div className="badge badge-outline">
+                            {phase.progress}% Complete
+                          </div>
+                        </div>
+                        {phase.description && (
+                          <p className="text-base-content/70 mb-2">
+                            {phase.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-sm text-base-content/60">
+                          <span>
+                            Start:{" "}
+                            {moment(phase.startDate).format("MMM DD, YYYY")}
+                          </span>
+                          <span>
+                            End: {moment(phase.endDate).format("MMM DD, YYYY")}
+                          </span>
+                          <span>
+                            Duration:{" "}
+                            {moment(phase.endDate).diff(
+                              moment(phase.startDate),
+                              "days"
+                            )}{" "}
+                            days
+                          </span>
+                        </div>
+                        <div className="w-full bg-base-200 rounded-full h-2 mt-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${phase.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => handleEditPhase(phase)}
+                        >
+                          <MdEdit />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-ghost text-error"
+                          onClick={() => handleDeletePhase(phase.id)}
+                        >
+                          <MdDelete />
+                        </button>
+                      </div>
                     </div>
-                    <div className="w-full">{item.event}</div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1020,68 +732,80 @@ const ScheduleManagement = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-red-500 rounded"></div>
-                    <span className="text-sm">Orders</span>
+                    <span className="text-sm">Tasks</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-purple-500 rounded"></div>
                     <span className="text-sm">Milestones</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <span className="text-sm">Meetings</span>
+                  </div>
                 </div>
               </div>
 
-              <div
-                className="bg-base-200 rounded-2xl"
-                style={{ height: "600px" }}
-              >
-                <Calendar
-                  localizer={localizer}
-                  events={mockCalendar}
-                  startAccessor="start"
-                  endAccessor="end"
-                  style={calendarStyle}
-                  eventPropGetter={eventStyleGetter}
-                  date={currentDate}
-                  onNavigate={(newDate) => setCurrentDate(newDate)}
-                  view={currentView}
-                  onView={(newView) => setCurrentView(newView)}
-                  onSelectEvent={(event) => {
-                    // Convert the event date to the format expected by logs
-                    const dateString = moment(event.start).format("YYYY-MM-DD");
-                    setSelectedDate(dateString);
-                    setActiveTab("logs");
-                  }}
-                  onSelectSlot={(slotInfo) => {
-                    // Handle clicking on empty slots
-                    const dateString = moment(slotInfo.start).format(
-                      "YYYY-MM-DD"
-                    );
-                    setSelectedDate(dateString);
-                    setActiveTab("logs");
-                  }}
-                  selectable
-                  popup
-                  views={["month", "week", "day", "agenda"]}
-                  step={30}
-                  showMultiDayTimes
-                  formats={{
-                    dateFormat: "D",
-                    dayFormat: "ddd D",
-                    weekdayFormat: "ddd",
-                    monthHeaderFormat: "MMMM YYYY",
-                    dayHeaderFormat: "dddd, MMMM D",
-                    dayRangeHeaderFormat: ({ start, end }) =>
-                      `${moment(start).format("MMMM D")} - ${moment(end).format(
-                        "MMMM D, YYYY"
-                      )}`,
-                    agendaDateFormat: "ddd, MMM D",
-                    agendaTimeFormat: "h:mm A",
-                    agendaTimeRangeFormat: ({ start, end }) =>
-                      `${moment(start).format("h:mm A")} - ${moment(end).format(
-                        "h:mm A"
-                      )}`,
-                  }}
-                />
-              </div>
+              {eventsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                </div>
+              ) : (
+                <div
+                  className="bg-base-200 rounded-2xl"
+                  style={{ height: "600px" }}
+                >
+                  <Calendar
+                    localizer={localizer}
+                    events={calendarEvents}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={calendarStyle}
+                    eventPropGetter={eventStyleGetter}
+                    date={currentDate}
+                    onNavigate={(newDate) => setCurrentDate(newDate)}
+                    view={currentView}
+                    onView={(newView) => setCurrentView(newView)}
+                    onSelectEvent={(event) => {
+                      // Convert the event date to the format expected by logs
+                      const dateString = moment(event.start).format(
+                        "YYYY-MM-DD"
+                      );
+                      setSelectedDate(dateString);
+                      setActiveTab("logs");
+                    }}
+                    onSelectSlot={(slotInfo) => {
+                      // Handle clicking on empty slots
+                      const dateString = moment(slotInfo.start).format(
+                        "YYYY-MM-DD"
+                      );
+                      setSelectedDate(dateString);
+                      setActiveTab("logs");
+                    }}
+                    selectable
+                    popup
+                    views={["month", "week", "day", "agenda"]}
+                    step={30}
+                    showMultiDayTimes
+                    formats={{
+                      dateFormat: "D",
+                      dayFormat: "ddd D",
+                      weekdayFormat: "ddd",
+                      monthHeaderFormat: "MMMM YYYY",
+                      dayHeaderFormat: "dddd, MMMM D",
+                      dayRangeHeaderFormat: ({ start, end }) =>
+                        `${moment(start).format("MMMM D")} - ${moment(
+                          end
+                        ).format("MMMM D, YYYY")}`,
+                      agendaDateFormat: "ddd, MMM D",
+                      agendaTimeFormat: "h:mm A",
+                      agendaTimeRangeFormat: ({ start, end }) =>
+                        `${moment(start).format("h:mm A")} - ${moment(
+                          end
+                        ).format("h:mm A")}`,
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -1098,41 +822,209 @@ const ScheduleManagement = () => {
                 </div>
                 {selectedDate && (
                   <div className="badge badge-primary badge-lg">
-                    {mockLogs[selectedDate]?.length || 0} entries
+                    {dailyLogs.length} logs
                   </div>
                 )}
               </div>
 
-              {selectedDate && mockLogs[selectedDate] ? (
-                <div className="space-y-4">
-                  {mockLogs[selectedDate].map((log, idx) => (
+              {logsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                </div>
+              ) : selectedDate && dailyLogs.length > 0 ? (
+                <div className="space-y-6">
+                  {dailyLogs.map((log) => (
                     <div
-                      key={idx}
-                      className={`relative border border-l-8 rounded-xl p-5 transition-all duration-200 hover:shadow-xl hover:shadow-base-300 ${getLogCategoryColor(
-                        log.title
-                      )}`}
+                      key={log.id}
+                      className="border border-base-300 rounded-xl p-6 bg-base-100 hover:shadow-md transition-shadow"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 mt-1">
-                          {getLogIcon(log.title)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-base-content">
-                              {log.title}
-                            </h3>
-                            <span className="text-xs font-medium text-base-content/50 bg-base-content/10 px-2 py-1 rounded-full">
-                              Entry #{idx + 1}
-                            </span>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold">Daily Log</h3>
+                            {log.logger && (
+                              <span className="text-sm text-base-content/60">
+                                by {log.logger.firstName} {log.logger.lastName}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-base-content/80 leading-relaxed">
-                            {log.details}
-                          </p>
+                          <div className="flex flex-wrap gap-4 text-sm text-base-content/60 mb-3">
+                            {log.weather && (
+                              <span className="flex items-center gap-1">
+                                <MdWbSunny />
+                                Weather: {log.weather}
+                              </span>
+                            )}
+                            {log.workHours && (
+                              <span className="flex items-center gap-1">
+                                <MdSchedule />
+                                Work Hours: {log.workHours}
+                              </span>
+                            )}
+                            {log.workersPresent && (
+                              <span className="flex items-center gap-1">
+                                <MdGroup />
+                                Workers: {log.workersPresent}
+                              </span>
+                            )}
+                          </div>
+                          {log.summary && (
+                            <p className="text-base-content/80 mb-3">
+                              {log.summary}
+                            </p>
+                          )}
+                          {log.notes && (
+                            <p className="text-base-content/70 text-sm mb-3">
+                              <strong>Notes:</strong> {log.notes}
+                            </p>
+                          )}
+                          {log.safetyNotes && (
+                            <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-3">
+                              <p className="text-sm text-warning-content">
+                                <strong className="flex items-center gap-1">
+                                  <MdSecurity />
+                                  Safety Notes:
+                                </strong>
+                                {log.safetyNotes}
+                              </p>
+                            </div>
+                          )}
+                          {log.equipment && log.equipment.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium mb-1">
+                                Equipment Used:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {log.equipment.map((item, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="badge badge-outline"
+                                  >
+                                    {item}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {log.materials && log.materials.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium mb-1">
+                                Materials Used:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {log.materials.map((item, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="badge badge-outline"
+                                  >
+                                    {item}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
+                        {user && user.id === log.loggedById && (
+                          <div className="flex gap-2">
+                            <button
+                              className="btn btn-sm btn-ghost"
+                              onClick={() => {
+                                // Handle edit log
+                              }}
+                            >
+                              <MdEdit />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-ghost text-error"
+                              onClick={() => handleDeleteLog(log.id)}
+                            >
+                              <MdDelete />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Add a subtle left border for visual hierarchy */}
-                      {/* <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30 rounded-l-xl"></div> */}
+                      {/* Activities */}
+                      {log.activities && log.activities.length > 0 && (
+                        <div className="border-t border-base-300 pt-4">
+                          <h4 className="font-semibold mb-3">Activities</h4>
+                          <div className="space-y-3">
+                            {log.activities.map((activity) => (
+                              <div
+                                key={activity.id}
+                                className="flex items-start justify-between p-3 bg-base-200 rounded-lg"
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium">
+                                      {activity.description}
+                                    </span>
+                                    {activity.status && (
+                                      <span
+                                        className={`badge badge-sm ${
+                                          activity.status === "COMPLETED"
+                                            ? "badge-success"
+                                            : activity.status === "IN_PROGRESS"
+                                            ? "badge-warning"
+                                            : activity.status === "ON_HOLD"
+                                            ? "badge-error"
+                                            : "badge-ghost"
+                                        }`}
+                                      >
+                                        {activity.status.replace("_", " ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-4 text-xs text-base-content/60">
+                                    {activity.startTime && activity.endTime && (
+                                      <span>
+                                        {activity.startTime} -{" "}
+                                        {activity.endTime}
+                                      </span>
+                                    )}
+                                    {activity.duration && (
+                                      <span>{activity.duration}h duration</span>
+                                    )}
+                                    {activity.workersInvolved && (
+                                      <span>
+                                        {activity.workersInvolved} workers
+                                      </span>
+                                    )}
+                                    {activity.progress !== undefined && (
+                                      <span>{activity.progress}% complete</span>
+                                    )}
+                                  </div>
+                                  {activity.notes && (
+                                    <p className="text-xs text-base-content/70 mt-1">
+                                      {activity.notes}
+                                    </p>
+                                  )}
+                                </div>
+                                {user && user.id === log.loggedById && (
+                                  <div className="flex gap-1">
+                                    <button
+                                      className="btn btn-xs btn-ghost"
+                                      onClick={() => {
+                                        // Handle edit activity
+                                      }}
+                                    >
+                                      <MdEdit />
+                                    </button>
+                                    <button
+                                      className="btn btn-xs btn-ghost text-error"
+                                      onClick={() =>
+                                        handleDeleteActivity(activity.id)
+                                      }
+                                    >
+                                      <MdDelete />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1154,8 +1046,8 @@ const ScheduleManagement = () => {
                     Select a date
                   </h3>
                   <p className="text-base-content/50 mb-6">
-                    Choose a date from the calendar or timeline to view daily
-                    construction logs
+                    Choose a date from the calendar to view daily construction
+                    logs
                   </p>
                   <button
                     className="btn btn-primary"
@@ -1181,6 +1073,147 @@ const ScheduleManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Phase Modal */}
+      {showPhaseModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">
+              {editingPhase ? "Edit Phase" : "Add New Phase"}
+            </h3>
+            <form onSubmit={handlePhaseSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Phase Name</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={phaseForm.name}
+                  onChange={(e) =>
+                    setPhaseForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Description</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered"
+                  value={phaseForm.description}
+                  onChange={(e) =>
+                    setPhaseForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Start Date</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input input-bordered"
+                    value={phaseForm.startDate}
+                    onChange={(e) =>
+                      setPhaseForm((prev) => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">End Date</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input input-bordered"
+                    value={phaseForm.endDate}
+                    onChange={(e) =>
+                      setPhaseForm((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Progress (%)</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={phaseForm.progress}
+                    onChange={(e) =>
+                      setPhaseForm((prev) => ({
+                        ...prev,
+                        progress: Number(e.target.value),
+                      }))
+                    }
+                    min="0"
+                    max="100"
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Color</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="input input-bordered"
+                    value={phaseForm.color}
+                    onChange={(e) =>
+                      setPhaseForm((prev) => ({
+                        ...prev,
+                        color: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowPhaseModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    createPhaseMutation.isPending ||
+                    updatePhaseMutation.isPending
+                  }
+                >
+                  {createPhaseMutation.isPending ||
+                  updatePhaseMutation.isPending ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : editingPhase ? (
+                    "Update Phase"
+                  ) : (
+                    "Create Phase"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
