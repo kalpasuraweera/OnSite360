@@ -588,76 +588,73 @@ const TaskManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Task Types */}
           <div>
-            <label className="block text-sm font-medium mb-2">Task Types</label>
-            <div className="space-y-1">
+            <label className="block text-sm font-medium mb-2">Task Type</label>
+            <select
+              className="select select-sm select-bordered w-full"
+              value={filters.types.length > 0 ? filters.types[0] : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setFilters(prev => ({ ...prev, types: [e.target.value as TaskType] }));
+                } else {
+                  setFilters(prev => ({ ...prev, types: [] }));
+                }
+              }}
+            >
+              <option value="">All Types</option>
               {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
                 .filter(type => type !== "all")
                 .map(type => (
-                  <label key={type} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-sm"
-                      checked={filters.types.includes(type)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFilters(prev => ({ ...prev, types: [...prev.types, type] }));
-                        } else {
-                          setFilters(prev => ({ ...prev, types: prev.types.filter(t => t !== type) }));
-                        }
-                      }}
-                    />
-                    <span className="text-sm">{TASK_TYPE_LABELS[type]}</span>
-                  </label>
+                  <option key={type} value={type}>
+                    {TASK_TYPE_LABELS[type]}
+                  </option>
                 ))}
-            </div>
+            </select>
           </div>
 
           {/* Status Filter */}
           <div>
             <label className="block text-sm font-medium mb-2">Status</label>
-            <div className="space-y-1">
+            <select
+              className="select select-sm select-bordered w-full"
+              value={filters.statuses.length > 0 ? filters.statuses[0] : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setFilters(prev => ({ ...prev, statuses: [e.target.value as Task["status"]] }));
+                } else {
+                  setFilters(prev => ({ ...prev, statuses: [] }));
+                }
+              }}
+            >
+              <option value="">All Statuses</option>
               {(["Pending", "In Progress", "Completed", "Delayed"] as Task["status"][]).map(status => (
-                <label key={status} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={filters.statuses.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFilters(prev => ({ ...prev, statuses: [...prev.statuses, status] }));
-                      } else {
-                        setFilters(prev => ({ ...prev, statuses: prev.statuses.filter(s => s !== status) }));
-                      }
-                    }}
-                  />
-                  <span className="text-sm">{status}</span>
-                </label>
+                <option key={status} value={status}>
+                  {status}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Assignees Filter */}
           <div>
-            <label className="block text-sm font-medium mb-2">Assignees</label>
-            <div className="space-y-1">
+            <label className="block text-sm font-medium mb-2">Assignee</label>
+            <select
+              className="select select-sm select-bordered w-full"
+              value={filters.assignees.length > 0 ? filters.assignees[0] : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setFilters(prev => ({ ...prev, assignees: [e.target.value] }));
+                } else {
+                  setFilters(prev => ({ ...prev, assignees: [] }));
+                }
+              }}
+            >
+              <option value="">All Assignees</option>
               {uniqueAssignees.map(assignee => (
-                <label key={assignee} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={filters.assignees.includes(assignee)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFilters(prev => ({ ...prev, assignees: [...prev.assignees, assignee] }));
-                      } else {
-                        setFilters(prev => ({ ...prev, assignees: prev.assignees.filter(a => a !== assignee) }));
-                      }
-                    }}
-                  />
-                  <span className="text-sm">{assignee}</span>
-                </label>
+                <option key={assignee} value={assignee}>
+                  {assignee}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Date Range Filter */}
