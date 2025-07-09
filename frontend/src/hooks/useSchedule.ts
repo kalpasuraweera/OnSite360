@@ -94,7 +94,7 @@ export interface DailyLog {
 export interface DailyActivity {
   id: string;
   dailyLogId: string;
-  description: string;
+  activity: string;
   location?: string;
   startTime?: string;
   endTime?: string;
@@ -176,7 +176,7 @@ export interface UpdateDailyLogDto {
 }
 
 export interface CreateDailyActivityDto {
-  description: string;
+  activity: string;
   dailyLogId: string;
   startTime?: string;
   endTime?: string;
@@ -186,7 +186,7 @@ export interface CreateDailyActivityDto {
 }
 
 export interface UpdateDailyActivityDto {
-  description?: string;
+  activity?: string;
   dailyLogId?: string;
   startTime?: string;
   endTime?: string;

@@ -269,7 +269,7 @@ export class CreateDailyActivityDto {
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  description: string;
+  activity: string;
 
   @ApiProperty({
     description: 'Daily log ID this activity belongs to',

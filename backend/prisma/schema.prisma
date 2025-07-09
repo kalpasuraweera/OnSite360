@@ -334,6 +334,7 @@ model DailyActivity {
   endTime     DateTime?
   progress    Float? // Percentage completed (0-100)
   notes       String?
+  status      String    @default("IN_PROGRESS") // "Planned", "In Progress", "Completed", "Delayed"
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

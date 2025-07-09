@@ -364,7 +364,7 @@ const ScheduleManagement = () => {
   const [editingActivity, setEditingActivity] = useState<DailyActivity | null>(null);
   const [selectedLogForActivity, setSelectedLogForActivity] = useState<DailyLog | null>(null);
   const [activityForm, setActivityForm] = useState({
-    description: "",
+    activity: "",
     dailyLogId: "",
     startTime: "",
     endTime: "",
@@ -692,7 +692,7 @@ const ScheduleManagement = () => {
       if (editingActivity) {
         // Update existing activity
         const activityData: UpdateDailyActivityDto = {
-          description: activityForm.description || undefined,
+          activity: activityForm.activity || undefined,
           startTime: combineDateTime(activityForm.startTime),
           endTime: combineDateTime(activityForm.endTime),
           progress: activityForm.progress || undefined,
@@ -706,7 +706,7 @@ const ScheduleManagement = () => {
       } else {
         // Create new activity
         const activityData: CreateDailyActivityDto = {
-          description: activityForm.description,
+          activity: activityForm.activity,
           dailyLogId: selectedLogForActivity.id,
           startTime: combineDateTime(activityForm.startTime),
           endTime: combineDateTime(activityForm.endTime),
@@ -721,7 +721,7 @@ const ScheduleManagement = () => {
       setEditingActivity(null);
       setSelectedLogForActivity(null);
       setActivityForm({
-        description: "",
+        activity: "",
         dailyLogId: "",
         startTime: "",
         endTime: "",
@@ -738,7 +738,7 @@ const ScheduleManagement = () => {
     setSelectedLogForActivity(log);
     setEditingActivity(null);
     setActivityForm({
-      description: "",
+      activity: "",
       dailyLogId: log.id,
       startTime: "",
       endTime: "",
@@ -760,7 +760,7 @@ const ScheduleManagement = () => {
     };
 
     setActivityForm({
-      description: activity.description,
+      activity: activity.activity,
       dailyLogId: activity.dailyLogId,
       startTime: extractTime(activity.startTime),
       endTime: extractTime(activity.endTime),
@@ -1348,7 +1348,7 @@ const ScheduleManagement = () => {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-medium">
-                                      {activity.description}
+                                      {activity.activity}
                                     </span>
                                     {activity.status && (
                                       <span
@@ -2151,9 +2151,9 @@ const ScheduleManagement = () => {
                 <input
                   type="text"
                   className="input input-bordered"
-                  value={activityForm.description}
+                  value={activityForm.activity}
                   onChange={(e) =>
-                    setActivityForm((prev) => ({ ...prev, description: e.target.value }))
+                    setActivityForm((prev) => ({ ...prev, activity: e.target.value }))
                   }
                   placeholder="Describe the activity..."
                   required
@@ -2254,7 +2254,7 @@ const ScheduleManagement = () => {
                     setEditingActivity(null);
                     setSelectedLogForActivity(null);
                     setActivityForm({
-                      description: "",
+                      activity: "",
                       dailyLogId: "",
                       startTime: "",
                       endTime: "",
