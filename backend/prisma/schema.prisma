@@ -309,6 +309,7 @@ model DailyLog {
   weather     String? // Weather conditions
   temperature String? // Temperature range
   workHours   Float? // Total work hours for the day
+  workersPresent  Int? // Number of workers present
   summary     String // Summary of work done
   issues      String? // Any issues encountered
   notes       String? // Additional notes

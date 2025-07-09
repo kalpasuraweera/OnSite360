@@ -3,7 +3,6 @@ import {
   MdCalendarToday,
   MdWbSunny,
   MdGroup,
-  MdSecurity,
   MdSchedule,
   MdAdd,
   MdEdit,
@@ -28,10 +27,12 @@ import {
   useCreateScheduleEvent,
   useUpdateScheduleEvent,
   useDeleteScheduleEvent,
+  useCreateDailyLog,
   type ProjectPhase,
   type ScheduleEvent,
   type CreateProjectPhaseDto,
   type CreateScheduleEventDto,
+  type CreateDailyLogDto,
 } from "../hooks/useSchedule";
 
 // Set up the localizer
@@ -336,6 +337,17 @@ const ScheduleManagement = () => {
     assignedUserId: "",
   });
 
+  // Daily Log modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logForm, setLogForm] = useState({
+    date: moment().format("YYYY-MM-DD"),
+    projectId: "",
+    weather: "",
+    notes: "",
+    workHours: 0,
+    workersPresent: 0,
+  });
+
   // Get auth user
   const { user } = useAuthStore();
 
@@ -375,6 +387,9 @@ const ScheduleManagement = () => {
   const createEventMutation = useCreateScheduleEvent();
   const updateEventMutation = useUpdateScheduleEvent();
   const deleteEventMutation = useDeleteScheduleEvent();
+
+  // Log mutations
+  const createLogMutation = useCreateDailyLog();
 
   // Transform project phases to Gantt tasks
   const transformPhaseToGanttTask = (phase: ProjectPhase): GanttTask => {
@@ -560,6 +575,38 @@ const ScheduleManagement = () => {
   const handleShowEventDetails = (event: ScheduleEvent) => {
     setSelectedEvent(event);
     setShowEventDetails(true);
+  };
+
+  // Log handling functions
+  const handleLogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      const logData: CreateDailyLogDto = {
+        ...logForm,
+        projectId: selectedProject,
+        workHours: logForm.workHours || undefined,
+        workersPresent: logForm.workersPresent || undefined,
+        weather: logForm.weather || undefined,
+        notes: logForm.notes || undefined,
+      };
+
+      await createLogMutation.mutateAsync(logData);
+      setShowLogModal(false);
+      setLogForm({
+        date: moment().format("YYYY-MM-DD"),
+        projectId: "",
+        weather: "",
+        notes: "",
+        workHours: 0,
+        workersPresent: 0,
+      });
+      // Set selected date to today to show the newly created log
+      setSelectedDate(moment().format("YYYY-MM-DD"));
+    } catch (error) {
+      console.error("Error saving log:", error);
+    }
   };
 
   // Helper function to organize phases hierarchically
@@ -1018,11 +1065,30 @@ const ScheduleManagement = () => {
                     </p>
                   )}
                 </div>
-                {selectedDate && (
-                  <div className="badge badge-primary badge-lg">
-                    {dailyLogs.length} logs
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: selectedProject,
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                      setShowLogModal(true);
+                    }}
+                  >
+                    <MdAdd className="mr-2" />
+                    Add Log
+                  </button>
+                  {selectedDate && (
+                    <div className="badge badge-primary badge-lg">
+                      {dailyLogs.length} logs
+                    </div>
+                  )}
+                </div>
               </div>
 
               {logsLoading ? (
@@ -1075,51 +1141,6 @@ const ScheduleManagement = () => {
                             <p className="text-base-content/70 text-sm mb-3">
                               <strong>Notes:</strong> {log.notes}
                             </p>
-                          )}
-                          {log.safetyNotes && (
-                            <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-3">
-                              <p className="text-sm text-warning-content">
-                                <strong className="flex items-center gap-1">
-                                  <MdSecurity />
-                                  Safety Notes:
-                                </strong>
-                                {log.safetyNotes}
-                              </p>
-                            </div>
-                          )}
-                          {log.equipment && log.equipment.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-sm font-medium mb-1">
-                                Equipment Used:
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {log.equipment.map((item, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="badge badge-outline"
-                                  >
-                                    {item}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {log.materials && log.materials.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-sm font-medium mb-1">
-                                Materials Used:
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {log.materials.map((item, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="badge badge-outline"
-                                  >
-                                    {item}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
                           )}
                         </div>
                         {user && user.id === log.loggedById && (
@@ -1769,6 +1790,121 @@ const ScheduleManagement = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Log Modal */}
+      {showLogModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-3xl">
+            <h3 className="font-bold text-lg mb-4">Add Daily Log</h3>
+            <form onSubmit={handleLogSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered bg-base-200"
+                  value={logForm.date}
+                  readOnly
+                />
+                <div className="label">
+                  <span className="label-text-alt text-info">
+                    Date is automatically set to today and cannot be changed
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Weather</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered"
+                    value={logForm.weather}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, weather: e.target.value }))
+                    }
+                    placeholder="e.g., Sunny, Rainy, Cloudy"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Work Hours</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workHours}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, workHours: parseInt(e.target.value) || 0 }))
+                    }
+                    min="0"
+                    max="24"
+                    step="0.5"
+                  />
+                </div>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Workers Present</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  value={logForm.workersPresent}
+                  onChange={(e) =>
+                    setLogForm((prev) => ({ ...prev, workersPresent: parseInt(e.target.value) || 0 }))
+                  }
+                  min="0"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Notes</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered"
+                  value={logForm.notes}
+                  onChange={(e) =>
+                    setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  rows={3}
+                  placeholder="General notes about the day's work..."
+                />
+              </div>
+
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowLogModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createLogMutation.isPending}
+                >
+                  {createLogMutation.isPending ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    <>
+                      <MdAdd className="mr-2" />
+                      Add Log
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

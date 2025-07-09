@@ -75,9 +75,6 @@ export interface DailyLog {
   notes?: string;
   loggedById: string;
   workersPresent?: number;
-  equipment?: string[];
-  materials?: string[];
-  safetyNotes?: string;
   createdAt: string;
   updatedAt: string;
   activities: DailyActivity[];
@@ -169,9 +166,6 @@ export interface CreateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
-  equipment?: string[];
-  materials?: string[];
-  safetyNotes?: string;
 }
 
 export interface UpdateDailyLogDto {
@@ -181,9 +175,6 @@ export interface UpdateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
-  equipment?: string[];
-  materials?: string[];
-  safetyNotes?: string;
 }
 
 export interface CreateDailyActivityDto {

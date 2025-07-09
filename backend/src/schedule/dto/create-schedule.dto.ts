@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsUUID,
   IsDateString,
-  IsArray,
   IsNumber,
   IsBoolean,
   IsEnum,
@@ -258,36 +257,6 @@ export class CreateDailyLogDto {
   @IsOptional()
   @Min(0)
   workersPresent?: number;
-
-  @ApiPropertyOptional({
-    description: 'Equipment used during the day',
-    example: ['Excavator', 'Concrete mixer'],
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  equipment?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Materials used during the day',
-    example: ['Concrete', 'Steel rebar'],
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  materials?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Safety incidents or observations',
-    example: 'No incidents reported. All safety protocols followed.',
-    maxLength: 500,
-  })
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  safetyNotes?: string;
 }
 
 export class CreateDailyActivityDto {
