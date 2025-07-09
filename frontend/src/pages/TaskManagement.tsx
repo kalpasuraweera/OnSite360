@@ -27,7 +27,9 @@ import type {
 import "../styles/kanban.css";
 import { useCreateTask, type CreateTaskDto, type TaskStatus, type TaskPriority } from "../hooks/useTasks";
 import { useUserProjects } from "../hooks/useUsers";
+import { useProject } from "../hooks/useProjects";
 import { useAuthStore } from "../stores/useAuthStore";
+import { WithContext as ReactTags } from 'react-tag-input';
 
 // Remove or keep mockProjects for fallback
 const mockProjects = [
@@ -204,11 +206,25 @@ const mockTasks: Task[] = [
 const AddTaskModal = ({ 
   showAddModal, 
   setShowAddModal, 
-  selectedProject
+  selectedProject,
+  projectUsers
 }: {
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
   selectedProject: string;
+  projectUsers: Array<{
+    id: string;
+    userId: string;
+    projectRole: string;
+    accessLevel: number;
+    isActive: boolean;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>;
 }) => {
   const createTaskMutation = useCreateTask();
   
@@ -224,6 +240,9 @@ const AddTaskModal = ({
     dueDate: "",
     tags: [],
   });
+
+  // Transform tags array to ReactTags format
+  const [tags, setTags] = useState<Array<{ id: string; text: string }>>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -242,8 +261,54 @@ const AddTaskModal = ({
         dueDate: "",
         tags: [],
       });
+      setTags([]); // Reset tags
     }
   }, [showAddModal, selectedProject]);
+
+  // Handle tag operations
+  const handleDelete = (i: number) => {
+    const newTags = tags.filter((tag, index) => index !== i);
+    setTags(newTags);
+    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
+  };
+
+  const handleAddition = (tag: { id: string; text: string }) => {
+    const newTags = [...tags, tag];
+    setTags(newTags);
+    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
+  };
+
+  const handleDrag = (tag: { id: string; text: string }, currPos: number, newPos: number) => {
+    const newTags = tags.slice();
+    newTags.splice(currPos, 1);
+    newTags.splice(newPos, 0, tag);
+    setTags(newTags);
+    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
+  };
+
+  // Suggestions for common construction tags
+  const suggestions = [
+    { id: '1', text: 'foundation' },
+    { id: '2', text: 'excavation' },
+    { id: '3', text: 'concrete' },
+    { id: '4', text: 'steel' },
+    { id: '5', text: 'inspection' },
+    { id: '6', text: 'materials' },
+    { id: '7', text: 'delivery' },
+    { id: '8', text: 'safety' },
+    { id: '9', text: 'electrical' },
+    { id: '10', text: 'plumbing' },
+    { id: '11', text: 'roofing' },
+    { id: '12', text: 'framing' },
+    { id: '13', text: 'drywall' },
+    { id: '14', text: 'flooring' },
+    { id: '15', text: 'hvac' },
+    { id: '16', text: 'insulation' },
+    { id: '17', text: 'painting' },
+    { id: '18', text: 'landscaping' },
+    { id: '19', text: 'permits' },
+    { id: '20', text: 'documentation' },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +324,7 @@ const AddTaskModal = ({
         assigneeId: newTask.assigneeId?.trim() || undefined,
         dueDate: newTask.dueDate || undefined,
         estimatedHours: newTask.estimatedHours || undefined,
+        tags: tags.map(tag => tag.text), // Use tags from ReactTags
       };
 
       await createTaskMutation.mutateAsync(taskData);
@@ -351,18 +417,25 @@ const AddTaskModal = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Assignee ID</span>
+                <span className="label-text">Assignee</span>
               </label>
-              <input
-                type="text"
-                className="input input-bordered"
+              <select
+                className="select select-bordered"
                 value={newTask.assigneeId || ""}
                 onChange={(e) =>
                   setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
                 }
-                placeholder="Enter assignee ID (optional)"
                 disabled={isSubmitting}
-              />
+              >
+                <option value="">Select assignee (optional)</option>
+                {projectUsers
+                  .filter(userProject => userProject.isActive)
+                  .map((userProject) => (
+                    <option key={userProject.user.id} value={userProject.user.id}>
+                      {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
+                    </option>
+                  ))}
+              </select>
             </div>
 
             <div className="form-control">
@@ -444,19 +517,38 @@ const AddTaskModal = ({
             <label className="label">
               <span className="label-text">Tags</span>
             </label>
-            <input
-              type="text"
-              className="input input-bordered"
-              value={newTask.tags?.join(", ") || ""}
-              onChange={(e) =>
-                setNewTask((t) => ({ 
-                  ...t, 
-                  tags: e.target.value.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
-                }))
-              }
-              placeholder="Enter tags separated by commas (optional)"
-              disabled={isSubmitting}
-            />
+            <div className="relative">
+              <ReactTags
+                tags={tags}
+                suggestions={suggestions}
+                handleDelete={handleDelete}
+                handleAddition={handleAddition}
+                handleDrag={handleDrag}
+                delimiters={[188, 13]} // Comma and Enter
+                placeholder="Add tags (press Enter or comma to add)"
+                maxLength={20}
+                autofocus={false}
+                allowDeleteFromEmptyInput={true}
+                autocomplete={true}
+                readOnly={isSubmitting}
+                classNames={{
+                  tags: 'bg-base-100 border border-base-300 rounded-lg p-2 min-h-[48px] focus-within:border-primary focus-within:outline-none',
+                  tagInput: 'border-none outline-none bg-transparent text-base-content placeholder:text-base-content/50',
+                  tagInputField: 'border-none outline-none bg-transparent text-base-content placeholder:text-base-content/50 w-full',
+                  selected: 'inline-flex flex-wrap gap-1 mb-2',
+                  tag: 'inline-flex items-center gap-1 bg-primary text-primary-content px-2 py-1 rounded text-sm',
+                  remove: 'ml-1 cursor-pointer hover:text-error font-bold',
+                  suggestions: 'absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto w-full',
+                  activeSuggestion: 'bg-primary text-primary-content px-3 py-2 cursor-pointer',
+                  suggestion: 'px-3 py-2 cursor-pointer hover:bg-base-200',
+                }}
+              />
+            </div>
+            <div className="label">
+              <span className="label-text-alt">
+                Type and press Enter or comma to add tags. Suggestions will appear as you type.
+              </span>
+            </div>
           </div>
 
           <div className="modal-action">
@@ -507,6 +599,9 @@ const TaskManagement = () => {
 
   // Fetch user projects
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects(user?.id || "");
+
+  // Fetch selected project details including users
+  const { data: selectedProjectData, isLoading: projectDataLoading } = useProject(selectedProject);
 
   // Set default project when projects load
   useEffect(() => {
@@ -717,6 +812,15 @@ const TaskManagement = () => {
   const FilterPanel = () => {
     const uniqueAssignees = [...new Set(tasks.map(task => task.assignedTo))];
     
+    // Get unique assignees from project users
+    const projectAssignees = selectedProjectData?.userProjects
+      ?.filter(userProject => userProject.isActive)
+      ?.map(userProject => ({
+        id: userProject.user.id,
+        name: `${userProject.user.firstName} ${userProject.user.lastName}`,
+        role: userProject.projectRole
+      })) || [];
+    
     return (
       <div className="bg-base-200 p-4 rounded-xl border border-base-300 mb-4">
         <div className="flex items-center justify-between mb-4">
@@ -799,9 +903,15 @@ const TaskManagement = () => {
               }}
             >
               <option value="">All Assignees</option>
+              {projectAssignees.map(assignee => (
+                <option key={assignee.id} value={assignee.id}>
+                  {assignee.name} ({assignee.role})
+                </option>
+              ))}
+              {/* Also include legacy assignees from mock data */}
               {uniqueAssignees.map(assignee => (
-                <option key={assignee} value={assignee}>
-                  {assignee}
+                <option key={`legacy-${assignee}`} value={assignee}>
+                  {assignee} (Legacy)
                 </option>
               ))}
             </select>
@@ -1251,6 +1361,7 @@ const TaskManagement = () => {
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
         selectedProject={selectedProject}
+        projectUsers={selectedProjectData?.userProjects || []}
       />
       
       <div className="flex items-end justify-between">
@@ -1339,6 +1450,7 @@ const TaskManagement = () => {
                   <button
                     className="btn btn-primary flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
+                    disabled={!selectedProject || projectDataLoading}
                   >
                     <MdAddTask />
                     Add Task
