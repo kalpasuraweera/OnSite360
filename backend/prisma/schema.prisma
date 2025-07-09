@@ -36,7 +36,8 @@ model User {
   documents       Document[]
   requestedRFIs  RFI[]      @relation("RFIRequester") // RFIs requested by this user
   assignedRFIs   RFI[]      @relation("RFIAssignee") // RFIs assigned to this user
-  scheduleEvents ScheduleEvent[] // Events assigned to this user
+  scheduleEvents ScheduleEvent[] @relation("EventAssignees") // Events assigned to this user
+  createdEvents  ScheduleEvent[] @relation("EventCreator") // Events created by this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -406,15 +407,16 @@ model ScheduleEvent {
   endDate      DateTime?
   allDay       Boolean         @default(false)
   location     String?
-  assignees    User[] // Users assigned to this event
+  assignees    User[] @relation("EventAssignees") // Users assigned to this event
   status       String          @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
   priority     String          @default("Medium") // "Low", "Medium", "High"
   color        String? // For calendar display
   recurrence   Json? // Recurrence rules if applicable
-  reminders    DateTime[] // Array of reminder times
   dependencies ScheduleEvent[] @relation("EventDependencies")
   dependents   ScheduleEvent[] @relation("EventDependencies")
   notes        String?
+  createdById  String // User who created the event
+  createdBy    User   @relation("EventCreator", fields: [createdById], references: [id])
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }
