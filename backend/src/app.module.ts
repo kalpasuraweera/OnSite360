@@ -9,6 +9,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { CommunicationModule } from './communication/communication.module';
 import { ScheduleModule } from './schedule/schedule.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ScheduleModule } from './schedule/schedule.module';
     RolesModule,
     CommunicationModule,
     ScheduleModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
