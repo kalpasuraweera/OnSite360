@@ -25,6 +25,7 @@ import type {
   Column,
 } from "@caldwell619/react-kanban";
 import "../styles/kanban.css";
+import { useCreateTask, type CreateTaskDto, type TaskStatus, type TaskPriority } from "../hooks/useTasks";
 
 // Mock projects
 const mockProjects = [
@@ -201,137 +202,280 @@ const mockTasks: Task[] = [
 const AddTaskModal = ({ 
   showAddModal, 
   setShowAddModal, 
-  newTask, 
-  setNewTask, 
-  tasks, 
-  setTasks, 
   selectedProject
 }: {
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
-  newTask: Omit<Task, "id">;
-  setNewTask: React.Dispatch<React.SetStateAction<Omit<Task, "id">>>;
-  tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   selectedProject: string;
 }) => {
+  const createTaskMutation = useCreateTask();
+  
+  const [newTask, setNewTask] = useState<CreateTaskDto>({
+    title: "",
+    description: "",
+    projectId: selectedProject,
+    assigneeId: "",
+    status: "Pending",
+    priority: "Medium",
+    progress: 0,
+    estimatedHours: undefined,
+    dueDate: "",
+    tags: [],
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (showAddModal) {
+      setNewTask({
+        title: "",
+        description: "",
+        projectId: selectedProject,
+        assigneeId: "",
+        status: "Pending",
+        priority: "Medium",
+        progress: 0,
+        estimatedHours: undefined,
+        dueDate: "",
+        tags: [],
+      });
+    }
+  }, [showAddModal, selectedProject]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Prepare the task data
+      const taskData: CreateTaskDto = {
+        ...newTask,
+        projectId: selectedProject,
+        // Convert empty strings to undefined for optional fields
+        description: newTask.description?.trim() || undefined,
+        assigneeId: newTask.assigneeId?.trim() || undefined,
+        dueDate: newTask.dueDate || undefined,
+        estimatedHours: newTask.estimatedHours || undefined,
+      };
+
+      await createTaskMutation.mutateAsync(taskData);
+      
+      // Close modal and reset form
+      setShowAddModal(false);
+      
+      // Show success message (you can replace this with your notification system)
+      console.log("Task created successfully!");
+      
+    } catch (error) {
+      console.error("Failed to create task:", error);
+      // Handle error (you can replace this with your error notification system)
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!showAddModal) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.2)" }}
-    >
-      <div className="bg-base-100 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative">
-        <h2 className="text-xl font-bold mb-4">Add New Task</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const id = (
-              Math.max(0, ...tasks.map((t) => Number(t.id))) + 1
-            ).toString();
-            setTasks([
-              ...tasks,
-              {
-                ...newTask,
-                id,
-                status: "Pending",
-                projectId: selectedProject,
-              },
-            ]);
-            setShowAddModal(false);
-            setNewTask({
-              name: "",
-              type: "site",
-              assignedTo: "",
-              dueDate: "",
-              status: "Pending",
-              projectId: selectedProject,
-              description: "",
-              priority: "Medium",
-              tags: [],
-              documents: [],
-              comments: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block font-medium mb-1">Task Name</label>
-              <input
-                className="input input-bordered w-full"
-                required
-                value={newTask.name}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, name: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Type</label>
+    <div className="modal modal-open">
+      <div className="modal-box w-11/12 max-w-2xl">
+        <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">
+                Task Title <span className="text-error">*</span>
+              </span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered"
+              required
+              value={newTask.title}
+              onChange={(e) =>
+                setNewTask((t) => ({ ...t, title: e.target.value }))
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Priority</span>
+              </label>
               <select
-                className="select select-bordered w-full"
-                value={newTask.type}
+                className="select select-bordered"
+                value={newTask.priority}
                 onChange={(e) =>
                   setNewTask((t) => ({
                     ...t,
-                    type: e.target.value as TaskType,
+                    priority: e.target.value as TaskPriority,
                   }))
                 }
+                disabled={isSubmitting}
               >
-                <option value="site">Site Tasks</option>
-                <option value="procurement">Procurement</option>
-                <option value="inspection">Inspections</option>
-                <option value="handover">Handover</option>
-                <option value="custom">Custom Tasks</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
               </select>
             </div>
-            <div>
-              <label className="block font-medium mb-1">Assigned To</label>
-              <input
-                className="input input-bordered w-full"
-                required
-                value={newTask.assignedTo}
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Status</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={newTask.status}
                 onChange={(e) =>
-                  setNewTask((t) => ({ ...t, assignedTo: e.target.value }))
+                  setNewTask((t) => ({
+                    ...t,
+                    status: e.target.value as TaskStatus,
+                  }))
                 }
+                disabled={isSubmitting}
+              >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Assignee ID</span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered"
+                value={newTask.assigneeId || ""}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                }
+                placeholder="Enter assignee ID (optional)"
+                disabled={isSubmitting}
               />
             </div>
-            <div>
-              <label className="block font-medium mb-1">Due Date</label>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Due Date</span>
+              </label>
               <input
-                className="input input-bordered w-full"
                 type="date"
-                required
-                value={newTask.dueDate}
+                className="input input-bordered"
+                value={newTask.dueDate || ""}
                 onChange={(e) =>
                   setNewTask((t) => ({ ...t, dueDate: e.target.value }))
                 }
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Description</label>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                value={newTask.description}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, description: e.target.value }))
-                }
+                disabled={isSubmitting}
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-6">
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Estimated Hours</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered"
+                min="0"
+                step="0.5"
+                value={newTask.estimatedHours || ""}
+                onChange={(e) =>
+                  setNewTask((t) => ({ 
+                    ...t, 
+                    estimatedHours: e.target.value ? Number(e.target.value) : undefined 
+                  }))
+                }
+                placeholder="Enter estimated hours"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Progress (%)</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered"
+                min="0"
+                max="100"
+                value={newTask.progress}
+                onChange={(e) =>
+                  setNewTask((t) => ({ 
+                    ...t, 
+                    progress: Math.min(100, Math.max(0, Number(e.target.value) || 0))
+                  }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Description</span>
+            </label>
+            <textarea
+              className="textarea textarea-bordered"
+              rows={3}
+              value={newTask.description}
+              onChange={(e) =>
+                setNewTask((t) => ({ ...t, description: e.target.value }))
+              }
+              placeholder="Enter task description (optional)"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Tags</span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered"
+              value={newTask.tags?.join(", ") || ""}
+              onChange={(e) =>
+                setNewTask((t) => ({ 
+                  ...t, 
+                  tags: e.target.value.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
+                }))
+              }
+              placeholder="Enter tags separated by commas (optional)"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="modal-action">
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn"
               onClick={() => setShowAddModal(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Create Task
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                "Create Task"
+              )}
             </button>
           </div>
         </form>
@@ -357,23 +501,6 @@ const TaskManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [newComment, setNewComment] = useState("");
-
-  // Add Task form state
-  const [newTask, setNewTask] = useState<Omit<Task, "id">>({
-    name: "",
-    type: "site",
-    assignedTo: "",
-    dueDate: "",
-    status: "Pending",
-    projectId: mockProjects[0].id,
-    description: "",
-    priority: "Medium",
-    tags: [],
-    documents: [],
-    comments: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
 
   // Filter tasks based on current filters
   const getFilteredTasks = useCallback(() => {
@@ -1083,10 +1210,6 @@ const TaskManagement = () => {
       <AddTaskModal 
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
-        newTask={newTask}
-        setNewTask={setNewTask}
-        tasks={tasks}
-        setTasks={setTasks}
         selectedProject={selectedProject}
       />
       
