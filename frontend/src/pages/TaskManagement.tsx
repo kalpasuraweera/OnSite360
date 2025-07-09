@@ -206,6 +206,153 @@ const mockTasks: Task[] = [
   },
 ];
 
+// Add Task Modal Component (moved outside to prevent re-creation)
+const AddTaskModal = ({ 
+  showAddModal, 
+  setShowAddModal, 
+  newTask, 
+  setNewTask, 
+  tasks, 
+  setTasks, 
+  selectedProject,
+  TASK_TYPE_LABELS 
+}: {
+  showAddModal: boolean;
+  setShowAddModal: (show: boolean) => void;
+  newTask: Omit<Task, "id">;
+  setNewTask: React.Dispatch<React.SetStateAction<Omit<Task, "id">>>;
+  tasks: Task[];
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  selectedProject: string;
+  TASK_TYPE_LABELS: Record<TaskType, string>;
+}) => {
+  if (!showAddModal) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.2)" }}
+    >
+      <div className="bg-base-100 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative">
+        <h2 className="text-xl font-bold mb-4">Add New Task</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const id = (
+              Math.max(0, ...tasks.map((t) => Number(t.id))) + 1
+            ).toString();
+            setTasks([
+              ...tasks,
+              {
+                ...newTask,
+                id,
+                status: "Pending",
+                projectId: selectedProject,
+              },
+            ]);
+            setShowAddModal(false);
+            setNewTask({
+              name: "",
+              type: "site",
+              assignedTo: "",
+              dueDate: "",
+              status: "Pending",
+              projectId: selectedProject,
+              description: "",
+              priority: "Medium",
+              tags: [],
+              documents: [],
+              comments: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block font-medium mb-1">Task Name</label>
+              <input
+                className="input input-bordered w-full"
+                required
+                value={newTask.name}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, name: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Type</label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.type}
+                onChange={(e) =>
+                  setNewTask((t) => ({
+                    ...t,
+                    type: e.target.value as TaskType,
+                  }))
+                }
+              >
+                {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
+                  .filter((t) => t !== "all")
+                  .map((type) => (
+                    <option key={type} value={type}>
+                      {TASK_TYPE_LABELS[type]}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Assigned To</label>
+              <input
+                className="input input-bordered w-full"
+                required
+                value={newTask.assignedTo}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, assignedTo: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Due Date</label>
+              <input
+                className="input input-bordered w-full"
+                type="date"
+                required
+                value={newTask.dueDate}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Description</label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowAddModal(false)}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Create Task
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const TaskManagement = () => {
   const [mainTab, setMainTab] = useState<MainTab>("all-tasks");
   const [selectedProject, setSelectedProject] = useState<string>(
@@ -435,131 +582,6 @@ const TaskManagement = () => {
       </div>
     );
   };
-
-  // Add Task Modal
-  const AddTaskModal = () => (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.2)" }}
-    >
-      <div className="bg-base-100 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative">
-        <h2 className="text-xl font-bold mb-4">Add New Task</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const id = (
-              Math.max(0, ...tasks.map((t) => Number(t.id))) + 1
-            ).toString();
-            setTasks([
-              ...tasks,
-              {
-                ...newTask,
-                id,
-                status: "Pending",
-                projectId: selectedProject,
-              },
-            ]);
-            setShowAddModal(false);
-            setNewTask({
-              name: "",
-              type: "site",
-              assignedTo: "",
-              dueDate: "",
-              status: "Pending",
-              projectId: selectedProject,
-              description: "",
-              priority: "Medium",
-              tags: [],
-              documents: [],
-              comments: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block font-medium mb-1">Task Name</label>
-              <input
-                className="input input-bordered w-full"
-                required
-                value={newTask.name}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, name: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Type</label>
-              <select
-                className="select select-bordered w-full"
-                value={newTask.type}
-                onChange={(e) =>
-                  setNewTask((t) => ({
-                    ...t,
-                    type: e.target.value as TaskType,
-                  }))
-                }
-              >
-                {(Object.keys(TASK_TYPE_LABELS) as TaskType[])
-                  .filter((t) => t !== "all")
-                  .map((type) => (
-                    <option key={type} value={type}>
-                      {TASK_TYPE_LABELS[type]}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Assigned To</label>
-              <input
-                className="input input-bordered w-full"
-                required
-                value={newTask.assignedTo}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, assignedTo: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Due Date</label>
-              <input
-                className="input input-bordered w-full"
-                type="date"
-                required
-                value={newTask.dueDate}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, dueDate: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Description</label>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                value={newTask.description}
-                onChange={(e) =>
-                  setNewTask((t) => ({ ...t, description: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => setShowAddModal(false)}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Create Task
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 
   // Filter Panel Component
   const FilterPanel = () => {
@@ -1073,7 +1095,17 @@ const TaskManagement = () => {
 
   return (
     <div className="p-8 relative">
-      {showAddModal && <AddTaskModal />}
+      <AddTaskModal 
+        showAddModal={showAddModal}
+        setShowAddModal={setShowAddModal}
+        newTask={newTask}
+        setNewTask={setNewTask}
+        tasks={tasks}
+        setTasks={setTasks}
+        selectedProject={selectedProject}
+        TASK_TYPE_LABELS={TASK_TYPE_LABELS}
+      />
+      
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold">Task Management</h1>
