@@ -28,11 +28,14 @@ import {
   useUpdateScheduleEvent,
   useDeleteScheduleEvent,
   useCreateDailyLog,
+  useUpdateDailyLog,
   type ProjectPhase,
   type ScheduleEvent,
+  type DailyLog,
   type CreateProjectPhaseDto,
   type CreateScheduleEventDto,
   type CreateDailyLogDto,
+  type UpdateDailyLogDto,
 } from "../hooks/useSchedule";
 
 // Set up the localizer
@@ -339,6 +342,9 @@ const ScheduleManagement = () => {
 
   // Daily Log modal state
   const [showLogModal, setShowLogModal] = useState(false);
+  const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
+  const [showDeleteLogModal, setShowDeleteLogModal] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<DailyLog | null>(null);
   const [logForm, setLogForm] = useState({
     date: moment().format("YYYY-MM-DD"),
     projectId: "",
@@ -390,6 +396,7 @@ const ScheduleManagement = () => {
 
   // Log mutations
   const createLogMutation = useCreateDailyLog();
+  const updateLogMutation = useUpdateDailyLog();
 
   // Transform project phases to Gantt tasks
   const transformPhaseToGanttTask = (phase: ProjectPhase): GanttTask => {
@@ -481,14 +488,34 @@ const ScheduleManagement = () => {
     }
   };
 
-  const handleDeleteLog = async (logId: string) => {
-    if (window.confirm("Are you sure you want to delete this log?")) {
-      try {
-        await deleteLogMutation.mutateAsync(logId);
-      } catch (error) {
-        console.error("Error deleting log:", error);
-      }
+  const handleDeleteLog = (log: DailyLog) => {
+    setLogToDelete(log);
+    setShowDeleteLogModal(true);
+  };
+
+  const confirmDeleteLog = async () => {
+    if (!logToDelete) return;
+    
+    try {
+      await deleteLogMutation.mutateAsync(logToDelete.id);
+      setShowDeleteLogModal(false);
+      setLogToDelete(null);
+    } catch (error) {
+      console.error("Error deleting log:", error);
     }
+  };
+
+  const handleEditLog = (log: DailyLog) => {
+    setEditingLog(log);
+    setLogForm({
+      date: moment(log.date).format("YYYY-MM-DD"),
+      projectId: log.projectId,
+      weather: log.weather || "",
+      notes: log.notes || "",
+      workHours: log.workHours || 0,
+      workersPresent: log.workersPresent || 0,
+    });
+    setShowLogModal(true);
   };
 
   const handleDeleteActivity = async (activityId: string) => {
@@ -583,17 +610,33 @@ const ScheduleManagement = () => {
     if (!selectedProject) return;
 
     try {
-      const logData: CreateDailyLogDto = {
-        ...logForm,
-        projectId: selectedProject,
-        workHours: logForm.workHours || undefined,
-        workersPresent: logForm.workersPresent || undefined,
-        weather: logForm.weather || undefined,
-        notes: logForm.notes || undefined,
-      };
-
-      await createLogMutation.mutateAsync(logData);
+      if (editingLog) {
+        // Update existing log
+        const logData: UpdateDailyLogDto = {
+          weather: logForm.weather || undefined,
+          notes: logForm.notes || undefined,
+          workHours: logForm.workHours || undefined,
+          workersPresent: logForm.workersPresent || undefined,
+        };
+        await updateLogMutation.mutateAsync({
+          id: editingLog.id,
+          log: logData,
+        });
+      } else {
+        // Create new log
+        const logData: CreateDailyLogDto = {
+          ...logForm,
+          projectId: selectedProject,
+          workHours: logForm.workHours || undefined,
+          workersPresent: logForm.workersPresent || undefined,
+          weather: logForm.weather || undefined,
+          notes: logForm.notes || undefined,
+        };
+        await createLogMutation.mutateAsync(logData);
+      }
+      
       setShowLogModal(false);
+      setEditingLog(null);
       setLogForm({
         date: moment().format("YYYY-MM-DD"),
         projectId: "",
@@ -602,7 +645,8 @@ const ScheduleManagement = () => {
         workHours: 0,
         workersPresent: 0,
       });
-      // Set selected date to today to show the newly created log
+      
+      // Set selected date to today to show the newly created/updated log
       setSelectedDate(moment().format("YYYY-MM-DD"));
     } catch (error) {
       console.error("Error saving log:", error);
@@ -1069,6 +1113,7 @@ const ScheduleManagement = () => {
                   <button
                     className="btn btn-primary"
                     onClick={() => {
+                      setEditingLog(null);
                       setLogForm({
                         date: moment().format("YYYY-MM-DD"),
                         projectId: selectedProject,
@@ -1143,19 +1188,17 @@ const ScheduleManagement = () => {
                             </p>
                           )}
                         </div>
-                        {user && user.id === log.loggedById && (
+                        {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
                           <div className="flex gap-2">
                             <button
                               className="btn btn-sm btn-ghost"
-                              onClick={() => {
-                                // Handle edit log
-                              }}
+                              onClick={() => handleEditLog(log)}
                             >
                               <MdEdit />
                             </button>
                             <button
                               className="btn btn-sm btn-ghost text-error"
-                              onClick={() => handleDeleteLog(log.id)}
+                              onClick={() => handleDeleteLog(log)}
                             >
                               <MdDelete />
                             </button>
@@ -1219,7 +1262,7 @@ const ScheduleManagement = () => {
                                     </p>
                                   )}
                                 </div>
-                                {user && user.id === log.loggedById && (
+                                {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
                                   <div className="flex gap-1">
                                     <button
                                       className="btn btn-xs btn-ghost"
@@ -1798,7 +1841,9 @@ const ScheduleManagement = () => {
       {showLogModal && (
         <div className="modal modal-open">
           <div className="modal-box max-w-3xl">
-            <h3 className="font-bold text-lg mb-4">Add Daily Log</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+            </h3>
             <form onSubmit={handleLogSubmit} className="space-y-4">
               <div className="form-control">
                 <label className="label">
@@ -1812,7 +1857,7 @@ const ScheduleManagement = () => {
                 />
                 <div className="label">
                   <span className="label-text-alt text-info">
-                    Date is automatically set to today and cannot be changed
+                    {editingLog ? "Log date cannot be changed" : "Date is automatically set to today and cannot be changed"}
                   </span>
                 </div>
               </div>
@@ -1885,17 +1930,33 @@ const ScheduleManagement = () => {
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => setShowLogModal(false)}
+                  onClick={() => {
+                    setShowLogModal(false);
+                    setEditingLog(null);
+                    setLogForm({
+                      date: moment().format("YYYY-MM-DD"),
+                      projectId: "",
+                      weather: "",
+                      notes: "",
+                      workHours: 0,
+                      workersPresent: 0,
+                    });
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={createLogMutation.isPending}
+                  disabled={createLogMutation.isPending || updateLogMutation.isPending}
                 >
-                  {createLogMutation.isPending ? (
+                  {createLogMutation.isPending || updateLogMutation.isPending ? (
                     <span className="loading loading-spinner loading-sm"></span>
+                  ) : editingLog ? (
+                    <>
+                      <MdEdit className="mr-2" />
+                      Update Log
+                    </>
                   ) : (
                     <>
                       <MdAdd className="mr-2" />
@@ -1905,6 +1966,49 @@ const ScheduleManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Log Confirmation Modal */}
+      {showDeleteLogModal && logToDelete && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Confirm Delete</h3>
+            <p className="py-4">
+              Are you sure you want to delete this daily log from{" "}
+              {moment(logToDelete.date).format("MMMM DD, YYYY")}?
+            </p>
+            <p className="text-sm text-base-content/70 mb-4">
+              This action cannot be undone and will also delete all associated activities.
+            </p>
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setShowDeleteLogModal(false);
+                  setLogToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
+                onClick={confirmDeleteLog}
+                disabled={deleteLogMutation.isPending}
+              >
+                {deleteLogMutation.isPending ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  <>
+                    <MdDelete className="mr-2" />
+                    Delete Log
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
