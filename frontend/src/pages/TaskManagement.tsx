@@ -38,7 +38,7 @@ import {
 import { useUserProjects } from "../hooks/useUsers";
 import { useProject, type Project } from "../hooks/useProjects";
 import { useAuthStore } from "../stores/useAuthStore";
-import { WithContext as ReactTags } from 'react-tag-input';
+import { TagsInput } from "react-tag-input-component";
 
 // Convert ApiTask to Card interface for Kanban board
 interface TaskCard extends Card {
@@ -130,8 +130,8 @@ const AddTaskModal = ({
     tags: [],
   });
 
-  // Transform tags array to ReactTags format
-  const [tags, setTags] = useState<Array<{ id: string; text: string }>>([]);
+  // Transform tags array to simple string array for react-tag-input-component
+  const [tags, setTags] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -154,26 +154,10 @@ const AddTaskModal = ({
     }
   }, [showAddModal, selectedProject]);
 
-  // Handle tag operations
-  const handleDelete = (i: number) => {
-    const newTags = tags.filter((tag, index) => index !== i);
-    setTags(newTags);
-    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
-  };
-
-  const handleAddition = (tag: { id: string; text: string }) => {
-    const newTags = [...tags, tag];
-    setTags(newTags);
-    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
-  };
-
-  const handleDrag = (tag: { id: string; text: string }, currPos: number, newPos: number) => {
-    const newTags = tags.slice();
-    newTags.splice(currPos, 1);
-    newTags.splice(newPos, 0, tag);
-    setTags(newTags);
-    setNewTask(prev => ({ ...prev, tags: newTags.map(tag => tag.text) }));
-  };
+  // Update tags in newTask when tags state changes
+  useEffect(() => {
+    setNewTask(prev => ({ ...prev, tags }));
+  }, [tags]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,7 +173,7 @@ const AddTaskModal = ({
         assigneeId: newTask.assigneeId?.trim() || undefined,
         dueDate: newTask.dueDate || undefined,
         estimatedHours: newTask.estimatedHours || undefined,
-        tags: tags.map(tag => tag.text), // Use tags from ReactTags
+        tags: tags, // Use tags directly from react-tag-input-component
       };
 
       await createTaskMutation.mutateAsync(taskData);
@@ -293,13 +277,11 @@ const AddTaskModal = ({
                 disabled={isSubmitting}
               >
                 <option value="">Select assignee (optional)</option>
-                {projectUsers
-                  .filter(userProject => userProject.isActive)
-                  .map((userProject) => (
-                    <option key={userProject.user.id} value={userProject.user.id}>
-                      {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
-                    </option>
-                  ))}
+                {projectUsers.map((userProject) => (
+                  <option key={userProject.user.id} value={userProject.user.id}>
+                    {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -382,34 +364,15 @@ const AddTaskModal = ({
             <label className="label">
               <span className="label-text">Tags</span>
             </label>
-            <div className="relative">
-              <ReactTags
-                tags={tags}
-                handleDelete={handleDelete}
-                handleAddition={handleAddition}
-                handleDrag={handleDrag}
-                delimiters={[188, 13]} // Comma and Enter
-                placeholder="Add tags (press Enter or comma to add)"
-                maxLength={20}
-                autofocus={false}
-                allowDeleteFromEmptyInput={true}
-                autocomplete={true}
-                readOnly={isSubmitting}
-                classNames={{
-                  tags: 'bg-base-100 border border-base-300 rounded-lg p-2 min-h-[48px] focus-within:border-primary focus-within:outline-none',
-                  tagInput: 'border-none outline-none bg-transparent text-base-content placeholder:text-base-content/50',
-                  tagInputField: 'border-none outline-none bg-transparent text-base-content placeholder:text-base-content/50 w-full',
-                  selected: 'inline-flex flex-wrap gap-1 mb-2',
-                  tag: 'inline-flex items-center gap-1 bg-primary text-primary-content px-2 py-1 rounded text-sm',
-                  remove: 'ml-1 cursor-pointer hover:text-error font-bold',
-                  suggestions: 'absolute z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto w-full',
-                  activeSuggestion: 'bg-primary text-primary-content px-3 py-2 cursor-pointer',
-                }}
-              />
-            </div>
+            <TagsInput
+              value={tags}
+              onChange={setTags}
+              name="tags"
+              placeHolder="enter tags"
+            />
             <div className="label">
               <span className="label-text-alt">
-                Type and press Enter or comma to add tags. Suggestions will appear as you type.
+                Press enter or comma to add new tag
               </span>
             </div>
           </div>
@@ -780,7 +743,6 @@ const TaskManagement = () => {
   // Filter Panel Component
   const FilterPanel = () => {
     // Get unique assignees from project users
-    console.log("Selected Project Data:", selectedProjectData);
     const projectAssignees = selectedProjectData?.userProjects
       ?.filter(userProject => userProject.isActive)
       ?.map(userProject => ({
@@ -1326,7 +1288,7 @@ const TaskManagement = () => {
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
         selectedProject={selectedProject}
-        projectUsers={selectedProjectData?.userProjects || []}
+        projectUsers={selectedProjectData?.userProjects?.filter(up => up.isActive) || []}
       />
       
       <div className="flex items-end justify-between">
