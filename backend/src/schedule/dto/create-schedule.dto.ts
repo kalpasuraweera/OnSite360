@@ -83,6 +83,15 @@ export class CreateProjectPhaseDto {
   @Min(0)
   @Max(100)
   progress?: number;
+
+  @ApiPropertyOptional({
+    description: 'Parent phase ID for creating sub-phases',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+    format: 'uuid',
+  })
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
 }
 
 export class CreateScheduleEventDto {

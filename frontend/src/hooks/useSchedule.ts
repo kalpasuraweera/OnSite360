@@ -114,6 +114,7 @@ export interface CreateProjectPhaseDto {
   projectId: string;
   color?: string;
   progress?: number;
+  parentId?: string;
 }
 
 export interface UpdateProjectPhaseDto {
@@ -124,6 +125,7 @@ export interface UpdateProjectPhaseDto {
   projectId?: string;
   color?: string;
   progress?: number;
+  parentId?: string;
 }
 
 export interface CreateScheduleEventDto {

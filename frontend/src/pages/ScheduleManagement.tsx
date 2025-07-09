@@ -310,6 +310,7 @@ const ScheduleManagement = () => {
     projectId: "",
     color: "#3174ad",
     progress: 0,
+    parentId: "",
   });
 
   // Get auth user
@@ -378,14 +379,20 @@ const ScheduleManagement = () => {
     if (!selectedProject) return;
 
     try {
+      // Clean up the form data
+      const cleanedForm = {
+        ...phaseForm,
+        parentId: phaseForm.parentId || undefined,
+      };
+
       if (editingPhase) {
         await updatePhaseMutation.mutateAsync({
           id: editingPhase.id,
-          phase: phaseForm,
+          phase: cleanedForm,
         });
       } else {
         await createPhaseMutation.mutateAsync({
-          ...phaseForm,
+          ...cleanedForm,
           projectId: selectedProject,
         });
       }
@@ -399,6 +406,7 @@ const ScheduleManagement = () => {
         projectId: "",
         color: "#3174ad",
         progress: 0,
+        parentId: "",
       });
     } catch (error) {
       console.error("Error saving phase:", error);
@@ -415,6 +423,7 @@ const ScheduleManagement = () => {
       projectId: phase.projectId,
       color: phase.color || "#3174ad",
       progress: phase.progress,
+      parentId: phase.parentId || "",
     });
     setShowPhaseModal(true);
   };
@@ -449,8 +458,50 @@ const ScheduleManagement = () => {
     }
   };
 
+  // Helper function to organize phases hierarchically
+  const organizePhases = (phases: ProjectPhase[]) => {
+    // Create a map for quick lookup
+    const phaseMap = new Map(phases.map((phase) => [phase.id, phase]));
+
+    // Separate parent and child phases
+    const parentPhases = phases.filter((phase) => !phase.parentId);
+    const childPhases = phases.filter((phase) => phase.parentId);
+
+    // Sort parent phases by start date
+    parentPhases.sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+
+    // Build organized list
+    const organizedPhases: ProjectPhase[] = [];
+
+    parentPhases.forEach((parent) => {
+      organizedPhases.push(parent);
+
+      // Add children of this parent
+      const children = childPhases
+        .filter((child) => child.parentId === parent.id)
+        .sort(
+          (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        );
+
+      organizedPhases.push(...children);
+    });
+
+    // Add orphaned phases (phases with parent that doesn't exist)
+    const orphanedPhases = childPhases.filter(
+      (child) => child.parentId && !phaseMap.has(child.parentId)
+    );
+    organizedPhases.push(...orphanedPhases);
+
+    return organizedPhases;
+  };
+
+  // Get organized phases
+  const organizedPhases = organizePhases(projectPhases);
+
   // Get Gantt tasks from project phases
-  const ganttTasks = projectPhases.map(transformPhaseToGanttTask);
+  const ganttTasks = organizedPhases.map(transformPhaseToGanttTask);
 
   // Get calendar events from schedule events
   const calendarEvents = scheduleEvents.map(transformEventToCalendarEvent);
@@ -603,6 +654,7 @@ const ScheduleManagement = () => {
                       projectId: selectedProject,
                       color: "#3174ad",
                       progress: 0,
+                      parentId: "",
                     });
                     setShowPhaseModal(true);
                   }}
@@ -638,6 +690,7 @@ const ScheduleManagement = () => {
                         projectId: selectedProject,
                         color: "#3174ad",
                         progress: 0,
+                        parentId: "",
                       });
                       setShowPhaseModal(true);
                     }}
@@ -648,24 +701,43 @@ const ScheduleManagement = () => {
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {projectPhases.map((phase) => (
+                  {organizedPhases.map((phase) => (
                     <div
                       key={phase.id}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-base-100 border border-base-300 hover:shadow-md transition-shadow"
+                      className={`flex items-center gap-4 p-4 rounded-xl bg-base-100 border border-base-300 hover:shadow-md transition-shadow ${
+                        phase.parentId ? "ml-8 border-l-4 border-l-primary" : ""
+                      }`}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">
-                            {phase.name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            {phase.parentId && (
+                              <span className="text-xs text-base-content/50">
+                                └─
+                              </span>
+                            )}
+                            <h3 className="font-semibold text-lg">
+                              {phase.name}
+                            </h3>
+                          </div>
                           <div className="badge badge-outline">
                             {phase.progress}% Complete
                           </div>
+                          {phase.parentId && (
+                            <div className="badge badge-ghost badge-sm">
+                              Sub-phase
+                            </div>
+                          )}
                         </div>
                         {phase.description && (
                           <p className="text-base-content/70 mb-2">
                             {phase.description}
                           </p>
+                        )}
+                        {phase.parent && (
+                          <div className="text-sm text-base-content/50 mb-2">
+                            Parent: {phase.parent.name}
+                          </div>
                         )}
                         <div className="flex items-center gap-4 text-sm text-base-content/60">
                           <span>
@@ -1111,6 +1183,41 @@ const ScheduleManagement = () => {
                   }
                   rows={3}
                 />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Parent Phase (Optional)</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={phaseForm.parentId || ""}
+                  onChange={(e) =>
+                    setPhaseForm((prev) => ({
+                      ...prev,
+                      parentId: e.target.value || undefined,
+                    }))
+                  }
+                >
+                  <option value="">No parent (Top-level phase)</option>
+                  {projectPhases
+                    .filter((phase) => {
+                      // Don't show self as parent
+                      if (phase.id === editingPhase?.id) return false;
+                      // Don't show child phases of current phase to avoid circular dependency
+                      if (editingPhase && phase.parentId === editingPhase.id) return false;
+                      return true;
+                    })
+                    .map((phase) => (
+                      <option key={phase.id} value={phase.id}>
+                        {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                      </option>
+                    ))}
+                </select>
+                {phaseForm.parentId && (
+                  <div className="text-xs text-base-content/60 mt-1">
+                    This phase will be displayed as a sub-phase of the selected parent.
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-control">
