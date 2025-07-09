@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsUUID,
   IsDateString,
-  IsArray,
   IsNumber,
   IsBoolean,
   IsEnum,
@@ -83,6 +82,15 @@ export class CreateProjectPhaseDto {
   @Min(0)
   @Max(100)
   progress?: number;
+
+  @ApiPropertyOptional({
+    description: 'Parent phase ID for creating sub-phases',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+    format: 'uuid',
+  })
+  @IsUUID()
+  @IsOptional()
+  parentId?: string;
 }
 
 export class CreateScheduleEventDto {
@@ -178,7 +186,7 @@ export class CreateScheduleEventDto {
   })
   @IsBoolean()
   @IsOptional()
-  isAllDay?: boolean;
+  allDay?: boolean;
 
   @ApiPropertyOptional({
     description: 'User ID assigned to this event',
@@ -249,36 +257,6 @@ export class CreateDailyLogDto {
   @IsOptional()
   @Min(0)
   workersPresent?: number;
-
-  @ApiPropertyOptional({
-    description: 'Equipment used during the day',
-    example: ['Excavator', 'Concrete mixer'],
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  equipment?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Materials used during the day',
-    example: ['Concrete', 'Steel rebar'],
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  materials?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Safety incidents or observations',
-    example: 'No incidents reported. All safety protocols followed.',
-    maxLength: 500,
-  })
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  safetyNotes?: string;
 }
 
 export class CreateDailyActivityDto {
@@ -291,7 +269,7 @@ export class CreateDailyActivityDto {
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  description: string;
+  activity: string;
 
   @ApiProperty({
     description: 'Daily log ID this activity belongs to',
@@ -303,43 +281,23 @@ export class CreateDailyActivityDto {
 
   @ApiPropertyOptional({
     description: 'Start time of the activity',
-    example: '09:00',
-    pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$',
+    example: '2024-01-15T09:00:00Z',
+    type: String,
+    format: 'date-time',
   })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   startTime?: string;
 
   @ApiPropertyOptional({
     description: 'End time of the activity',
-    example: '12:00',
-    pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$',
+    example: '2024-01-15T12:00:00Z',
+    type: String,
+    format: 'date-time',
   })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   endTime?: string;
-
-  @ApiPropertyOptional({
-    description: 'Duration in hours',
-    example: 3,
-    minimum: 0,
-    maximum: 24,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  @Max(24)
-  duration?: number;
-
-  @ApiPropertyOptional({
-    description: 'Number of workers involved',
-    example: 5,
-    minimum: 0,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  workersInvolved?: number;
 
   @ApiPropertyOptional({
     description: 'Progress percentage (0-100)',

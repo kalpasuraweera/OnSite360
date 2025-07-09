@@ -16,8 +16,8 @@ import {
   type UpdateRFIDto,
   type RFI,
 } from "../hooks/useCommunication";
-import { useProjects, type Project } from "../hooks/useProjects";
-import { useUsers } from "../hooks/useUsers";
+import { type Project } from "../hooks/useProjects";
+import { useUsers, useUserProjects } from "../hooks/useUsers";
 import { useAuthStore } from "../stores/useAuthStore";
 import {
   Chart as ChartJS,
@@ -48,14 +48,12 @@ ChartJS.register(
 );
 
 const Communication = () => {
+  // Auth store
+  const { user: currentUser } = useAuthStore();
+
   // API hooks
-  const {
-    data: threads = [],
-    isLoading: threadsLoading,
-    error: threadsError,
-  } = useThreads();
-  const { data: projectsResponse } = useProjects();
-  const projects = projectsResponse?.data || [];
+  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads();
+  const { data: projects = [] } = useUserProjects(currentUser?.id || "");
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
 
@@ -65,9 +63,6 @@ const Communication = () => {
   const createRFIMutation = useCreateRFI();
   const updateRFIMutation = useUpdateRFI();
   const deleteRFIMutation = useDeleteRFI();
-
-  // Auth store
-  const { user: currentUser } = useAuthStore();
 
   // State
   const [activeTab, setActiveTab] = useState("threads");
@@ -1279,7 +1274,13 @@ const Communication = () => {
 
       {/* Create Thread Modal */}
       {showCreateThreadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.2)",
+          }}
+        >
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Create New Thread</h3>
 
@@ -1416,7 +1417,13 @@ const Communication = () => {
 
       {/* Create RFI Modal */}
       {showCreateRFIModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.2)",
+          }}
+        >
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Create New RFI</h3>
 

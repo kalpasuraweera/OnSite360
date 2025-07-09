@@ -51,6 +51,8 @@ export class ScheduleService {
     return this.prisma.projectPhase.create({
       data: {
         ...createProjectPhaseDto,
+        startDate: new Date(createProjectPhaseDto.startDate),
+        endDate: new Date(createProjectPhaseDto.endDate),
         order: nextOrder,
       },
       include: {
@@ -153,7 +155,15 @@ export class ScheduleService {
 
     return this.prisma.projectPhase.update({
       where: { id: phaseId },
-      data: updateProjectPhaseDto,
+      data: {
+        ...updateProjectPhaseDto,
+        startDate: updateProjectPhaseDto.startDate
+          ? new Date(updateProjectPhaseDto.startDate)
+          : undefined,
+        endDate: updateProjectPhaseDto.endDate
+          ? new Date(updateProjectPhaseDto.endDate)
+          : undefined,
+      },
       include: {
         project: {
           select: {
@@ -215,7 +225,10 @@ export class ScheduleService {
     return this.prisma.scheduleEvent.create({
       data: {
         ...eventData,
-        allDay: createScheduleEventDto.isAllDay || false,
+        startDate: new Date(createScheduleEventDto.startDate),
+        endDate: new Date(createScheduleEventDto.endDate),
+        allDay: createScheduleEventDto.allDay || false,
+        createdById: userId,
         assignees: assignedUserId
           ? {
               connect: { id: assignedUserId },
@@ -230,6 +243,14 @@ export class ScheduleService {
           },
         },
         assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -272,6 +293,14 @@ export class ScheduleService {
             email: true,
           },
         },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
       orderBy: { startDate: 'asc' },
     });
@@ -288,6 +317,14 @@ export class ScheduleService {
           },
         },
         assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -344,13 +381,24 @@ export class ScheduleService {
       throw new ForbiddenException('You do not have access to this project');
     }
 
-    const { assignedUserId, isAllDay, ...updateData } = updateScheduleEventDto;
+    // Check if user is the creator of the event
+    if (event.createdById !== userId) {
+      throw new ForbiddenException('You can only edit events you created');
+    }
+
+    const { assignedUserId, allDay, ...updateData } = updateScheduleEventDto;
 
     return this.prisma.scheduleEvent.update({
       where: { id: eventId },
       data: {
         ...updateData,
-        allDay: isAllDay !== undefined ? isAllDay : undefined,
+        startDate: updateScheduleEventDto.startDate
+          ? new Date(updateScheduleEventDto.startDate)
+          : undefined,
+        endDate: updateScheduleEventDto.endDate
+          ? new Date(updateScheduleEventDto.endDate)
+          : undefined,
+        allDay: allDay !== undefined ? allDay : undefined,
         assignees: assignedUserId
           ? {
               set: [{ id: assignedUserId }],
@@ -365,6 +413,14 @@ export class ScheduleService {
           },
         },
         assignees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -396,6 +452,11 @@ export class ScheduleService {
 
     if (!userProject) {
       throw new ForbiddenException('You do not have access to this project');
+    }
+
+    // Check if user is the creator of the event
+    if (event.createdById !== userId) {
+      throw new ForbiddenException('You can only delete events you created');
     }
 
     return this.prisma.scheduleEvent.delete({
@@ -436,6 +497,7 @@ export class ScheduleService {
     return this.prisma.dailyLog.create({
       data: {
         ...logData,
+        date: new Date(createDailyLogDto.date),
         summary: notes || 'Daily log entry',
         loggedById: userId,
       },
@@ -648,6 +710,9 @@ export class ScheduleService {
       where: { id: logId },
       data: {
         ...updateData,
+        date: updateDailyLogDto.date
+          ? new Date(updateDailyLogDto.date)
+          : undefined,
         summary: notes || log.summary,
       },
       include: {
@@ -733,12 +798,13 @@ export class ScheduleService {
       );
     }
 
-    const { description, ...activityData } = createDailyActivityDto;
+    const { startTime, endTime, ...activityData } = createDailyActivityDto;
 
     return this.prisma.dailyActivity.create({
       data: {
         ...activityData,
-        activity: description,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
       },
       include: {
         dailyLog: {
@@ -881,13 +947,14 @@ export class ScheduleService {
       throw new ForbiddenException('Cannot edit activities from previous days');
     }
 
-    const { description, ...updateData } = updateDailyActivityDto;
+    const { startTime, endTime, ...updateData } = updateDailyActivityDto;
 
     return this.prisma.dailyActivity.update({
       where: { id: activityId },
       data: {
         ...updateData,
-        activity: description || activity.activity,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
       },
       include: {
         dailyLog: {

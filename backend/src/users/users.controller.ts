@@ -10,7 +10,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('users')
 export class UsersController {
@@ -44,5 +44,17 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @ApiOperation({ summary: 'Get projects for a specific user' })
+  @ApiResponse({
+    status: 200,
+    description: 'User projects retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBearerAuth()
+  @Get(':id/projects')
+  getUserProjects(@Param('id') id: string) {
+    return this.usersService.getUserProjects(id);
   }
 }
