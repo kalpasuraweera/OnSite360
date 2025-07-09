@@ -798,12 +798,15 @@ export class ScheduleService {
       );
     }
 
-    const { description, ...activityData } = createDailyActivityDto;
+    const { description, startTime, endTime, ...activityData } =
+      createDailyActivityDto;
 
     return this.prisma.dailyActivity.create({
       data: {
         ...activityData,
         activity: description,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
       },
       include: {
         dailyLog: {
@@ -946,13 +949,16 @@ export class ScheduleService {
       throw new ForbiddenException('Cannot edit activities from previous days');
     }
 
-    const { description, ...updateData } = updateDailyActivityDto;
+    const { description, startTime, endTime, ...updateData } =
+      updateDailyActivityDto;
 
     return this.prisma.dailyActivity.update({
       where: { id: activityId },
       data: {
         ...updateData,
         activity: description || activity.activity,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
       },
       include: {
         dailyLog: {

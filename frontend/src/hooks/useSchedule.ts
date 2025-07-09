@@ -98,8 +98,6 @@ export interface DailyActivity {
   location?: string;
   startTime?: string;
   endTime?: string;
-  duration?: number;
-  workersInvolved?: number;
   progress?: number;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
@@ -182,7 +180,6 @@ export interface CreateDailyActivityDto {
   dailyLogId: string;
   startTime?: string;
   endTime?: string;
-  workersInvolved?: number;
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
@@ -193,7 +190,6 @@ export interface UpdateDailyActivityDto {
   dailyLogId?: string;
   startTime?: string;
   endTime?: string;
-  workersInvolved?: number;
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;

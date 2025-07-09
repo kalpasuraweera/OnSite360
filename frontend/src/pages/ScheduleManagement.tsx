@@ -368,8 +368,6 @@ const ScheduleManagement = () => {
     dailyLogId: "",
     startTime: "",
     endTime: "",
-    duration: 0,
-    workersInvolved: 0,
     progress: 0,
     status: "NOT_STARTED" as 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED',
     notes: "",
@@ -684,13 +682,19 @@ const ScheduleManagement = () => {
     if (!selectedLogForActivity) return;
 
     try {
+      // Helper function to combine date with time
+      const combineDateTime = (time: string): string | undefined => {
+        if (!time) return undefined;
+        const logDate = moment(selectedLogForActivity.date).format('YYYY-MM-DD');
+        return `${logDate}T${time}:00`;
+      };
+
       if (editingActivity) {
         // Update existing activity
         const activityData: UpdateDailyActivityDto = {
           description: activityForm.description || undefined,
-          startTime: activityForm.startTime || undefined,
-          endTime: activityForm.endTime || undefined,
-          workersInvolved: activityForm.workersInvolved || undefined,
+          startTime: combineDateTime(activityForm.startTime),
+          endTime: combineDateTime(activityForm.endTime),
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
@@ -704,9 +708,8 @@ const ScheduleManagement = () => {
         const activityData: CreateDailyActivityDto = {
           description: activityForm.description,
           dailyLogId: selectedLogForActivity.id,
-          startTime: activityForm.startTime || undefined,
-          endTime: activityForm.endTime || undefined,
-          workersInvolved: activityForm.workersInvolved || undefined,
+          startTime: combineDateTime(activityForm.startTime),
+          endTime: combineDateTime(activityForm.endTime),
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
@@ -722,8 +725,6 @@ const ScheduleManagement = () => {
         dailyLogId: "",
         startTime: "",
         endTime: "",
-        duration: 0,
-        workersInvolved: 0,
         progress: 0,
         status: "NOT_STARTED",
         notes: "",
@@ -741,8 +742,6 @@ const ScheduleManagement = () => {
       dailyLogId: log.id,
       startTime: "",
       endTime: "",
-      duration: 0,
-      workersInvolved: 0,
       progress: 0,
       status: "NOT_STARTED",
       notes: "",
@@ -753,13 +752,18 @@ const ScheduleManagement = () => {
   const handleEditActivity = (activity: DailyActivity) => {
     setEditingActivity(activity);
     setSelectedLogForActivity(activity.dailyLog || null);
+    
+    // Helper function to extract time from datetime
+    const extractTime = (dateTime: string | null | undefined): string => {
+      if (!dateTime) return "";
+      return moment(dateTime).format('HH:mm');
+    };
+
     setActivityForm({
       description: activity.description,
       dailyLogId: activity.dailyLogId,
-      startTime: activity.startTime || "",
-      endTime: activity.endTime || "",
-      duration: activity.duration || 0,
-      workersInvolved: activity.workersInvolved || 0,
+      startTime: extractTime(activity.startTime),
+      endTime: extractTime(activity.endTime),
       progress: activity.progress || 0,
       status: activity.status,
       notes: activity.notes || "",
@@ -1365,16 +1369,8 @@ const ScheduleManagement = () => {
                                   <div className="flex gap-4 text-xs text-base-content/60">
                                     {activity.startTime && activity.endTime && (
                                       <span>
-                                        {activity.startTime} -{" "}
-                                        {activity.endTime}
-                                      </span>
-                                    )}
-                                    {activity.duration && (
-                                      <span>{activity.duration}h duration</span>
-                                    )}
-                                    {activity.workersInvolved && (
-                                      <span>
-                                        {activity.workersInvolved} workers
+                                        {moment(activity.startTime).format('HH:mm')} -{" "}
+                                        {moment(activity.endTime).format('HH:mm')}
                                       </span>
                                     )}
                                     {activity.progress !== undefined && (
@@ -2194,21 +2190,6 @@ const ScheduleManagement = () => {
                 </div>
               </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Workers Involved</span>
-                </label>
-                <input
-                  type="number"
-                  className="input input-bordered"
-                  value={activityForm.workersInvolved}
-                  onChange={(e) =>
-                    setActivityForm((prev) => ({ ...prev, workersInvolved: parseInt(e.target.value) || 0 }))
-                  }
-                  min="0"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-control">
                   <label className="label">
@@ -2277,8 +2258,6 @@ const ScheduleManagement = () => {
                       dailyLogId: "",
                       startTime: "",
                       endTime: "",
-                      duration: 0,
-                      workersInvolved: 0,
                       progress: 0,
                       status: "NOT_STARTED",
                       notes: "",
