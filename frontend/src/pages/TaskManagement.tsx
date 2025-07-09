@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   MdAddTask,
   MdEdit,
@@ -17,7 +17,7 @@ import {
   MdAssignment,
   MdSchedule,
 } from "react-icons/md";
-import { ControlledBoard, moveCard } from "@caldwell619/react-kanban";
+import { ControlledBoard } from "@caldwell619/react-kanban";
 import type {
   KanbanBoard,
   OnDragEndNotification,
@@ -478,6 +478,11 @@ const TaskManagement = () => {
     assignees: [],
     dateRange: { start: "", end: "" },
   });
+  const [appliedFilters, setAppliedFilters] = useState<TaskFilters>({
+    statuses: [],
+    assignees: [],
+    dateRange: { start: "", end: "" },
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [newComment, setNewComment] = useState("");
 
@@ -540,40 +545,38 @@ const TaskManagement = () => {
   // Check if projects is available and is an array
   const hasProjects = Array.isArray(projects) && projects.length > 0;
 
-  // Filter tasks based on current filters
-  const getFilteredTasks = useCallback(() => {
+  // Apply filters using useMemo for better performance
+  const filteredTasks = useMemo(() => {
     let filtered = tasks;
 
-    // Apply filters
-    if (filters.statuses.length > 0) {
-      filtered = filtered.filter((task) => filters.statuses.includes(task.status));
+    // Apply filters only when appliedFilters change
+    if (appliedFilters.statuses.length > 0) {
+      filtered = filtered.filter((task) => appliedFilters.statuses.includes(task.status));
     }
 
-    if (filters.assignees.length > 0) {
+    if (appliedFilters.assignees.length > 0) {
       filtered = filtered.filter((task) => 
-        task.assigneeId && filters.assignees.includes(task.assigneeId)
+        task.assigneeId && appliedFilters.assignees.includes(task.assigneeId)
       );
     }
 
-    if (filters.dateRange.start && task.dueDate) {
+    if (appliedFilters.dateRange.start) {
       filtered = filtered.filter((task) => 
-        task.dueDate && task.dueDate >= filters.dateRange.start
+        task.dueDate && task.dueDate >= appliedFilters.dateRange.start
       );
     }
 
-    if (filters.dateRange.end && task.dueDate) {
+    if (appliedFilters.dateRange.end) {
       filtered = filtered.filter((task) => 
-        task.dueDate && task.dueDate <= filters.dateRange.end
+        task.dueDate && task.dueDate <= appliedFilters.dateRange.end
       );
     }
 
     return filtered;
-  }, [tasks, filters]);
+  }, [tasks, appliedFilters]);
 
-  // Create kanban board structure
-  const createKanbanBoard = useCallback((): KanbanBoard<TaskCard> => {
-    const filteredTasks = getFilteredTasks();
-console.log("Filtered Tasks:", filteredTasks);
+  // Create kanban board structure using useMemo
+  const board = useMemo((): KanbanBoard<TaskCard> => {
     const columns: Column<TaskCard>[] = [
       {
         id: "pending",
@@ -598,26 +601,42 @@ console.log("Filtered Tasks:", filteredTasks);
     ];
 
     return { columns };
-  }, [getFilteredTasks]);
+  }, [filteredTasks]);
 
-  const [board, setBoard] = useState<KanbanBoard<TaskCard>>(() =>
-    createKanbanBoard()
-  );
+  // Function to apply filters manually
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+  };
 
-  // Update board when tasks change
-  useEffect(() => {
-    setBoard(createKanbanBoard());
-  }, [createKanbanBoard]);
+  // Check if filters are applied
+  const hasActiveFilters = useMemo(() => {
+    return appliedFilters.statuses.length > 0 || 
+           appliedFilters.assignees.length > 0 || 
+           appliedFilters.dateRange.start !== "" || 
+           appliedFilters.dateRange.end !== "";
+  }, [appliedFilters]);
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    setFilters({
+      statuses: [],
+      assignees: [],
+      dateRange: { start: "", end: "" },
+    });
+    setAppliedFilters({
+      statuses: [],
+      assignees: [],
+      dateRange: { start: "", end: "" },
+    });
+  };
 
   const handleCardMove: OnDragEndNotification<TaskCard> = async (
     card,
-    source,
+    _source,
     destination
   ) => {
-    // Update board optimistically
-    setBoard((currentBoard) => {
-      return moveCard(currentBoard, source, destination);
-    });
+    // Check if destination exists
+    if (!destination) return;
 
     // Determine new status based on destination column
     let newStatus: TaskStatus;
@@ -646,13 +665,8 @@ console.log("Filtered Tasks:", filteredTasks);
       });
     } catch (error) {
       console.error("Failed to update task status:", error);
-      // Revert the board state on error
-      setBoard(createKanbanBoard());
     }
   };
-
-  // Filter tasks by project and type for table view
-  const filteredTasks = getFilteredTasks();
 
   const handleExport = () => {
     const exportTasks = filteredTasks;
@@ -806,16 +820,20 @@ console.log("Filtered Tasks:", filteredTasks);
             <MdFilterList />
             Filters
           </h3>
-          <button
-            className="btn btn-xs btn-outline"
-            onClick={() => setFilters({
-              statuses: [],
-              assignees: [],
-              dateRange: { start: "", end: "" },
-            })}
-          >
-            Clear All
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="btn btn-xs btn-primary"
+              onClick={applyFilters}
+            >
+              Apply Filters
+            </button>
+            <button
+              className="btn btn-xs btn-outline"
+              onClick={clearFilters}
+            >
+              Clear All
+            </button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1408,7 +1426,17 @@ console.log("Filtered Tasks:", filteredTasks);
               >
                 <MdFilterList />
                 {showFilters ? "Hide Filters" : "Show Filters"}
+                {hasActiveFilters && (
+                  <span className="badge badge-warning badge-xs ml-1">
+                    Active
+                  </span>
+                )}
               </button>
+              {hasActiveFilters && (
+                <span className="text-sm text-base-content/70">
+                  Showing {filteredTasks.length} of {tasks.length} tasks
+                </span>
+              )}
             </div>
 
             {/* Filters */}
