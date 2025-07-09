@@ -227,7 +227,7 @@ export class ScheduleService {
         ...eventData,
         startDate: new Date(createScheduleEventDto.startDate),
         endDate: new Date(createScheduleEventDto.endDate),
-        allDay: createScheduleEventDto.isAllDay || false,
+        allDay: createScheduleEventDto.allDay || false,
         createdById: userId,
         assignees: assignedUserId
           ? {
@@ -386,7 +386,7 @@ export class ScheduleService {
       throw new ForbiddenException('You can only edit events you created');
     }
 
-    const { assignedUserId, isAllDay, ...updateData } = updateScheduleEventDto;
+    const { assignedUserId, allDay, ...updateData } = updateScheduleEventDto;
 
     return this.prisma.scheduleEvent.update({
       where: { id: eventId },
@@ -398,7 +398,7 @@ export class ScheduleService {
         endDate: updateScheduleEventDto.endDate
           ? new Date(updateScheduleEventDto.endDate)
           : undefined,
-        allDay: isAllDay !== undefined ? isAllDay : undefined,
+        allDay: allDay !== undefined ? allDay : undefined,
         assignees: assignedUserId
           ? {
               set: [{ id: assignedUserId }],

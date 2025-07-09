@@ -144,7 +144,7 @@ export interface CreateScheduleEventDto {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   location?: string;
   color?: string;
-  isAllDay?: boolean;
+  allDay?: boolean;
   assignedUserId?: string;
 }
 
@@ -158,7 +158,7 @@ export interface UpdateScheduleEventDto {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   location?: string;
   color?: string;
-  isAllDay?: boolean;
+  allDay?: boolean;
   assignedUserId?: string;
 }
 

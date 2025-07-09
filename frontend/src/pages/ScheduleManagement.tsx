@@ -25,9 +25,13 @@ import {
   useDeleteProjectPhase,
   useDeleteDailyLog,
   useDeleteDailyActivity,
+  useCreateScheduleEvent,
+  useUpdateScheduleEvent,
+  useDeleteScheduleEvent,
   type ProjectPhase,
   type ScheduleEvent,
   type CreateProjectPhaseDto,
+  type CreateScheduleEventDto,
 } from "../hooks/useSchedule";
 
 // Set up the localizer
@@ -313,6 +317,25 @@ const ScheduleManagement = () => {
     parentId: "",
   });
 
+  // Event modal state
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [eventForm, setEventForm] = useState<CreateScheduleEventDto>({
+    title: "",
+    description: "",
+    startDate: "",
+    endDate: "",
+    projectId: "",
+    type: "TASK",
+    priority: "MEDIUM",
+    location: "",
+    color: "#3174ad",
+    allDay: false,
+    assignedUserId: "",
+  });
+
   // Get auth user
   const { user } = useAuthStore();
 
@@ -347,6 +370,11 @@ const ScheduleManagement = () => {
   const deletePhaseMutation = useDeleteProjectPhase();
   const deleteLogMutation = useDeleteDailyLog();
   const deleteActivityMutation = useDeleteDailyActivity();
+
+  // Event mutations
+  const createEventMutation = useCreateScheduleEvent();
+  const updateEventMutation = useUpdateScheduleEvent();
+  const deleteEventMutation = useDeleteScheduleEvent();
 
   // Transform project phases to Gantt tasks
   const transformPhaseToGanttTask = (phase: ProjectPhase): GanttTask => {
@@ -456,6 +484,82 @@ const ScheduleManagement = () => {
         console.error("Error deleting activity:", error);
       }
     }
+  };
+
+  // Event handling functions
+  const handleEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      const cleanedForm = {
+        ...eventForm,
+        assignedUserId: eventForm.assignedUserId || undefined,
+      };
+
+      if (editingEvent) {
+        await updateEventMutation.mutateAsync({
+          id: editingEvent.id,
+          event: cleanedForm,
+        });
+      } else {
+        await createEventMutation.mutateAsync({
+          ...cleanedForm,
+          projectId: selectedProject,
+        });
+      }
+      setShowEventModal(false);
+      setEditingEvent(null);
+      setEventForm({
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        projectId: "",
+        type: "TASK",
+        priority: "MEDIUM",
+        location: "",
+        color: "#3174ad",
+        allDay: false,
+        assignedUserId: "",
+      });
+    } catch (error) {
+      console.error("Error saving event:", error);
+    }
+  };
+
+  const handleEditEvent = (event: ScheduleEvent) => {
+    setEditingEvent(event);
+    setEventForm({
+      title: event.title,
+      description: event.description || "",
+      startDate: moment(event.startDate).format("YYYY-MM-DDTHH:mm"),
+      endDate: moment(event.endDate || event.startDate).format("YYYY-MM-DDTHH:mm"),
+      projectId: event.projectId,
+      type: event.type,
+      priority: event.priority,
+      location: event.location || "",
+      color: event.color || "#3174ad",
+      allDay: event.allDay,
+      assignedUserId: event.assignedUserId || "",
+    });
+    setShowEventModal(true);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      try {
+        await deleteEventMutation.mutateAsync(eventId);
+        setShowEventDetails(false);
+      } catch (error) {
+        console.error("Error deleting event:", error);
+      }
+    }
+  };
+
+  const handleShowEventDetails = (event: ScheduleEvent) => {
+    setSelectedEvent(event);
+    setShowEventDetails(true);
   };
 
   // Helper function to organize phases hierarchically
@@ -790,10 +894,34 @@ const ScheduleManagement = () => {
               {/* Heading */}
               <div className="flex justify-between items-center my-3">
                 <div className="text-xs text-gray-500 mt-2">
-                  Click on an event or date to view logs for that day.
+                  Click on an event to view details or date to view logs for that day.
                 </div>
-                {/* Legend */}
-                <div className="mt-4 flex flex-wrap gap-4">
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setEditingEvent(null);
+                    setEventForm({
+                      title: "",
+                      description: "",
+                      startDate: "",
+                      endDate: "",
+                      projectId: selectedProject,
+                      type: "TASK",
+                      priority: "MEDIUM",
+                      location: "",
+                      color: "#3174ad",
+                      allDay: false,
+                      assignedUserId: "",
+                    });
+                    setShowEventModal(true);
+                  }}
+                >
+                  <MdAdd className="mr-2" />
+                  Add Event
+                </button>
+              </div>
+              {/* Legend */}
+              <div className="mt-4 flex flex-wrap gap-4">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-green-500 rounded"></div>
                     <span className="text-sm">Deliveries</span>
@@ -815,7 +943,6 @@ const ScheduleManagement = () => {
                     <span className="text-sm">Meetings</span>
                   </div>
                 </div>
-              </div>
 
               {eventsLoading ? (
                 <div className="flex justify-center py-8">
@@ -838,12 +965,11 @@ const ScheduleManagement = () => {
                     view={currentView}
                     onView={(newView) => setCurrentView(newView)}
                     onSelectEvent={(event) => {
-                      // Convert the event date to the format expected by logs
-                      const dateString = moment(event.start).format(
-                        "YYYY-MM-DD"
-                      );
-                      setSelectedDate(dateString);
-                      setActiveTab("logs");
+                      // Find the actual event from scheduleEvents
+                      const actualEvent = scheduleEvents.find(e => e.id === event.id);
+                      if (actualEvent) {
+                        handleShowEventDetails(actualEvent);
+                      }
                     }}
                     onSelectSlot={(slotInfo) => {
                       // Handle clicking on empty slots
@@ -1318,6 +1444,331 @@ const ScheduleManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Event Modal */}
+      {showEventModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">
+              {editingEvent ? "Edit Event" : "Add New Event"}
+            </h3>
+            <form onSubmit={handleEventSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Event Title</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={eventForm.title}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Description</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered"
+                  value={eventForm.description}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Event Type</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={eventForm.type}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({ ...prev, type: e.target.value as typeof eventForm.type }))
+                    }
+                  >
+                    <option value="MEETING">Meeting</option>
+                    <option value="TASK">Task</option>
+                    <option value="MILESTONE">Milestone</option>
+                    <option value="INSPECTION">Inspection</option>
+                    <option value="DELIVERY">Delivery</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Priority</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={eventForm.priority}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({ ...prev, priority: e.target.value as typeof eventForm.priority }))
+                    }
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Start Date</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input input-bordered"
+                    value={eventForm.startDate}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({
+                        ...prev,
+                        startDate: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">End Date</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input input-bordered"
+                    value={eventForm.endDate}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({
+                        ...prev,
+                        endDate: e.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Location</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={eventForm.location}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({ ...prev, location: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Color</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="input input-bordered"
+                    value={eventForm.color}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({
+                        ...prev,
+                        color: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">All Day Event</span>
+                  </label>
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={eventForm.allDay}
+                    onChange={(e) =>
+                      setEventForm((prev) => ({
+                        ...prev,
+                        allDay: e.target.checked,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowEventModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    createEventMutation.isPending ||
+                    updateEventMutation.isPending
+                  }
+                >
+                  {createEventMutation.isPending ||
+                  updateEventMutation.isPending ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : editingEvent ? (
+                    "Update Event"
+                  ) : (
+                    "Create Event"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details Modal */}
+      {showEventDetails && selectedEvent && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <span className="text-2xl">
+                {selectedEvent.type === "MEETING" ? "🤝" : 
+                 selectedEvent.type === "TASK" ? "📋" :
+                 selectedEvent.type === "MILESTONE" ? "🎯" :
+                 selectedEvent.type === "INSPECTION" ? "🔍" :
+                 selectedEvent.type === "DELIVERY" ? "📦" : "📅"}
+              </span>
+              {selectedEvent.title}
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Type</label>
+                  <div className="text-base-content">{selectedEvent.type}</div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Priority</label>
+                  <div className={`badge ${
+                    selectedEvent.priority === "CRITICAL" ? "badge-error" :
+                    selectedEvent.priority === "HIGH" ? "badge-warning" :
+                    selectedEvent.priority === "MEDIUM" ? "badge-info" :
+                    "badge-ghost"
+                  }`}>
+                    {selectedEvent.priority}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Start Date</label>
+                  <div className="text-base-content">
+                    {moment(selectedEvent.startDate).format("MMM DD, YYYY h:mm A")}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">End Date</label>
+                  <div className="text-base-content">
+                    {selectedEvent.endDate ? 
+                      moment(selectedEvent.endDate).format("MMM DD, YYYY h:mm A") : 
+                      "No end date"
+                    }
+                  </div>
+                </div>
+              </div>
+              
+              {selectedEvent.location && (
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Location</label>
+                  <div className="text-base-content">{selectedEvent.location}</div>
+                </div>
+              )}
+              
+              {selectedEvent.description && (
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Description</label>
+                  <div className="text-base-content">{selectedEvent.description}</div>
+                </div>
+              )}
+              
+              <div>
+                <label className="text-sm font-medium text-base-content/70">Status</label>
+                <div className={`badge ${
+                  selectedEvent.status === "Completed" ? "badge-success" :
+                  selectedEvent.status === "In Progress" ? "badge-warning" :
+                  selectedEvent.status === "Cancelled" ? "badge-error" :
+                  "badge-ghost"
+                }`}>
+                  {selectedEvent.status}
+                </div>
+              </div>
+              
+              {selectedEvent.assignees && selectedEvent.assignees.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-base-content/70">Assignees</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedEvent.assignees.map((assignee) => (
+                      <div key={assignee.id} className="badge badge-outline">
+                        {assignee.firstName} {assignee.lastName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <label className="text-sm font-medium text-base-content/70">Created By</label>
+                <div className="text-base-content">
+                  {selectedEvent.createdBy.firstName} {selectedEvent.createdBy.lastName}
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowEventDetails(false)}
+              >
+                Close
+              </button>
+              {user && user.id === selectedEvent.createdBy.id && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setShowEventDetails(false);
+                      handleEditEvent(selectedEvent);
+                    }}
+                  >
+                    <MdEdit className="mr-2" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-error"
+                    onClick={() => handleDeleteEvent(selectedEvent.id)}
+                  >
+                    <MdDelete className="mr-2" />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

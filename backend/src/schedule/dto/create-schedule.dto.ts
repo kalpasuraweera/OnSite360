@@ -187,7 +187,7 @@ export class CreateScheduleEventDto {
   })
   @IsBoolean()
   @IsOptional()
-  isAllDay?: boolean;
+  allDay?: boolean;
 
   @ApiPropertyOptional({
     description: 'User ID assigned to this event',
