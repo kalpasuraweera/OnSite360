@@ -86,121 +86,6 @@ export class TasksController {
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a specific task by ID' })
-  @ApiParam({ name: 'id', description: 'Task ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Task retrieved successfully',
-    type: Task,
-  })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.tasksService.findOne(id, req.user.sub);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update a task' })
-  @ApiParam({ name: 'id', description: 'Task ID' })
-  @ApiBody({ type: UpdateTaskDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Task updated successfully',
-    type: Task,
-  })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  update(
-    @Param('id') id: string,
-    @Body() updateTaskDto: UpdateTaskDto,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    return this.tasksService.update(id, updateTaskDto, req.user.sub);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a task' })
-  @ApiParam({ name: 'id', description: 'Task ID' })
-  @ApiResponse({ status: 200, description: 'Task deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.tasksService.remove(id, req.user.sub);
-  }
-
-  // Comment Routes
-  @Post('comments')
-  @ApiOperation({ summary: 'Add a comment to a task' })
-  @ApiBody({ type: CreateCommentDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Comment created successfully',
-    type: Comment,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  createComment(
-    @Body() createCommentDto: CreateCommentDto,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    return this.tasksService.createComment(createCommentDto, req.user.sub);
-  }
-
-  @Get(':taskId/comments')
-  @ApiOperation({ summary: 'Get all comments for a task' })
-  @ApiParam({ name: 'taskId', description: 'Task ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Comments retrieved successfully',
-    type: [Comment],
-  })
-  @ApiResponse({ status: 404, description: 'Task not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  getTaskComments(
-    @Param('taskId') taskId: string,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    return this.tasksService.getTaskComments(taskId, req.user.sub);
-  }
-
-  @Patch('comments/:commentId')
-  @ApiOperation({ summary: 'Update a comment' })
-  @ApiParam({ name: 'commentId', description: 'Comment ID' })
-  @ApiBody({ type: UpdateCommentDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Comment updated successfully',
-    type: Comment,
-  })
-  @ApiResponse({ status: 404, description: 'Comment not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  updateComment(
-    @Param('commentId') commentId: string,
-    @Body() updateCommentDto: UpdateCommentDto,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    return this.tasksService.updateComment(
-      commentId,
-      updateCommentDto,
-      req.user.sub,
-    );
-  }
-
-  @Delete('comments/:commentId')
-  @ApiOperation({ summary: 'Delete a comment' })
-  @ApiParam({ name: 'commentId', description: 'Comment ID' })
-  @ApiResponse({ status: 200, description: 'Comment deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Comment not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  deleteComment(
-    @Param('commentId') commentId: string,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    return this.tasksService.deleteComment(commentId, req.user.sub);
-  }
-
   @Get('my-tasks')
   @ApiOperation({ summary: 'Get tasks assigned to the current user' })
   @ApiQuery({
@@ -253,5 +138,120 @@ export class TasksController {
   })
   getUserTaskStats(@Request() req: AuthenticatedRequest) {
     return this.tasksService.getUserTaskStats(req.user.sub);
+  }
+
+  // Comment Routes - PUT BEFORE :id routes to avoid conflicts
+  @Post('comments')
+  @ApiOperation({ summary: 'Add a comment to a task' })
+  @ApiBody({ type: CreateCommentDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Comment created successfully',
+    type: Comment,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  createComment(
+    @Body() createCommentDto: CreateCommentDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.tasksService.createComment(createCommentDto, req.user.sub);
+  }
+
+  @Patch('comments/:commentId')
+  @ApiOperation({ summary: 'Update a comment' })
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiBody({ type: UpdateCommentDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Comment updated successfully',
+    type: Comment,
+  })
+  @ApiResponse({ status: 404, description: 'Comment not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  updateComment(
+    @Param('commentId') commentId: string,
+    @Body() updateCommentDto: UpdateCommentDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.tasksService.updateComment(
+      commentId,
+      updateCommentDto,
+      req.user.sub,
+    );
+  }
+
+  @Delete('comments/:commentId')
+  @ApiOperation({ summary: 'Delete a comment' })
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiResponse({ status: 200, description: 'Comment deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Comment not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  deleteComment(
+    @Param('commentId') commentId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.tasksService.deleteComment(commentId, req.user.sub);
+  }
+
+  @Get(':taskId/comments')
+  @ApiOperation({ summary: 'Get all comments for a task' })
+  @ApiParam({ name: 'taskId', description: 'Task ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comments retrieved successfully',
+    type: [Comment],
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  getTaskComments(
+    @Param('taskId') taskId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.tasksService.getTaskComments(taskId, req.user.sub);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific task by ID' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task retrieved successfully',
+    type: Task,
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.tasksService.findOne(id, req.user.sub);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a task' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiBody({ type: UpdateTaskDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Task updated successfully',
+    type: Task,
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  update(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.tasksService.update(id, updateTaskDto, req.user.sub);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a task' })
+  @ApiParam({ name: 'id', description: 'Task ID' })
+  @ApiResponse({ status: 200, description: 'Task deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.tasksService.remove(id, req.user.sub);
   }
 }
