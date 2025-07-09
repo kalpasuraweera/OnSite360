@@ -38,7 +38,7 @@ import {
 import { useUserProjects } from "../hooks/useUsers";
 import { useProject, type Project } from "../hooks/useProjects";
 import { useAuthStore } from "../stores/useAuthStore";
-import { TagsInput } from "react-tag-input-component";
+import TagsInput from "../components/TagsInput";
 
 // Convert ApiTask to Card interface for Kanban board
 interface TaskCard extends Card {
@@ -367,14 +367,9 @@ const AddTaskModal = ({
             <TagsInput
               value={tags}
               onChange={setTags}
-              name="tags"
-              placeHolder="enter tags"
+              placeholder="Enter tags"
+              disabled={isSubmitting}
             />
-            <div className="label">
-              <span className="label-text-alt">
-                Press enter or comma to add new tag
-              </span>
-            </div>
           </div>
 
           <div className="modal-action">
