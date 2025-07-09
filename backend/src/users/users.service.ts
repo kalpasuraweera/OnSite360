@@ -180,4 +180,38 @@ export class UsersService {
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
+
+  async getUserProjects(userId: string) {
+    const userProjects = await this.prisma.userProject.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      include: {
+        project: {
+          include: {
+            _count: {
+              select: {
+                tasks: true,
+                documents: true,
+                threads: true,
+                issue: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return userProjects.map((userProject) => ({
+      ...userProject.project,
+      userProject: {
+        id: userProject.id,
+        projectRole: userProject.projectRole,
+        accessLevel: userProject.accessLevel,
+        assignedDate: userProject.assignedDate,
+        isActive: userProject.isActive,
+      },
+    }));
+  }
 }

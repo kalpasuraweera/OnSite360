@@ -57,6 +57,36 @@ export interface UpdateUserDto {
   roleId?: string;
 }
 
+export interface UserProject {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  budget?: number;
+  squareFeet?: number;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
+  logoUrl?: string;
+  featuredImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  userProject: {
+    id: string;
+    projectRole: string;
+    accessLevel: number;
+    assignedDate: string;
+    isActive: boolean;
+  };
+  _count?: {
+    tasks: number;
+    documents: number;
+    threads: number;
+    issue: number;
+  };
+}
+
 // Get all users
 export const useUsers = () => {
   return useQuery({
@@ -126,5 +156,17 @@ export const useDeleteUser = () => {
       // Invalidate and refetch the users list
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
+  });
+};
+
+// Get projects for a specific user
+export const useUserProjects = (userId: string) => {
+  return useQuery({
+    queryKey: ["users", userId, "projects"],
+    queryFn: async () => {
+      const { data } = await instance.get(`/users/${userId}/projects`);
+      return data as UserProject[];
+    },
+    enabled: !!userId, // Only run the query if we have a user ID
   });
 };

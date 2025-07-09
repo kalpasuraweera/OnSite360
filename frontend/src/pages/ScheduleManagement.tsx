@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MdCalendarToday,
   MdWbSunny,
@@ -13,7 +13,8 @@ import { Calendar, momentLocalizer, type View } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "../styles/gantt.css";
-import { useProjects, type Project } from "../hooks/useProjects";
+import { type Project } from "../hooks/useProjects";
+import { useUserProjects } from "../hooks/useUsers";
 import { useAuthStore } from "../stores/useAuthStore";
 import {
   useProjectPhases,
@@ -315,9 +316,8 @@ const ScheduleManagement = () => {
   const { user } = useAuthStore();
 
   // Fetch projects
-  const { data: projectsResponse = [], isLoading: projectsLoading } =
-    useProjects();
-  const projects = useMemo(() => projectsResponse?.data || [], [projectsResponse]);
+  const { data: projects = [], isLoading: projectsLoading } =
+    useUserProjects(user?.id || "");
 
   // Set default project when projects load
   useEffect(() => {

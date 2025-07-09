@@ -16,8 +16,8 @@ import {
   type UpdateRFIDto,
   type RFI
 } from "../hooks/useCommunication";
-import { useProjects, type Project } from "../hooks/useProjects";
-import { useUsers } from "../hooks/useUsers";
+import { type Project } from "../hooks/useProjects";
+import { useUsers, useUserProjects } from "../hooks/useUsers";
 import { useAuthStore } from "../stores/useAuthStore";
 import {
   Chart as ChartJS,
@@ -46,10 +46,12 @@ ChartJS.register(
 );
 
 const Communication = () => {
+  // Auth store
+  const { user: currentUser } = useAuthStore();
+
   // API hooks
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads();
-  const { data: projectsResponse } = useProjects();
-  const projects = projectsResponse?.data || [];
+  const { data: projects = [] } = useUserProjects(currentUser?.id || "");
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
   
@@ -59,9 +61,6 @@ const Communication = () => {
   const createRFIMutation = useCreateRFI();
   const updateRFIMutation = useUpdateRFI();
   const deleteRFIMutation = useDeleteRFI();
-
-  // Auth store
-  const { user: currentUser } = useAuthStore();
 
   // State
   const [activeTab, setActiveTab] = useState("threads");
