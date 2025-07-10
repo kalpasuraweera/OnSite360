@@ -21,6 +21,7 @@ import DocumentManagement from "./pages/DocumentManagement";
 import ScheduleManagement from "./pages/ScheduleManagement";
 import TaskManagement from "./pages/TaskManagement";
 import WorkforceManagement from "./pages/WorkforceManagement";
+import DailyLogsManagement from "./pages/DailyLogsManagement";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,15 @@ function App() {
           element: (
             <PermissionRoute pageId="workforce-management">
               <WorkforceManagement />
+            </PermissionRoute>
+          ),
+        },
+
+        {
+          path: "daily-logs-management",
+          element: (
+            <PermissionRoute pageId="daily-logs-management">
+              <DailyLogsManagement />
             </PermissionRoute>
           ),
         },
