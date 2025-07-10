@@ -10,14 +10,15 @@ import { useRoles } from "../hooks/useRoles";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useUserProjects } from "../hooks/useUsers";
 
-// Mock projects
-const mockProjects = [
-  { id: "p1", name: "Downtown Tower" },
-  { id: "p2", name: "Greenfield Mall" },
-  { id: "p3", name: "Harbor Bridge" },
-];
-
-type DocumentType = "drawings" | "reports" | "contracts" | "permits" | "photos";
+type DocumentType =
+  | "drawings"
+  | "specifications"
+  | "contracts"
+  | "permits"
+  | "reports"
+  | "submittals"
+  | "invoices"
+  | "photos";
 
 interface Document {
   id: string;
@@ -35,10 +36,13 @@ interface Document {
 }
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  drawings: "Drawings & Plannings",
-  reports: "Reports",
+  drawings: "Drawings",
+  specifications: "Specifications",
   contracts: "Contracts",
   permits: "Permits",
+  reports: "Reports",
+  submittals: "Submittals",
+  invoices: "Invoices",
   photos: "Photos",
 };
 
@@ -431,10 +435,7 @@ const DocumentManagement = () => {
                   </div>
                   <div className="mb-2">
                     <span className="font-bold">Related To:</span> Project{" "}
-                    {
-                      mockProjects.find((p) => p.id === photoModal.projectId)
-                        ?.name
-                    }
+                    {photoModal.projectId}
                   </div>
                   <div className="flex gap-2 mt-4">
                     <a

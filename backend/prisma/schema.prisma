@@ -151,6 +151,15 @@ model Document {
   project      Project  @relation(fields: [projectId], references: [id])
   name         String // e.g., 'Invoice.pdf'
   url          String // S3 URL for the file
+  /// Describes the document type with the following possible values:
+  /// - "Drawing": Architectural, structural, MEP, shop drawings
+  /// - "Specification": Material specs, technical sheets, standards
+  /// - "Contract": General contracts, subcontracts, change orders
+  /// - "Permit": Construction, zoning, occupancy, safety permits
+  /// - "Report": Daily logs, inspection reports, meeting minutes
+  /// - "Submittal": Materials, samples, shop drawings for review/approval
+  /// - "Invoice": Payment applications, bills, purchase-related documents
+  /// - "Photo": Progress photos, defect documentation, site conditions
   type         String // e.g., "Drawing", "Specification", "Contract", "Photo"
   category     String? // Further categorization
   version      String   @default("1.0") // Document version
