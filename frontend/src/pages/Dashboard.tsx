@@ -35,6 +35,11 @@ import {
 } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import StatCard from "../components/StatCard";
+import { useAuthStore } from "../stores/useAuthStore";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { useState } from "react";
 
 ChartJS.register(
   CategoryScale,
@@ -49,6 +54,43 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
+  // New: state for location coordinates
+  const [locationCoords, setLocationCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locationText, setLocationText] = useState<string>("");
+
+  // Map click handler component
+  function LocationMarker({
+    onSelect,
+  }: {
+    onSelect: (coords: { lat: number; lng: number }) => void;
+  }) {
+    useMapEvents({
+      click(e) {
+        onSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
+      },
+    });
+    // This is the correct way to show a marker at the selected position:
+    return locationCoords ? <Marker position={locationCoords} /> : null;
+  }
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  // Open map modal
+  const handlePickLocation = () => {
+    setShowMapModal(true);
+  };
+
+  // Confirm location selection
+  const handleConfirmLocation = () => {
+    setShowMapModal(false);
+  };
+
+  // Cancel location selection
+  const handleCancelLocation = () => {
+    setShowMapModal(false);
+  };
   // Chart data configurations
   const projectStatusData = {
     labels: ["Active", "Completed", "On Hold", "Planning"],
@@ -544,6 +586,94 @@ const Dashboard = () => {
     },
   ];
 
+  const user = useAuthStore((state) => state.user);
+
+  const DashboardLayout = [
+    {
+      role: "System Admin",
+      statCardIds: [
+        "total-users",
+        "active-sessions",
+        "system-health",
+        "alerts",
+      ],
+      chartKeys: ["project-status", "monthly-activity", "performance-overview"],
+    },
+    {
+      role: "Engineer",
+      statCardIds: [
+        "team-members",
+        "efficiency",
+        "project-success-rate",
+        "avg-project-roi",
+      ],
+      chartKeys: ["resource-allocation", "cost-breakdown"],
+    },
+    {
+      role: "Site Supervisor",
+      statCardIds: [
+        "urgent-tasks",
+        "tasks-complete",
+        "active-crew",
+        "open-rfis",
+      ],
+      chartKeys: ["safety-incidents", "rfi-response-time"],
+    },
+    {
+      role: "Project Client",
+      statCardIds: [
+        "active-rfis",
+        "approvals-pending",
+        "drawing-revisions",
+        "calculations",
+      ],
+      chartKeys: ["client-satisfaction", "rfi-response-time"],
+    },
+    {
+      role: "Project Manager",
+      statCardIds: [
+        "hours-this-week",
+        "pending-invoices",
+        "completion-rate",
+        "overall-progress",
+      ],
+      chartKeys: ["cost-breakdown", "rfi-response-time"],
+    },
+    {
+      role: "Executive Admin",
+      statCardIds: ["portfolio-value", "total-value", "avg-progress", "alerts"],
+      chartKeys: ["project-status", "cost-breakdown"],
+    },
+    {
+      role: "Project Director",
+      statCardIds: [
+        "overall-progress",
+        "budget-status",
+        "timeline",
+        "milestones",
+      ],
+      chartKeys: ["monthly-activity", "cost-breakdown", "performance-overview"],
+    },
+  ];
+
+  // Determine layout for current user role
+  const roleLayout = DashboardLayout.find(
+    (layout) => layout.role === user?.role?.name
+  );
+
+  // Filter stat cards and charts based on role, fallback to all if not found
+  const visibleStatCards = roleLayout
+    ? statCards.filter((card) => roleLayout.statCardIds.includes(card.id))
+    : statCards;
+
+  const visibleCharts = roleLayout
+    ? chartsGrid.filter((chart) =>
+        roleLayout.chartKeys.includes(
+          chart.key || chart.title?.toLowerCase().replace(/\s/g, "-")
+        )
+      )
+    : chartsGrid;
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
@@ -566,9 +696,27 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Recent Updates */}
+      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h3 className="text-xl font-semibold">Today Updates </h3>
+            <p className="text-sm text-neutral">Downtown Project</p>
+          </div>
+
+          <button className="btn btn-primary">Go to Project</button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
+          <img src="/img1.jpg" alt="" className="w-70" />
+          <img src="/img2.jpg" alt="" className="w-70" />
+          <img src="/img1.jpg" alt="" className="w-70" />
+          <img src="/img2.jpg" alt="" className="w-70" />
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        {statCards.map((card, idx) => (
+        {visibleStatCards.map((card) => (
           <StatCard
             key={card.label}
             icon={card.icon}
@@ -580,7 +728,7 @@ const Dashboard = () => {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {chartsGrid.map((item) => (
+        {visibleCharts.map((item) => (
           <div
             key={item.key}
             className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 "
@@ -591,14 +739,57 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Performance Chart - Full Width */}
-      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 mb-6 shadow-xl shadow-base-300 ">
-        <h3 className="text-xl font-semibold mb-4">{lastChart[0].title}</h3>
-        <div className="h-80">
-          {}
-          {lastChart[0].chart}
+      {/* Map */}
+      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-semibold mb-4">Map</h3>
+          <input
+            type="search"
+            placeholder="Enter Map Location"
+            className="input input-bordered w-full max-w-xs"
+          />
+        </div>
+        <div className=" p-4 w-full relative">
+          <h3 className="text-lg font-semibold mb-2">Pick Project Location</h3>
+          <div style={{ height: 350, width: "100%" }}>
+            <MapContainer
+              center={locationCoords || { lat: 40.7128, lng: -74.006 }}
+              zoom={13}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+              />
+              <LocationMarker
+                onSelect={(coords) => setLocationCoords(coords)}
+              />
+            </MapContainer>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleCancelLocation}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleConfirmLocation}
+            >
+              Confirm Location
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Performance Chart - Full Width */}
+      {!roleLayout && (
+        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 mb-6 shadow-xl shadow-base-300 ">
+          <h3 className="text-xl font-semibold mb-4">{lastChart[0].title}</h3>
+          <div className="h-80">{lastChart[0].chart}</div>
+        </div>
+      )}
     </div>
   );
 };
