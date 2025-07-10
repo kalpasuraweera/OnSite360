@@ -37,7 +37,6 @@ import { Bar, Doughnut, Line } from "react-chartjs-2";
 import StatCard from "../components/StatCard";
 import { useAuthStore } from "../stores/useAuthStore";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useState } from "react";
 
@@ -59,7 +58,6 @@ const Dashboard = () => {
     lat: number;
     lng: number;
   } | null>(null);
-  const [locationText, setLocationText] = useState<string>("");
 
   // Map click handler component
   function LocationMarker({
@@ -76,11 +74,6 @@ const Dashboard = () => {
     return locationCoords ? <Marker position={locationCoords} /> : null;
   }
   const [showMapModal, setShowMapModal] = useState(false);
-
-  // Open map modal
-  const handlePickLocation = () => {
-    setShowMapModal(true);
-  };
 
   // Confirm location selection
   const handleConfirmLocation = () => {
@@ -681,38 +674,41 @@ const Dashboard = () => {
         System overview and key performance metrics
       </p>
 
-      {/* Quick Actions */}
-      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
-        <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {quickActions.map((action) => (
-            <button
-              key={action.label}
-              className={`btn ${action.className} w-full`}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Updates */}
-      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <h3 className="text-xl font-semibold">Today Updates </h3>
-            <p className="text-sm text-neutral">Downtown Project</p>
+      {/* Quick Actions - Only for System Admin */}
+      {user?.role?.name === "System Admin" && (
+        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
+          <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions.map((action) => (
+              <button
+                key={action.label}
+                className={`btn ${action.className} w-full`}
+              >
+                {action.label}
+              </button>
+            ))}
           </div>
+        </div>
+      )}
 
-          <button className="btn btn-primary">Go to Project</button>
+      {/* Recent Updates - For all except System Admin */}
+      {user?.role?.name !== "System Admin" && (
+        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <div>
+              <h3 className="text-xl font-semibold">Today Updates </h3>
+              <p className="text-sm text-neutral">Downtown Project</p>
+            </div>
+            <button className="btn btn-primary">Go to Project</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
+            <img src="/img1.jpg" alt="" className="w-70" />
+            <img src="/img2.jpg" alt="" className="w-70" />
+            <img src="/img1.jpg" alt="" className="w-70" />
+            <img src="/img2.jpg" alt="" className="w-70" />
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
-          <img src="/img1.jpg" alt="" className="w-70" />
-          <img src="/img2.jpg" alt="" className="w-70" />
-          <img src="/img1.jpg" alt="" className="w-70" />
-          <img src="/img2.jpg" alt="" className="w-70" />
-        </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
