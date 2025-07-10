@@ -25,6 +25,11 @@ interface Document {
   uploadedAt: string;
   url: string;
   projectId: string;
+  uploader: {
+    id: string;
+    name: string;
+    roleId: string;
+  };
 }
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
@@ -44,6 +49,11 @@ const mockDocuments: Document[] = [
     uploadedAt: "2024-06-01",
     url: "#",
     projectId: "p1",
+    uploader: {
+      id: "u1",
+      name: "Alice",
+      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
+    },
   },
   {
     id: "2",
@@ -53,6 +63,11 @@ const mockDocuments: Document[] = [
     uploadedAt: "2024-06-02",
     url: "#",
     projectId: "p1",
+    uploader: {
+      id: "u2",
+      name: "Bob",
+      roleId: "b6d501d4-799d-432a-b484-64d5bfffa16f",
+    },
   },
   {
     id: "3",
@@ -62,6 +77,11 @@ const mockDocuments: Document[] = [
     uploadedAt: "2024-06-03",
     url: "#",
     projectId: "p2",
+    uploader: {
+      id: "u3",
+      name: "Charlie",
+      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
+    },
   },
   {
     id: "4",
@@ -71,6 +91,11 @@ const mockDocuments: Document[] = [
     uploadedAt: "2024-06-04",
     url: "#",
     projectId: "p3",
+    uploader: {
+      id: "u4",
+      name: "Diana",
+      roleId: "b6d501d4-799d-432a-b484-64d5bfffa16f",
+    },
   },
   {
     id: "5",
@@ -80,18 +105,13 @@ const mockDocuments: Document[] = [
     uploadedAt: "2024-06-05",
     url: "/bg2.jpg", // Placeholder image
     projectId: "p1",
+    uploader: {
+      id: "u5",
+      name: "Eve",
+      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
+    },
   },
-  // ...add more mock documents as needed
 ];
-
-// Assign folders to mock documents for demonstration
-const getFolderForDoc = (doc: Document, roleIds: string[]) => {
-  // For demo: assign folder by projectId + doc.id hash to a role
-  if (!roleIds.length) return "";
-  // Use a hash to distribute docs among roles
-  const idx = (parseInt(doc.id.replace(/\D/g, ""), 10) || 0) % roleIds.length;
-  return roleIds[idx];
-};
 
 const DocumentManagement = () => {
   const [activeTab, setActiveTab] = useState<DocumentType>("drawings");
@@ -108,8 +128,9 @@ const DocumentManagement = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    // Simulate upload
     setTimeout(() => {
+      // For demo: assign uploader as "You" with the first available role
+      const firstRole = roles?.[0];
       const newDocs: Document[] = Array.from(files).map((file, idx) => ({
         id: `${Date.now()}-${idx}`,
         name: file.name,
@@ -118,6 +139,11 @@ const DocumentManagement = () => {
         uploadedAt: new Date().toISOString().slice(0, 10),
         url: "#",
         projectId: selectedProject,
+        uploader: {
+          id: "you",
+          name: "You",
+          roleId: firstRole?.id || "",
+        },
       }));
       setDocuments((prev) => [...prev, ...newDocs]);
       setUploading(false);
@@ -138,14 +164,13 @@ const DocumentManagement = () => {
   // Prepare dynamic folders from roles
   const folderedDocuments: Record<string, Document[]> = {};
   const roleList = roles || [];
-  const roleIds = roleList.map((r) => r.id);
 
   if (activeTab !== "photos") {
     roleList.forEach((role) => {
       folderedDocuments[role.id] = [];
     });
     filteredDocuments.forEach((doc) => {
-      const folderKey = getFolderForDoc(doc, roleIds);
+      const folderKey = doc.uploader?.roleId || "";
       if (folderedDocuments[folderKey]) {
         folderedDocuments[folderKey].push(doc);
       }
