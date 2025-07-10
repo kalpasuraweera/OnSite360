@@ -172,6 +172,8 @@ model Document {
   tags         String[] // Array of tags
   isActive     Boolean  @default(true)
   tasks        Task[]   // Tasks that reference this document as an attachment
+  rfis         RFI[]    // RFIs that reference this document as an attachment
+  issues       Issue[]  // Issues that reference this document as an attachment
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -227,7 +229,7 @@ model RFI {
   assignees    User[]      @relation("RFIAssignee")
   threadId     String?     // Link to discussion thread
   thread       Thread?     @relation(fields: [threadId], references: [id])
-  documents    String[]    // Array of document IDs referenced
+  documents    Document[] // Array of Document IDs for attachments
   dueDate      DateTime?
   answeredAt   DateTime?
   answer       String?     // The response/answer
@@ -382,7 +384,7 @@ model Issue {
   dueDate      DateTime?
   resolvedAt   DateTime?
   resolution   String? // How the issue was resolved
-  attachments  String[] // Array of S3 URLs for photos/documents
+  attachments  Document[] // Array of Document IDs for attachments
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
