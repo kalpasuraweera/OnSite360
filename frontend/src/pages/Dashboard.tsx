@@ -2,6 +2,24 @@ import {
   HiOutlineChartBar,
   HiOutlineUserCircle,
   HiOutlineUsers,
+  HiOutlineBriefcase,
+  HiOutlineTrendingUp,
+  HiOutlineExclamation,
+  HiOutlineCurrencyDollar,
+  HiOutlineUserGroup,
+  HiOutlineLightningBolt,
+  HiOutlineCheckCircle,
+  HiOutlineClipboardList,
+  HiOutlineUser,
+  HiOutlineDocumentReport,
+  HiOutlineChatAlt2,
+  HiOutlineDocumentText,
+  HiOutlineClock,
+  HiOutlineCalculator,
+  HiOutlineCollection,
+  HiOutlineCalendar,
+  HiOutlineDocumentDuplicate,
+  HiOutlineFlag,
 } from "react-icons/hi";
 import {
   Chart as ChartJS,
@@ -152,7 +170,263 @@ const Dashboard = () => {
       value: 3,
       label: "Alerts",
     },
+    {
+      id: "active-projects",
+      icon: <HiOutlineBriefcase className="inline w-7 h-7 text-secondary" />,
+      value: 12,
+      label: "Active Projects",
+    },
+    {
+      id: "avg-progress",
+      icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
+      value: "76%",
+      label: "Avg Progress",
+    },
+    {
+      id: "total-value",
+      icon: (
+        <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
+      ),
+      value: "$2.4M",
+      label: "Total Value",
+    },
+    {
+      id: "at-risk",
+      icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
+      value: 2,
+      label: "At risk",
+    },
+    {
+      id: "portfolio-value",
+      icon: (
+        <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
+      ),
+      value: "$8.1M",
+      label: "Portfolio Value",
+    },
+    {
+      id: "team-members",
+      icon: <HiOutlineUserGroup className="inline w-7 h-7 text-secondary" />,
+      value: 34,
+      label: "Team Members",
+    },
+    {
+      id: "efficiency",
+      icon: (
+        <HiOutlineLightningBolt className="inline w-7 h-7 text-secondary" />
+      ),
+      value: "91%",
+      label: "Efficiency",
+    },
+    {
+      id: "project-success-rate",
+      icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
+      value: "87%",
+      label: "Project Success Rate",
+    },
+    {
+      id: "avg-project-roi",
+      icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
+      value: "14%",
+      label: "Avg Project ROI",
+    },
+    {
+      id: "team-productivity",
+      icon: (
+        <HiOutlineLightningBolt className="inline w-7 h-7 text-secondary" />
+      ),
+      value: "88%",
+      label: "Team Productivity",
+    },
+    {
+      id: "urgent-tasks",
+      icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
+      value: 5,
+      label: "Urgent Tasks",
+    },
+    {
+      id: "tasks-complete",
+      icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
+      value: 120,
+      label: "Tasks Complete",
+    },
+    {
+      id: "active-crew",
+      icon: <HiOutlineUser className="inline w-7 h-7 text-secondary" />,
+      value: 18,
+      label: "Active Crew",
+    },
+    {
+      id: "open-rfis",
+      icon: (
+        <HiOutlineDocumentReport className="inline w-7 h-7 text-secondary" />
+      ),
+      value: 7,
+      label: "Open RFIs",
+    },
+    {
+      id: "conversation-awaiting",
+      icon: <HiOutlineChatAlt2 className="inline w-7 h-7 text-secondary" />,
+      value: 4,
+      label: "Conversation Awaiting",
+    },
+    {
+      id: "active-rfis",
+      icon: <HiOutlineDocumentText className="inline w-7 h-7 text-secondary" />,
+      value: 9,
+      label: "Active RFIs",
+    },
+    {
+      id: "approvals-pending",
+      icon: (
+        <HiOutlineClipboardList className="inline w-7 h-7 text-secondary" />
+      ),
+      value: 3,
+      label: "Approvals Pending",
+    },
+    {
+      id: "drawing-revisions",
+      icon: (
+        <HiOutlineDocumentDuplicate className="inline w-7 h-7 text-secondary" />
+      ),
+      value: 2,
+      label: "Drawing Revisions",
+    },
+    {
+      id: "calculations",
+      icon: <HiOutlineCalculator className="inline w-7 h-7 text-secondary" />,
+      value: 15,
+      label: "Calculations",
+    },
+    {
+      id: "active-jobs",
+      icon: <HiOutlineCollection className="inline w-7 h-7 text-secondary" />,
+      value: 6,
+      label: "Active Jobs",
+    },
+    {
+      id: "hours-this-week",
+      icon: <HiOutlineClock className="inline w-7 h-7 text-secondary" />,
+      value: 320,
+      label: "Hours This Week",
+    },
+    {
+      id: "pending-invoices",
+      icon: (
+        <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
+      ),
+      value: 8,
+      label: "Pending Invoices",
+    },
+    {
+      id: "completion-rate",
+      icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
+      value: "92%",
+      label: "Completion Rate",
+    },
+    {
+      id: "overall-progress",
+      icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
+      value: "81%",
+      label: "Overall Progress",
+    },
+    {
+      id: "timeline",
+      icon: <HiOutlineCalendar className="inline w-7 h-7 text-secondary" />,
+      value: "On Track",
+      label: "TimeLine",
+    },
+    {
+      id: "budget-status",
+      icon: (
+        <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
+      ),
+      value: "Under",
+      label: "Budget Status",
+    },
+    {
+      id: "milestones",
+      icon: <HiOutlineFlag className="inline w-7 h-7 text-secondary" />,
+      value: 11,
+      label: "Milestones",
+    },
   ];
+
+  // Additional charts data for various roles
+  const resourceAllocationData = {
+    labels: ["Labor", "Equipment", "Materials", "Subcontractors"],
+    datasets: [
+      {
+        label: "Allocation (%)",
+        data: [40, 25, 20, 15],
+        backgroundColor: ["#f87171", "#60a5fa", "#34d399", "#fbbf24"],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const safetyIncidentsData = {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    datasets: [
+      {
+        label: "Incidents",
+        data: [2, 1, 3, 0, 2, 1],
+        backgroundColor: "rgba(251, 191, 36, 0.7)",
+        borderColor: "#f59e42",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const clientSatisfactionData = {
+    labels: ["Site A", "Site B", "Site C", "Site D"],
+    datasets: [
+      {
+        label: "Satisfaction (%)",
+        data: [92, 85, 78, 88],
+        backgroundColor: [
+          "rgba(96,165,250,0.7)",
+          "rgba(16,185,129,0.7)",
+          "rgba(251,113,133,0.7)",
+          "rgba(253,224,71,0.7)",
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const costBreakdownData = {
+    labels: ["Labor", "Materials", "Equipment", "Overheads", "Misc"],
+    datasets: [
+      {
+        label: "Cost ($K)",
+        data: [120, 90, 60, 30, 10],
+        backgroundColor: [
+          "#6366f1",
+          "#f472b6",
+          "#facc15",
+          "#34d399",
+          "#60a5fa",
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const rfiResponseTimeData = {
+    labels: ["RFI-101", "RFI-102", "RFI-103", "RFI-104", "RFI-105"],
+    datasets: [
+      {
+        label: "Response Time (days)",
+        data: [2, 4, 1, 3, 2],
+        backgroundColor: "rgba(59,130,246,0.7)",
+        borderColor: "#2563eb",
+        borderWidth: 2,
+      },
+    ],
+  };
 
   // Chart grid configuration
   const chartsGrid = [
@@ -166,13 +440,106 @@ const Dashboard = () => {
       title: "Monthly Project Activity",
       chart: <Bar data={monthlyActivityData} options={chartOptions} />,
     },
+    // New charts for different roles
+    {
+      key: "resource-allocation",
+      title: "Resource Allocation (Engineer)",
+      chart: (
+        <Bar
+          data={resourceAllocationData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { display: false },
+            },
+            scales: {
+              x: { stacked: false },
+              y: { beginAtZero: true, max: 100 },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "safety-incidents",
+      title: "Safety Incidents Trend (Site Supervisor)",
+      chart: (
+        <Line
+          data={safetyIncidentsData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { display: false },
+            },
+            scales: {
+              y: { beginAtZero: true, stepSize: 1 },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "client-satisfaction",
+      title: "Client Satisfaction (Client)",
+      chart: (
+        <Bar
+          data={clientSatisfactionData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { display: false },
+            },
+            scales: {
+              y: { beginAtZero: true, max: 100 },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "cost-breakdown",
+      title: "Cost Breakdown (Project Manager)",
+      chart: (
+        <Doughnut
+          data={costBreakdownData}
+          options={{
+            ...doughnutOptions,
+            plugins: {
+              ...doughnutOptions.plugins,
+              legend: { position: "right" as const },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "rfi-response-time",
+      title: "RFI Response Time (System Admin/Subcontractor)",
+      chart: (
+        <Bar
+          data={rfiResponseTimeData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { display: false },
+            },
+            scales: {
+              y: { beginAtZero: true },
+            },
+          }}
+        />
+      ),
+    },
   ];
 
-  //Last Chart
+  // Last chart for performance overview
   const lastChart = [
     {
-      key: "performance-trends",
-      title: "Performance Trends",
+      title: "Performance Overview",
       chart: <Line data={performanceData} options={chartOptions} />,
     },
   ];
