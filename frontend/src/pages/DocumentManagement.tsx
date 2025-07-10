@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MdDownload,
   MdDelete,
@@ -6,7 +6,9 @@ import {
   MdClose,
   MdUploadFile,
 } from "react-icons/md";
-import { useRoles } from "../hooks/useRoles"; // <-- import the hook
+import { useRoles } from "../hooks/useRoles";
+import { useAuthStore } from "../stores/useAuthStore";
+import { useUserProjects } from "../hooks/useUsers";
 
 // Mock projects
 const mockProjects = [
@@ -117,12 +119,26 @@ const DocumentManagement = () => {
   const [activeTab, setActiveTab] = useState<DocumentType>("drawings");
   const [documents, setDocuments] = useState<Document[]>(mockDocuments);
   const [uploading, setUploading] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<string>(
-    mockProjects[0].id
+  const { user } = useAuthStore();
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
+    user?.id || ""
   );
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [photoModal, setPhotoModal] = useState<null | Document>(null);
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const { data: roles, isLoading: rolesLoading } = useRoles();
+
+  // Set default project when projects load
+  useEffect(() => {
+    if (
+      Array.isArray(projects) &&
+      projects.length > 0 &&
+      !selectedProject &&
+      !projectsLoading
+    ) {
+      setSelectedProject(projects[0].id);
+    }
+  }, [projects, selectedProject, projectsLoading]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -194,12 +210,19 @@ const DocumentManagement = () => {
               className="select select-bordered"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
+              disabled={projectsLoading}
             >
-              {mockProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : Array.isArray(projects) && projects.length > 0 ? (
+                projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
             </select>
           </div>
         </div>
