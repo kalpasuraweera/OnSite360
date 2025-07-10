@@ -94,12 +94,10 @@ export interface DailyLog {
 export interface DailyActivity {
   id: string;
   dailyLogId: string;
-  description: string;
+  activity: string;
   location?: string;
   startTime?: string;
   endTime?: string;
-  duration?: number;
-  workersInvolved?: number;
   progress?: number;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
@@ -178,22 +176,20 @@ export interface UpdateDailyLogDto {
 }
 
 export interface CreateDailyActivityDto {
-  description: string;
+  activity: string;
   dailyLogId: string;
   startTime?: string;
   endTime?: string;
-  workersInvolved?: number;
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
 }
 
 export interface UpdateDailyActivityDto {
-  description?: string;
+  activity?: string;
   dailyLogId?: string;
   startTime?: string;
   endTime?: string;
-  workersInvolved?: number;
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;

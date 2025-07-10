@@ -1,6 +1,5 @@
 import {
   HiOutlineBell,
-  HiOutlineChatAlt2,
   HiOutlineUserCircle,
   HiOutlineLogout,
 } from "react-icons/hi";
@@ -16,6 +15,9 @@ const TopNav = ({
   onNavigate: (path: string) => void;
 }) => {
   const user = useAuthStore((state) => state.user);
+  console.log("====================================");
+  console.log("user", user);
+  console.log("====================================");
   const toggleSidebar = useSystemStore((state) => state.toggleSidebar);
   const theme = useSystemStore((state) => state.theme);
   const setTheme = useSystemStore((state) => state.setTheme);
@@ -25,14 +27,36 @@ const TopNav = ({
     setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
   };
 
+  // Notifications array
+  const notifications = [
+    {
+      id: 1,
+      title: "System Maintenance Alert",
+      description: "This is a small description about the alert",
+      time: "2 mins ago",
+    },
+    {
+      id: 2,
+      title: "Budget Overrun Alert",
+      description: "This is a small description about the alert",
+      time: "2 mins ago",
+    },
+    {
+      id: 3,
+      title: "New Document Uploaded",
+      description: "A new document was uploaded to your project.",
+      time: "just now",
+    },
+  ];
+
   return (
-    <div className="navbar flex justify-between items-center gap-4 bg-base-100 p-2">
+    <div className="navbar flex justify-between items-center gap-4 bg-base-100 py-2 px-5">
       <button className="btn btn-ghost btn-circle" onClick={toggleSidebar}>
         <FiSidebar className="w-6 h-6" />
       </button>
-      <div className="flex items-center gap-4 p-1">
+      <div className="flex items-center gap-3 p-1">
         {/* Theme toggle */}
-        <div className="flex-none">
+        <div className="flex-none bg-base-200 rounded-full p-1">
           <label className="swap swap-rotate">
             {/* this hidden checkbox controls the state */}
             <input
@@ -44,7 +68,7 @@ const TopNav = ({
 
             {/* sun icon */}
             <svg
-              className="swap-off h-10 w-10 fill-current"
+              className="swap-off h-8 w-8 fill-current"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
             >
@@ -53,7 +77,7 @@ const TopNav = ({
 
             {/* moon icon */}
             <svg
-              className="swap-on h-10 w-10 fill-current"
+              className="swap-on h-8 w-8 fill-current"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
             >
@@ -62,49 +86,75 @@ const TopNav = ({
           </label>
         </div>
         {/* Notification count */}
-        <button className="btn btn-ghost btn-circle relative">
-          <HiOutlineBell className="w-6 h-6" />
-          <span className="badge badge-error badge-xs absolute top-0 right-0">
-            3
-          </span>
-        </button>
+        <div className="dropdown dropdown-end">
+          <button tabIndex={0} className="btn btn-circle relative">
+            <HiOutlineBell className="w-6 h-6" />
+            <span className="badge badge-success badge-xs absolute top-0 right-0">
+              {notifications.length}
+            </span>
+          </button>
 
-        {/* Conversation count */}
-        <button className="btn btn-ghost btn-circle relative">
-          <HiOutlineChatAlt2 className="w-6 h-6" />
-          <span className="badge badge-primary badge-xs absolute top-0 right-0">
-            7
-          </span>
-        </button>
+          {/* Notifications drop down */}
+          <ul
+            tabIndex={0}
+            className="menu menu-compact dropdown-content mt-3 shadow-lg shadow-neutral/10 bg-base-200 rounded-box w-90"
+          >
+            {notifications.map((notif, idx) => (
+              <li key={notif.id} onClick={() => onNavigate("/notifications")}>
+                <div className="flex flex-col items-start text-base-content">
+                  <p className="font-bold text-base">{notif.title}</p>
+                  <p>{notif.description}</p>
+                  <p className="text-secondary-content/70 text-sm">
+                    {notif.time}
+                  </p>
+                </div>
+                {idx < notifications.length - 1 && (
+                  <hr className="text-neutral/20 my-2" />
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex flex-col justify-center items-end">
+          <h1 className="font-bold text-base-content">
+            {user?.firstName} {user?.lastName}
+          </h1>
+          <p className="text-secondary-content/70 text-sm">{user?.email}</p>
+        </div>
 
         {/* User Profile Dropdown */}
         <div className="dropdown dropdown-end">
           <div className="flex items-center gap-2">
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
+            <label
+              tabIndex={0}
+              className="btn btn-ghost btn-circle avatar bg-base-200 rounded-full p-1"
+            >
               <div className="flex items-center justify-center">
                 <HiOutlineUserCircle className="w-6 h-6 text-gray-500" />
               </div>
             </label>
-            <span className="badge badge-neutral">{user?.firstName}</span>
           </div>
 
+          {/* User drop down */}
           <ul
             tabIndex={0}
-            className="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52"
+            className="menu menu-compact dropdown-content mt-3 p-4 shadow bg-base-200 rounded-box w-60"
           >
-            <li>
-              <button onClick={() => onNavigate("/profile")}>Profile</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate("/settings")}>Settings</button>
-            </li>
-            <li className="text-error">
-              <button
-                onClick={onLogout}
-                className="flex justify-between items-center"
-              >
-                Logout
+            <div className="mb-4">
+              <h1 className="font-bold text-base-content">
+                {user?.firstName} {user?.lastName}
+              </h1>
+              <p className="text-secondary-content/70 text-sm">{user?.email}</p>
+              <p className="badge badge-soft mt-1">{user?.role?.name}</p>
+            </div>
+
+            <hr className="text-neutral/20" />
+
+            <li className="text-base-content mt-2">
+              <button onClick={onLogout} className="flex gap-2 items-center">
                 <HiOutlineLogout className="w-5 h-5 ml-2" />
+                Logout
               </button>
             </li>
           </ul>

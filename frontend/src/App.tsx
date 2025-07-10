@@ -22,6 +22,7 @@ import ScheduleManagement from "./pages/ScheduleManagement";
 import TaskManagement from "./pages/TaskManagement";
 import WorkforceManagement from "./pages/WorkforceManagement";
 import DailyLogsManagement from "./pages/DailyLogsManagement";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -151,6 +152,14 @@ function App() {
           element: (
             <PermissionRoute pageId="task-management">
               <TaskManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "notifications",
+          element: (
+            <PermissionRoute pageId="notifications">
+              <Notifications />
             </PermissionRoute>
           ),
         },

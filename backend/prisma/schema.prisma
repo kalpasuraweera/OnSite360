@@ -36,6 +36,7 @@ model User {
   documents       Document[]
   requestedRFIs  RFI[]      @relation("RFIRequester") // RFIs requested by this user
   assignedRFIs   RFI[]      @relation("RFIAssignee") // RFIs assigned to this user
+  comments       Comment[]  // Comments made by this user
   scheduleEvents ScheduleEvent[] @relation("EventAssignees") // Events assigned to this user
   createdEvents  ScheduleEvent[] @relation("EventCreator") // Events created by this user
 }
@@ -161,6 +162,7 @@ model Document {
   description  String?
   tags         String[] // Array of tags
   isActive     Boolean  @default(true)
+  tasks        Task[]   // Tasks that reference this document as an attachment
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -182,11 +184,23 @@ model Task {
   dueDate     DateTime?
   startedAt   DateTime?
   completedAt DateTime?
-  dependencies String[] // Array of task IDs this depends on
   tags        String[] // Array of tags
-  attachments String[] // Array of S3 URLs
+  attachments Document[] // Array of Document IDs for attachments
+  comments    Comment[] // Comments on this task
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// Comment model for task comments
+model Comment {
+  id         String   @id @default(uuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // RFI model for formal information requests
@@ -334,6 +348,7 @@ model DailyActivity {
   endTime     DateTime?
   progress    Float? // Percentage completed (0-100)
   notes       String?
+  status      String    @default("IN_PROGRESS") // "Planned", "In Progress", "Completed", "Delayed"
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

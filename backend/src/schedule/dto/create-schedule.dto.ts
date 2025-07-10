@@ -269,7 +269,7 @@ export class CreateDailyActivityDto {
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  description: string;
+  activity: string;
 
   @ApiProperty({
     description: 'Daily log ID this activity belongs to',
@@ -281,43 +281,23 @@ export class CreateDailyActivityDto {
 
   @ApiPropertyOptional({
     description: 'Start time of the activity',
-    example: '09:00',
-    pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$',
+    example: '2024-01-15T09:00:00Z',
+    type: String,
+    format: 'date-time',
   })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   startTime?: string;
 
   @ApiPropertyOptional({
     description: 'End time of the activity',
-    example: '12:00',
-    pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$',
+    example: '2024-01-15T12:00:00Z',
+    type: String,
+    format: 'date-time',
   })
-  @IsString()
+  @IsDateString()
   @IsOptional()
   endTime?: string;
-
-  @ApiPropertyOptional({
-    description: 'Duration in hours',
-    example: 3,
-    minimum: 0,
-    maximum: 24,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  @Max(24)
-  duration?: number;
-
-  @ApiPropertyOptional({
-    description: 'Number of workers involved',
-    example: 5,
-    minimum: 0,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  workersInvolved?: number;
 
   @ApiPropertyOptional({
     description: 'Progress percentage (0-100)',
