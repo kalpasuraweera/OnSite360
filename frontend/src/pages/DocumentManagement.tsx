@@ -5,8 +5,8 @@ import {
   MdFolder,
   MdClose,
   MdUploadFile,
-  MdFileDownload,
 } from "react-icons/md";
+import { useRoles } from "../hooks/useRoles"; // <-- import the hook
 
 // Mock projects
 const mockProjects = [
@@ -84,18 +84,13 @@ const mockDocuments: Document[] = [
   // ...add more mock documents as needed
 ];
 
-// Folder definitions for non-photo tabs
-const FOLDER_DEFS = [
-  { key: "my", name: "My Files" },
-  { key: "client", name: "Client Shared" },
-  { key: "architect", name: "Architect Shared" },
-];
-
 // Assign folders to mock documents for demonstration
-const getFolderForDoc = (doc: Document) => {
-  // Simple assignment for demo: alternate folders by id
-  const idx = Number(doc.id) % FOLDER_DEFS.length;
-  return FOLDER_DEFS[idx].key;
+const getFolderForDoc = (doc: Document, roleIds: string[]) => {
+  // For demo: assign folder by projectId + doc.id hash to a role
+  if (!roleIds.length) return "";
+  // Use a hash to distribute docs among roles
+  const idx = (parseInt(doc.id.replace(/\D/g, ""), 10) || 0) % roleIds.length;
+  return roleIds[idx];
 };
 
 const DocumentManagement = () => {
@@ -107,6 +102,7 @@ const DocumentManagement = () => {
   );
   const [photoModal, setPhotoModal] = useState<null | Document>(null);
   const [openFolder, setOpenFolder] = useState<string | null>(null);
+  const { data: roles, isLoading: rolesLoading } = useRoles();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -134,38 +130,22 @@ const DocumentManagement = () => {
     }
   };
 
-  const handleExport = () => {
-    // Simulate export (CSV)
-    const docs = documents.filter(
-      (doc) => doc.type === activeTab && doc.projectId === selectedProject
-    );
-    const csv =
-      "Name,Uploaded By,Uploaded At\n" +
-      docs.map((d) => `${d.name},${d.uploadedBy},${d.uploadedAt}`).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${DOCUMENT_TYPE_LABELS[activeTab]}_${
-      mockProjects.find((p) => p.id === selectedProject)?.name || "Project"
-    }_export.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   // Filter documents by selected project and active tab
   const filteredDocuments = documents.filter(
     (doc) => doc.type === activeTab && doc.projectId === selectedProject
   );
 
-  // Group documents by folder for non-photo tabs
+  // Prepare dynamic folders from roles
   const folderedDocuments: Record<string, Document[]> = {};
+  const roleList = roles || [];
+  const roleIds = roleList.map((r) => r.id);
+
   if (activeTab !== "photos") {
-    FOLDER_DEFS.forEach((folder) => {
-      folderedDocuments[folder.key] = [];
+    roleList.forEach((role) => {
+      folderedDocuments[role.id] = [];
     });
     filteredDocuments.forEach((doc) => {
-      const folderKey = getFolderForDoc(doc);
+      const folderKey = getFolderForDoc(doc, roleIds);
       if (folderedDocuments[folderKey]) {
         folderedDocuments[folderKey].push(doc);
       }
@@ -232,34 +212,31 @@ const DocumentManagement = () => {
               disabled={uploading}
             />
           </label>
-          <button
-            className="btn btn-outline flex items-center gap-2"
-            onClick={handleExport}
-          >
-            <MdFileDownload />
-            Export List (CSV)
-          </button>
         </div>
 
         {/* Folders & Files for non-photo tabs */}
         {activeTab !== "photos" ? (
           <div className="w-full">
-            {openFolder === null ? (
+            {rolesLoading ? (
+              <div className="text-center text-gray-500 py-8">
+                Loading folders...
+              </div>
+            ) : openFolder === null ? (
               // Folder list view
               <div className="flex gap-4 w-full flex-wrap">
-                {FOLDER_DEFS.map((folder) => (
+                {roleList.map((role) => (
                   <button
-                    key={folder.key}
+                    key={role.id}
                     type="button"
                     className={`flex items-center w-[350px] justify-between gap-2 mb-8 text-left rounded-2xl bg-base-100 p-5 transition border border-base-300 hover:shadow-xl hover:shadow-neutral/10`}
-                    onClick={() => setOpenFolder(folder.key)}
+                    onClick={() => setOpenFolder(role.id)}
                   >
                     <div className="flex items-center gap-2">
                       <MdFolder className="text-4xl text-primary" />
-                      <span className="text-lg font-bold">{folder.name}</span>
+                      <span className="text-lg font-bold">{role.name}</span>
                     </div>
                     <span className="badge badge-neutral">
-                      {folderedDocuments[folder.key]?.length || 0} files
+                      {folderedDocuments[role.id]?.length || 0} files
                     </span>
                   </button>
                 ))}
@@ -279,7 +256,7 @@ const DocumentManagement = () => {
                   <div className="flex gap-2">
                     <MdFolder className="text-2xl text-primary" />
                     <span className="text-lg font-bold">
-                      {FOLDER_DEFS.find((f) => f.key === openFolder)?.name}
+                      {roleList.find((r) => r.id === openFolder)?.name}
                     </span>
                   </div>
 
