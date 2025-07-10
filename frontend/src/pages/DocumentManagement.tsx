@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { MdDownload, MdDelete, MdFolder, MdClose } from "react-icons/md";
+import {
+  MdDownload,
+  MdDelete,
+  MdFolder,
+  MdClose,
+  MdUploadFile,
+  MdFileDownload,
+} from "react-icons/md";
 
 // Mock projects
 const mockProjects = [
@@ -213,7 +220,7 @@ const DocumentManagement = () => {
         className="bg-base-200 border border-base-300 p-6 rounded-2xl min-h-[400px]"
       >
         {/* Upload & Export Controls */}
-        {/* <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6">
           <label className="btn btn-primary flex items-center gap-2 cursor-pointer">
             <MdUploadFile />
             {uploading ? "Uploading..." : "Upload Document"}
@@ -232,7 +239,7 @@ const DocumentManagement = () => {
             <MdFileDownload />
             Export List (CSV)
           </button>
-        </div> */}
+        </div>
 
         {/* Folders & Files for non-photo tabs */}
         {activeTab !== "photos" ? (

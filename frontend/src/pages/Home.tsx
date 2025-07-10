@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { useSystemStore } from "../stores/useSystemStore";
 
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
@@ -34,6 +33,7 @@ const Home = () => {
   }, []);
 
   const handleInstallClick = async () => {
+    if (!showInstallButton) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promptEvent = deferredPrompt as any;
     if (!promptEvent) return;
@@ -51,13 +51,13 @@ const Home = () => {
     setShowInstallButton(false);
   };
 
-  const theme = useSystemStore((state) => state.theme);
-  const setTheme = useSystemStore((state) => state.setTheme);
+  // const theme = useSystemStore((state) => state.theme);
+  // const setTheme = useSystemStore((state) => state.setTheme);
 
-  // Toggle between bumblebee and halloween themes
-  const handleThemeToggle = () => {
-    setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
-  };
+  // // Toggle between bumblebee and halloween themes
+  // const handleThemeToggle = () => {
+  //   setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
+  // };
 
   // Navigation menu items
   const navItems = [
