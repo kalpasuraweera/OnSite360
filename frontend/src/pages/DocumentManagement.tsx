@@ -227,213 +227,220 @@ const DocumentManagement = () => {
         id="tab-navigation"
         className="bg-base-200 border border-base-300 p-6 rounded-2xl min-h-[400px]"
       >
-        {/* Upload & Export Controls */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            className="btn btn-primary flex items-center gap-2"
-            onClick={() => setShowUploadModal(true)}
-            disabled={uploading}
-          >
-            <MdUploadFile />
-            Upload Document
-          </button>
-        </div>
-
-        {/* Folders & Files for non-photo tabs */}
-        {activeTab !== "photos" ? (
-          <div className="w-full">
-            {rolesLoading ? (
-              <div className="text-center text-gray-500 py-8">
-                Loading folders...
-              </div>
-            ) : openFolder === null ? (
-              // Folder list view
-              <div className="flex gap-4 w-full flex-wrap">
-                {roleList.map((role) => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    className={`flex items-center w-[350px] justify-between gap-2 mb-8 text-left rounded-2xl bg-base-100 p-5 transition border border-base-300 hover:shadow-xl hover:shadow-neutral/10`}
-                    onClick={() => setOpenFolder(role.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <MdFolder className="text-4xl text-primary" />
-                      <span className="text-lg font-bold">{role.name}</span>
-                    </div>
-                    <span className="badge badge-neutral">
-                      {folderedDocuments[role.id]?.length || 0} files
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              // Inside a folder view
-              <div>
-                <button
-                  className="btn btn-md btn-soft mb-4 flex items-center gap-2"
-                  onClick={() => setOpenFolder(null)}
-                >
-                  {/* Unicode left arrow */}
-                  <span className="text-xl">&#8592;</span>
-                  Back to Folders
-                </button>
-                <div className="flex items-center justify-between my-7">
-                  <div className="flex gap-2">
-                    <MdFolder className="text-2xl text-primary" />
-                    <span className="text-lg font-bold">
-                      {roleList.find((r) => r.id === openFolder)?.name}
-                    </span>
-                  </div>
-
-                  <span className="badge badge-neutral">
-                    {folderedDocuments[openFolder]?.length || 0} files
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="table w-full bg-base-100 rounded-2xl">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Uploaded By</th>
-                        <th>Uploaded At</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {folderedDocuments[openFolder] &&
-                      folderedDocuments[openFolder].length > 0 ? (
-                        folderedDocuments[openFolder].map((doc) => (
-                          <tr key={doc.id} className="hover:bg-base-200">
-                            <td className="font-medium">{doc.name}</td>
-                            <td>{doc.uploader?.name || "-"}</td>
-                            <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
-                            <td>
-                              <div className="flex gap-2">
-                                <a
-                                  href={doc.url}
-                                  download={doc.name}
-                                  className="btn btn-sm btn-success flex items-center gap-1"
-                                  title="Download"
-                                >
-                                  <MdDownload />
-                                  Download
-                                </a>
-                                <button
-                                  className="btn btn-sm btn-error flex items-center gap-1"
-                                  onClick={() => handleDelete(doc.id)}
-                                  title="Delete"
-                                >
-                                  <MdDelete />
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="text-center text-gray-500 py-8"
-                          >
-                            No documents in this folder.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+        {documentsLoading ? (
+          <div className="flex items-center justify-center h-[300px]">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
         ) : (
-          // Photos tab: show images grid with preview
-          <div>
-            {filteredDocuments.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {filteredDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="bg-base-100 rounded-xl border border-base-300 p-2 flex flex-col items-center cursor-pointer hover:shadow-xl hover:shadow-neutral/10 transition"
-                    onClick={() => setPhotoModal(doc)}
-                  >
-                    <img
-                      src={doc.url !== "#" ? doc.url : "/bg2.jpg"}
-                      alt={doc.name}
-                      className="w-full h-32 object-cover rounded mb-2"
-                    />
-                    <div className="text-sm font-medium text-center">
-                      {doc.name}
+          <>
+            {/* Upload & Export Controls */}
+            <div className="flex items-center gap-4 mb-6">
+              <button
+                className="btn btn-primary flex items-center gap-2"
+                onClick={() => setShowUploadModal(true)}
+                disabled={uploading}
+              >
+                <MdUploadFile />
+                Upload Document
+              </button>
+            </div>
+            {/* Folders & Files for non-photo tabs */}
+            {activeTab !== "photos" ? (
+              <div className="w-full">
+                {rolesLoading ? (
+                  <div className="text-center text-gray-500 py-8">
+                    Loading folders...
+                  </div>
+                ) : openFolder === null ? (
+                  // Folder list view
+                  <div className="flex gap-4 w-full flex-wrap">
+                    {roleList.map((role) => (
+                      <button
+                        key={role.id}
+                        type="button"
+                        className={`flex items-center w-[350px] justify-between gap-2 mb-8 text-left rounded-2xl bg-base-100 p-5 transition border border-base-300 hover:shadow-xl hover:shadow-neutral/10`}
+                        onClick={() => setOpenFolder(role.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MdFolder className="text-4xl text-primary" />
+                          <span className="text-lg font-bold">{role.name}</span>
+                        </div>
+                        <span className="badge badge-neutral">
+                          {folderedDocuments[role.id]?.length || 0} files
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // Inside a folder view
+                  <div>
+                    <button
+                      className="btn btn-md btn-soft mb-4 flex items-center gap-2"
+                      onClick={() => setOpenFolder(null)}
+                    >
+                      {/* Unicode left arrow */}
+                      <span className="text-xl">&#8592;</span>
+                      Back to Folders
+                    </button>
+                    <div className="flex items-center justify-between my-7">
+                      <div className="flex gap-2">
+                        <MdFolder className="text-2xl text-primary" />
+                        <span className="text-lg font-bold">
+                          {roleList.find((r) => r.id === openFolder)?.name}
+                        </span>
+                      </div>
+
+                      <span className="badge badge-neutral">
+                        {folderedDocuments[openFolder]?.length || 0} files
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="table w-full bg-base-100 rounded-2xl">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Uploaded By</th>
+                            <th>Uploaded At</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {folderedDocuments[openFolder] &&
+                          folderedDocuments[openFolder].length > 0 ? (
+                            folderedDocuments[openFolder].map((doc) => (
+                              <tr key={doc.id} className="hover:bg-base-200">
+                                <td className="font-medium">{doc.name}</td>
+                                <td>{doc.uploader?.name || "-"}</td>
+                                <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
+                                <td>
+                                  <div className="flex gap-2">
+                                    <a
+                                      href={doc.url}
+                                      download={doc.name}
+                                      className="btn btn-sm btn-success flex items-center gap-1"
+                                      title="Download"
+                                    >
+                                      <MdDownload />
+                                      Download
+                                    </a>
+                                    <button
+                                      className="btn btn-sm btn-error flex items-center gap-1"
+                                      onClick={() => handleDelete(doc.id)}
+                                      title="Delete"
+                                    >
+                                      <MdDelete />
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="text-center text-gray-500 py-8"
+                              >
+                                No documents in this folder.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                No photos found for {DOCUMENT_TYPE_LABELS[activeTab]} in this
-                project.
-              </div>
-            )}
-            {/* Photo details modal */}
-            {photoModal && (
-              <div
-                className="fixed inset-0 z-50 flex items-center justify-center"
-                style={{
-                  backdropFilter: "blur(4px)",
-                  background: "rgba(0,0,0,0.2)",
-                }}
-              >
-                <div className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-md w-full relative">
-                  <button
-                    className="absolute top-2 right-2 btn btn-xs btn-circle btn-ghost"
-                    onClick={() => setPhotoModal(null)}
+              // Photos tab: show images grid with preview
+              <div>
+                {filteredDocuments.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {filteredDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="bg-base-100 rounded-xl border border-base-300 p-2 flex flex-col items-center cursor-pointer hover:shadow-xl hover:shadow-neutral/10 transition"
+                        onClick={() => setPhotoModal(doc)}
+                      >
+                        <img
+                          src={doc.url !== "#" ? doc.url : "/bg2.jpg"}
+                          alt={doc.name}
+                          className="w-full h-32 object-cover rounded mb-2"
+                        />
+                        <div className="text-sm font-medium text-center">
+                          {doc.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    No photos found for {DOCUMENT_TYPE_LABELS[activeTab]} in this
+                    project.
+                  </div>
+                )}
+                {/* Photo details modal */}
+                {photoModal && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    style={{
+                      backdropFilter: "blur(4px)",
+                      background: "rgba(0,0,0,0.2)",
+                    }}
                   >
-                    <MdClose />
-                  </button>
-                  <img
-                    src={photoModal.url !== "#" ? photoModal.url : "/bg2.jpg"}
-                    alt={photoModal.name}
-                    className="w-full h-56 object-cover rounded mb-4"
-                  />
-                  <div className="mb-2">
-                    <span className="font-bold">Name:</span> {photoModal.name}
+                    <div className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-md w-full relative">
+                      <button
+                        className="absolute top-2 right-2 btn btn-xs btn-circle btn-ghost"
+                        onClick={() => setPhotoModal(null)}
+                      >
+                        <MdClose />
+                      </button>
+                      <img
+                        src={photoModal.url !== "#" ? photoModal.url : "/bg2.jpg"}
+                        alt={photoModal.name}
+                        className="w-full h-56 object-cover rounded mb-4"
+                      />
+                      <div className="mb-2">
+                        <span className="font-bold">Name:</span> {photoModal.name}
+                      </div>
+                      <div className="mb-2">
+                        <span className="font-bold">Uploaded By:</span>{" "}
+                        {photoModal.uploader?.name || "-"}
+                      </div>
+                      <div className="mb-2">
+                        <span className="font-bold">Uploaded At:</span>{" "}
+                        {new Date(photoModal.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="mb-2">
+                        <span className="font-bold">Related To:</span> Project{" "}
+                        {photoModal.projectId}
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <a
+                          href={photoModal.url}
+                          download={photoModal.name}
+                          className="btn btn-success flex items-center gap-1"
+                        >
+                          <MdDownload />
+                          Download
+                        </a>
+                        <button
+                          className="btn btn-error flex items-center gap-1"
+                          onClick={() => {
+                            handleDelete(photoModal.id);
+                            setPhotoModal(null);
+                          }}
+                        >
+                          <MdDelete />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mb-2">
-                    <span className="font-bold">Uploaded By:</span>{" "}
-                    {photoModal.uploader?.name || "-"}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-bold">Uploaded At:</span>{" "}
-                    {new Date(photoModal.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-bold">Related To:</span> Project{" "}
-                    {photoModal.projectId}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <a
-                      href={photoModal.url}
-                      download={photoModal.name}
-                      className="btn btn-success flex items-center gap-1"
-                    >
-                      <MdDownload />
-                      Download
-                    </a>
-                    <button
-                      className="btn btn-error flex items-center gap-1"
-                      onClick={() => {
-                        handleDelete(photoModal.id);
-                        setPhotoModal(null);
-                      }}
-                    >
-                      <MdDelete />
-                      Delete
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
