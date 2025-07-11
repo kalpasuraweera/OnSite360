@@ -11,9 +11,15 @@ import { CommunicationModule } from './communication/communication.module';
 import { ScheduleModule } from './schedule/schedule.module';
 import { TasksModule } from './tasks/tasks.module';
 import { DocumentsModule } from './documents/documents.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '../../uploads'),
+      serveRoot: '/uploads',
+    }),
     AuthModule,
     UsersModule,
     ProjectsModule,
