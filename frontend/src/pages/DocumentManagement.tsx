@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MdDownload,
   MdDelete,
@@ -13,8 +13,8 @@ import {
   useDocuments,
   useUploadDocument,
   useDeleteDocument,
-  DocumentType,
-  Document,
+  type DocumentType,
+  type Document,
 } from "../hooks/useDocuments";
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
@@ -48,6 +48,17 @@ const DocumentManagement = () => {
   const uploadMutation = useUploadDocument();
   const deleteMutation = useDeleteDocument();
   const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    name: "",
+    type: activeTab,
+    category: "",
+    version: "1.0",
+    description: "",
+    tags: "",
+    file: null as File | null,
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Set default project when projects load
   useEffect(() => {
@@ -113,6 +124,52 @@ const DocumentManagement = () => {
     });
   }
 
+  // Upload modal form handlers
+  const handleUploadFieldChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setUploadForm((prev) => ({
+      ...prev,
+      [name]:
+        type === "file"
+          ? (e.target as HTMLInputElement).files?.[0] || null
+          : value,
+    }));
+  };
+
+  const handleUploadModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject || !uploadForm.file) return;
+    setUploading(true);
+    const dto = {
+      projectId: selectedProject,
+      name: uploadForm.name,
+      type: uploadForm.type,
+      category: uploadForm.category || undefined,
+      version: uploadForm.version || undefined,
+      description: uploadForm.description || undefined,
+      tags: uploadForm.tags
+        ? uploadForm.tags.split(",").map((t) => t.trim())
+        : undefined,
+    };
+    try {
+      await uploadMutation.mutateAsync({ dto, file: uploadForm.file });
+      refetchDocuments();
+      setShowUploadModal(false);
+      setUploadForm({
+        name: "",
+        type: activeTab,
+        category: "",
+        version: "1.0",
+        description: "",
+        tags: "",
+        file: null,
+      });
+    } catch {}
+    setUploading(false);
+  };
+
   return (
     <div className="p-8">
       <div className="flex items-end justify-between">
@@ -169,17 +226,14 @@ const DocumentManagement = () => {
       >
         {/* Upload & Export Controls */}
         <div className="flex items-center gap-4 mb-6">
-          <label className="btn btn-primary flex items-center gap-2 cursor-pointer">
+          <button
+            className="btn btn-primary flex items-center gap-2"
+            onClick={() => setShowUploadModal(true)}
+            disabled={uploading}
+          >
             <MdUploadFile />
-            {uploading ? "Uploading..." : "Upload Document"}
-            <input
-              type="file"
-              className="hidden"
-              multiple
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-          </label>
+            Upload Document
+          </button>
         </div>
 
         {/* Folders & Files for non-photo tabs */}
@@ -379,6 +433,128 @@ const DocumentManagement = () => {
           </div>
         )}
       </div>
+
+      {showUploadModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.2)",
+          }}
+        >
+          <form
+            className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-lg w-full relative"
+            onSubmit={handleUploadModalSubmit}
+          >
+            <button
+              type="button"
+              className="absolute top-2 right-2 btn btn-xs btn-circle btn-ghost"
+              onClick={() => setShowUploadModal(false)}
+            >
+              <MdClose />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Upload Document</h2>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">Name</label>
+              <input
+                name="name"
+                type="text"
+                className="input input-bordered w-full"
+                value={uploadForm.name}
+                onChange={handleUploadFieldChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">Type</label>
+              <select
+                name="type"
+                className="select select-bordered w-full"
+                value={uploadForm.type}
+                onChange={handleUploadFieldChange}
+                required
+              >
+                {(Object.keys(DOCUMENT_TYPE_LABELS) as DocumentType[]).map(
+                  (type) => (
+                    <option key={type} value={type}>
+                      {DOCUMENT_TYPE_LABELS[type]}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">Category</label>
+              <input
+                name="category"
+                type="text"
+                className="input input-bordered w-full"
+                value={uploadForm.category}
+                onChange={handleUploadFieldChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">Version</label>
+              <input
+                name="version"
+                type="text"
+                className="input input-bordered w-full"
+                value={uploadForm.version}
+                onChange={handleUploadFieldChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">Description</label>
+              <textarea
+                name="description"
+                className="textarea textarea-bordered w-full"
+                value={uploadForm.description}
+                onChange={handleUploadFieldChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">
+                Tags (comma separated)
+              </label>
+              <input
+                name="tags"
+                type="text"
+                className="input input-bordered w-full"
+                value={uploadForm.tags}
+                onChange={handleUploadFieldChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="block font-medium mb-1">File</label>
+              <input
+                name="file"
+                type="file"
+                className="file-input file-input-bordered w-full"
+                ref={fileInputRef}
+                onChange={handleUploadFieldChange}
+                required
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              />
+            </div>
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowUploadModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
