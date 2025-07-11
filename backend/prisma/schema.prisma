@@ -165,7 +165,6 @@ model Document {
   version      String   @default("1.0") // Document version
   size         Int? // File size in bytes
   mimeType     String? // File MIME type
-  uploadedBy   String // Who uploaded it
   uploadedById String?
   uploader     User?    @relation(fields: [uploadedById], references: [id])
   description  String?

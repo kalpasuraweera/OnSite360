@@ -2,9 +2,16 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
+import { HttpExceptionFilter } from './common/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Use helmet for security headers
+  app.use(helmet());
 
   // Use versioning for the API : e.g., <domain>/v1/...
   app.enableVersioning({
@@ -14,12 +21,21 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
+  // Global error filter for better error handling
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   // Enable CORS for the frontend application
   app.enableCors({
     origin: 'http://localhost:5173', // Your frontend origin
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
+
+  // Uploads directory for serving static files
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+    // Optionally set more secure options here
   });
 
   const config = new DocumentBuilder()
