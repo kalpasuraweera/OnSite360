@@ -9,31 +9,13 @@ import {
 import { useRoles } from "../hooks/useRoles";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useUserProjects } from "../hooks/useUsers";
-
-type DocumentType =
-  | "drawings"
-  | "specifications"
-  | "contracts"
-  | "permits"
-  | "reports"
-  | "submittals"
-  | "invoices"
-  | "photos";
-
-interface Document {
-  id: string;
-  name: string;
-  type: DocumentType;
-  uploadedBy: string;
-  uploadedAt: string;
-  url: string;
-  projectId: string;
-  uploader: {
-    id: string;
-    name: string;
-    roleId: string;
-  };
-}
+import {
+  useDocuments,
+  useUploadDocument,
+  useDeleteDocument,
+  DocumentType,
+  Document,
+} from "../hooks/useDocuments";
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   drawings: "Drawings",
@@ -46,91 +28,26 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   photos: "Photos",
 };
 
-const mockDocuments: Document[] = [
-  {
-    id: "1",
-    name: "Site Plan.pdf",
-    type: "drawings",
-    uploadedBy: "Alice",
-    uploadedAt: "2024-06-01",
-    url: "#",
-    projectId: "p1",
-    uploader: {
-      id: "u1",
-      name: "Alice",
-      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
-    },
-  },
-  {
-    id: "2",
-    name: "Inspection Report.docx",
-    type: "reports",
-    uploadedBy: "Bob",
-    uploadedAt: "2024-06-02",
-    url: "#",
-    projectId: "p1",
-    uploader: {
-      id: "u2",
-      name: "Bob",
-      roleId: "b6d501d4-799d-432a-b484-64d5bfffa16f",
-    },
-  },
-  {
-    id: "3",
-    name: "Contract_Agreement.pdf",
-    type: "contracts",
-    uploadedBy: "Charlie",
-    uploadedAt: "2024-06-03",
-    url: "#",
-    projectId: "p2",
-    uploader: {
-      id: "u3",
-      name: "Charlie",
-      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
-    },
-  },
-  {
-    id: "4",
-    name: "Permit_123.pdf",
-    type: "permits",
-    uploadedBy: "Diana",
-    uploadedAt: "2024-06-04",
-    url: "#",
-    projectId: "p3",
-    uploader: {
-      id: "u4",
-      name: "Diana",
-      roleId: "b6d501d4-799d-432a-b484-64d5bfffa16f",
-    },
-  },
-  {
-    id: "5",
-    name: "Progress_Photo.jpg",
-    type: "photos",
-    uploadedBy: "Eve",
-    uploadedAt: "2024-06-05",
-    url: "/bg2.jpg", // Placeholder image
-    projectId: "p1",
-    uploader: {
-      id: "u5",
-      name: "Eve",
-      roleId: "b40e4d32-df97-4d49-9a21-21b81bc741f9",
-    },
-  },
-];
-
 const DocumentManagement = () => {
   const [activeTab, setActiveTab] = useState<DocumentType>("drawings");
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
-  const [uploading, setUploading] = useState(false);
+  const [photoModal, setPhotoModal] = useState<null | Document>(null);
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
   const { user } = useAuthStore();
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
     user?.id || ""
   );
   const [selectedProject, setSelectedProject] = useState<string>("");
-  const [photoModal, setPhotoModal] = useState<null | Document>(null);
-  const [openFolder, setOpenFolder] = useState<string | null>(null);
   const { data: roles, isLoading: rolesLoading } = useRoles();
+
+  // Document API hooks
+  const {
+    data: documents = [],
+    isLoading: documentsLoading,
+    refetch: refetchDocuments,
+  } = useDocuments({ projectId: selectedProject });
+  const uploadMutation = useUploadDocument();
+  const deleteMutation = useDeleteDocument();
+  const [uploading, setUploading] = useState(false);
 
   // Set default project when projects load
   useEffect(() => {
@@ -144,35 +61,34 @@ const DocumentManagement = () => {
     }
   }, [projects, selectedProject, projectsLoading]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // File upload handler
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !selectedProject) return;
     setUploading(true);
-    setTimeout(() => {
-      // For demo: assign uploader as "You" with the first available role
-      const firstRole = roles?.[0];
-      const newDocs: Document[] = Array.from(files).map((file, idx) => ({
-        id: `${Date.now()}-${idx}`,
-        name: file.name,
-        type: activeTab,
-        uploadedBy: "You",
-        uploadedAt: new Date().toISOString().slice(0, 10),
-        url: "#",
-        projectId: selectedProject,
-        uploader: {
-          id: "you",
-          name: "You",
-          roleId: firstRole?.id || "",
-        },
-      }));
-      setDocuments((prev) => [...prev, ...newDocs]);
-      setUploading(false);
-    }, 1000);
+    const firstRole = roles?.[0];
+    // Only upload first file for now (can be extended for multiple)
+    const file = files[0];
+    const dto = {
+      projectId: selectedProject,
+      name: file.name,
+      type: activeTab,
+      // Optionally add more fields (category, tags, etc.)
+    };
+    try {
+      await uploadMutation.mutateAsync({ dto, file });
+      refetchDocuments();
+    } catch (err) {
+      // Optionally show error
+    }
+    setUploading(false);
   };
 
-  const handleDelete = (id: string) => {
+  // Delete handler
+  const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
-      setDocuments((prev) => prev.filter((doc) => doc.id !== id));
+      await deleteMutation.mutateAsync(id);
+      refetchDocuments();
     }
   };
 
@@ -332,8 +248,8 @@ const DocumentManagement = () => {
                         folderedDocuments[openFolder].map((doc) => (
                           <tr key={doc.id} className="hover:bg-base-200">
                             <td className="font-medium">{doc.name}</td>
-                            <td>{doc.uploadedBy}</td>
-                            <td>{doc.uploadedAt}</td>
+                            <td>{doc.uploader?.name || "-"}</td>
+                            <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
                             <td>
                               <div className="flex gap-2">
                                 <a
@@ -427,11 +343,11 @@ const DocumentManagement = () => {
                   </div>
                   <div className="mb-2">
                     <span className="font-bold">Uploaded By:</span>{" "}
-                    {photoModal.uploadedBy}
+                    {photoModal.uploader?.name || "-"}
                   </div>
                   <div className="mb-2">
                     <span className="font-bold">Uploaded At:</span>{" "}
-                    {photoModal.uploadedAt}
+                    {new Date(photoModal.createdAt).toLocaleDateString()}
                   </div>
                   <div className="mb-2">
                     <span className="font-bold">Related To:</span> Project{" "}
