@@ -16,6 +16,7 @@ import {
   type DocumentType,
   type Document,
 } from "../hooks/useDocuments";
+import TagsInput from "../components/TagsInput";
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   drawings: "Drawings",
@@ -55,7 +56,7 @@ const DocumentManagement = () => {
     category: "",
     version: "1.0",
     description: "",
-    tags: "",
+    tags: [] as string[],
     file: null as File | null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,27 +74,26 @@ const DocumentManagement = () => {
   }, [projects, selectedProject, projectsLoading]);
 
   // File upload handler
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !selectedProject) return;
-    setUploading(true);
-    const firstRole = roles?.[0];
-    // Only upload first file for now (can be extended for multiple)
-    const file = files[0];
-    const dto = {
-      projectId: selectedProject,
-      name: file.name,
-      type: activeTab,
-      // Optionally add more fields (category, tags, etc.)
-    };
-    try {
-      await uploadMutation.mutateAsync({ dto, file });
-      refetchDocuments();
-    } catch (err) {
-      // Optionally show error
-    }
-    setUploading(false);
-  };
+  // const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = e.target.files;
+  //   if (!files || files.length === 0 || !selectedProject) return;
+  //   setUploading(true);
+  //   // Only upload first file for now (can be extended for multiple)
+  //   const file = files[0];
+  //   const dto = {
+  //     projectId: selectedProject,
+  //     name: file.name,
+  //     type: activeTab,
+  //     // Optionally add more fields (category, tags, etc.)
+  //   };
+  //   try {
+  //     await uploadMutation.mutateAsync({ dto, file });
+  //     refetchDocuments();
+  //   } catch (err) {
+  //     // Optionally show error
+  //   }
+  //   setUploading(false);
+  // };
 
   // Delete handler
   const handleDelete = async (id: string) => {
@@ -134,6 +134,8 @@ const DocumentManagement = () => {
       [name]:
         type === "file"
           ? (e.target as HTMLInputElement).files?.[0] || null
+          : name === "tags"
+          ? value.split(",").map((t) => t.trim()).filter(Boolean)
           : value,
     }));
   };
@@ -149,9 +151,7 @@ const DocumentManagement = () => {
       category: uploadForm.category || undefined,
       version: uploadForm.version || undefined,
       description: uploadForm.description || undefined,
-      tags: uploadForm.tags
-        ? uploadForm.tags.split(",").map((t) => t.trim())
-        : undefined,
+      tags: uploadForm.tags.length > 0 ? uploadForm.tags : undefined,
     };
     try {
       await uploadMutation.mutateAsync({ dto, file: uploadForm.file });
@@ -163,10 +163,13 @@ const DocumentManagement = () => {
         category: "",
         version: "1.0",
         description: "",
-        tags: "",
+        tags: [],
         file: null,
       });
-    } catch {}
+    } catch (error) {
+      console.error("Failed to upload document:", error);
+      // Optionally add user-facing error notification here
+    }
     setUploading(false);
   };
 
@@ -435,124 +438,123 @@ const DocumentManagement = () => {
       </div>
 
       {showUploadModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{
-            backdropFilter: "blur(4px)",
-            background: "rgba(0,0,0,0.2)",
-          }}
-        >
-          <form
-            className="bg-base-100 p-6 rounded-2xl shadow-2xl max-w-lg w-full relative"
-            onSubmit={handleUploadModalSubmit}
-          >
-            <button
-              type="button"
-              className="absolute top-2 right-2 btn btn-xs btn-circle btn-ghost"
-              onClick={() => setShowUploadModal(false)}
-            >
-              <MdClose />
-            </button>
-            <h2 className="text-xl font-bold mb-4">Upload Document</h2>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">Name</label>
-              <input
-                name="name"
-                type="text"
-                className="input input-bordered w-full"
-                value={uploadForm.name}
-                onChange={handleUploadFieldChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">Type</label>
-              <select
-                name="type"
-                className="select select-bordered w-full"
-                value={uploadForm.type}
-                onChange={handleUploadFieldChange}
-                required
-              >
-                {(Object.keys(DOCUMENT_TYPE_LABELS) as DocumentType[]).map(
-                  (type) => (
-                    <option key={type} value={type}>
-                      {DOCUMENT_TYPE_LABELS[type]}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">Category</label>
-              <input
-                name="category"
-                type="text"
-                className="input input-bordered w-full"
-                value={uploadForm.category}
-                onChange={handleUploadFieldChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">Version</label>
-              <input
-                name="version"
-                type="text"
-                className="input input-bordered w-full"
-                value={uploadForm.version}
-                onChange={handleUploadFieldChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">Description</label>
-              <textarea
-                name="description"
-                className="textarea textarea-bordered w-full"
-                value={uploadForm.description}
-                onChange={handleUploadFieldChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">
-                Tags (comma separated)
-              </label>
-              <input
-                name="tags"
-                type="text"
-                className="input input-bordered w-full"
-                value={uploadForm.tags}
-                onChange={handleUploadFieldChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="block font-medium mb-1">File</label>
-              <input
-                name="file"
-                type="file"
-                className="file-input file-input-bordered w-full"
-                ref={fileInputRef}
-                onChange={handleUploadFieldChange}
-                required
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              />
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={uploading}
-              >
-                {uploading ? "Uploading..." : "Upload"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowUploadModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h2 className="font-bold text-lg mb-4">Upload Document</h2>
+            <form onSubmit={handleUploadModalSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Name</span>
+                </label>
+                <input
+                  name="name"
+                  type="text"
+                  className="input input-bordered"
+                  value={uploadForm.name}
+                  onChange={handleUploadFieldChange}
+                  required
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Type</span>
+                </label>
+                <select
+                  name="type"
+                  className="select select-bordered"
+                  value={uploadForm.type}
+                  onChange={handleUploadFieldChange}
+                  required
+                >
+                  {(Object.keys(DOCUMENT_TYPE_LABELS) as DocumentType[]).map((type) => (
+                    <option key={type} value={type}>{DOCUMENT_TYPE_LABELS[type]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Category</span>
+                </label>
+                <input
+                  name="category"
+                  type="text"
+                  className="input input-bordered"
+                  value={uploadForm.category}
+                  onChange={handleUploadFieldChange}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Version</span>
+                </label>
+                <input
+                  name="version"
+                  type="text"
+                  className="input input-bordered"
+                  value={uploadForm.version}
+                  onChange={handleUploadFieldChange}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered"
+                  value={uploadForm.description}
+                  onChange={handleUploadFieldChange}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Tags</span>
+                </label>
+                <TagsInput
+                  value={uploadForm.tags}
+                  onChange={tags => setUploadForm(prev => ({ ...prev, tags }))}
+                  placeholder="Type and press Enter to add tags"
+                  disabled={uploading}
+                  maxTags={10}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">File</span>
+                </label>
+                <input
+                  name="file"
+                  type="file"
+                  className="file-input file-input-bordered"
+                  ref={fileInputRef}
+                  onChange={handleUploadFieldChange}
+                  required
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    "Upload"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
