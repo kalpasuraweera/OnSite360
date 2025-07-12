@@ -108,9 +108,6 @@ const DocumentManagement = () => {
   const filteredDocuments = documents.filter(
     (doc) => doc.type === activeTab && doc.projectId === selectedProject
   );
-  console.log('====================================');
-  console.log(filteredDocuments);
-  console.log('====================================');
 
   // Prepare dynamic folders from roles
   const folderedDocuments: Record<string, Document[]> = {};
@@ -319,7 +316,7 @@ const DocumentManagement = () => {
                                 <td>
                                   <div className="flex gap-2">
                                     <a
-                                      href={doc.url}
+                                      href={`${import.meta.env.VITE_DOCUMENTS_URL}${doc.url}`}
                                       download={doc.name}
                                       className="btn btn-sm btn-success flex items-center gap-1"
                                       title="Download"
@@ -367,7 +364,11 @@ const DocumentManagement = () => {
                         onClick={() => setPhotoModal(doc)}
                       >
                         <img
-                          src={doc.url !== "#" ? doc.url : "/bg2.jpg"}
+                          src={
+                            doc.url !== "#"
+                              ? `${import.meta.env.VITE_DOCUMENTS_URL}${doc.url}`
+                              : "/bg2.jpg"
+                          }
                           alt={doc.name}
                           className="w-full h-32 object-cover rounded mb-2"
                         />
@@ -400,7 +401,11 @@ const DocumentManagement = () => {
                         <MdClose />
                       </button>
                       <img
-                        src={photoModal.url !== "#" ? photoModal.url : "/bg2.jpg"}
+                        src={
+                          photoModal.url !== "#"
+                            ? `${import.meta.env.VITE_DOCUMENTS_URL}${photoModal.url}`
+                            : "/bg2.jpg"
+                        }
                         alt={photoModal.name}
                         className="w-full h-56 object-cover rounded mb-4"
                       />
@@ -421,7 +426,7 @@ const DocumentManagement = () => {
                       </div>
                       <div className="flex gap-2 mt-4">
                         <a
-                          href={photoModal.url}
+                          href={`${import.meta.env.VITE_DOCUMENTS_URL}${photoModal.url}`}
                           download={photoModal.name}
                           className="btn btn-success flex items-center gap-1"
                         >
