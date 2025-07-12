@@ -46,6 +46,7 @@ const DocumentManagement = () => {
     isLoading: documentsLoading,
     refetch: refetchDocuments,
   } = useDocuments({ projectId: selectedProject });
+  console.log(documents);
   const uploadMutation = useUploadDocument();
   const deleteMutation = useDeleteDocument();
   const [uploading, setUploading] = useState(false);
@@ -107,6 +108,9 @@ const DocumentManagement = () => {
   const filteredDocuments = documents.filter(
     (doc) => doc.type === activeTab && doc.projectId === selectedProject
   );
+  console.log('====================================');
+  console.log(filteredDocuments);
+  console.log('====================================');
 
   // Prepare dynamic folders from roles
   const folderedDocuments: Record<string, Document[]> = {};
@@ -135,7 +139,7 @@ const DocumentManagement = () => {
         type === "file"
           ? (e.target as HTMLInputElement).files?.[0] || null
           : name === "tags"
-          ? value.split(",").map((t) => t.trim()).filter(Boolean)
+          ? prev.tags // TagsInput handles tags as array, do not process here
           : value,
     }));
   };

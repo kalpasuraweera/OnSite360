@@ -41,6 +41,7 @@ export class DocumentsService {
         description: createDocumentDto.description ?? null,
         tags: createDocumentDto.tags ?? [],
       },
+      include: { uploader: true },
     });
     // Ensure tags is always string[] (never null)
     return { ...doc, tags: doc.tags ?? [] };
@@ -56,6 +57,7 @@ export class DocumentsService {
         ...(userId ? { uploadedById: userId } : {}),
       },
       orderBy: { createdAt: 'desc' },
+      include: { uploader: true },
     });
     return docs.map((doc) => ({ ...doc, tags: doc.tags ?? [] }));
   }
@@ -80,6 +82,7 @@ export class DocumentsService {
         description: updateDocumentDto.description ?? null,
         tags: updateDocumentDto.tags ?? [],
       },
+      include: { uploader: true },
     });
     return { ...updated, tags: updated.tags ?? [] };
   }
