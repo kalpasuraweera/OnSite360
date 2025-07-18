@@ -63,7 +63,7 @@ export default function Login() {
 
           {error && <ErrorMsg>{error}</ErrorMsg>}
 
-          <form onSubmit={handleLogin} className="space-y-4 p-10">
+          <form onSubmit={handleLogin} className="space-y-4 px-10">
             <TextInput
               id="email"
               label="Email"
