@@ -11,6 +11,7 @@ import {
   Put,
   NotFoundException,
   BadRequestException,
+  Request,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -23,6 +24,7 @@ import {
   ApiOperation,
   ApiResponse,
 } from '@nestjs/swagger';
+import { AuthenticatedRequest } from '../auth/auth.guard';
 
 @ApiTags('projects')
 @Controller('projects')
@@ -67,6 +69,44 @@ export class ProjectsController {
       console.error('Error retrieving projects:', error);
       throw new HttpException(
         'Failed to retrieve projects',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get projects for authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'User projects retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiBearerAuth()
+  @Get('my-projects')
+  async getMyProjects(@Request() req: AuthenticatedRequest) {
+    try {
+      const userId = req.user?.sub; // Use 'sub' as that's what the JWT payload contains
+      if (!userId) {
+        throw new HttpException(
+          'User not authenticated',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+      const projects = await this.projectsService.getUserProjects(userId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User projects retrieved successfully',
+        data: projects,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof HttpException
+      ) {
+        throw error;
+      }
+      console.error('Error retrieving user projects:', error);
+      throw new HttpException(
+        'Failed to retrieve user projects',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
