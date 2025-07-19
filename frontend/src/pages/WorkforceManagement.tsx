@@ -164,7 +164,7 @@ const WorkforceManagement = () => {
   // Modal states for confirmations
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
-  // Removed unused showBulkSaveConfirm state
+  const [showSaveConfirm, setShowSaveConfirm] = useState<boolean>(false);
 
   // Filter workers by project, search term, and attendance status
   const filteredWorkers = mockWorkers.filter(
@@ -231,8 +231,14 @@ const WorkforceManagement = () => {
 
   // Save all attendance changes
   const saveAttendanceChanges = () => {
+    setShowSaveConfirm(true);
+  };
+
+  // Confirm save attendance changes
+  const confirmSaveAttendance = () => {
     // In a real app, this would save to backend
     alert(`Saved attendance for ${Object.keys(attendanceState).length} workers`);
+    setShowSaveConfirm(false);
   };
 
   // Handle input changes for add worker form
@@ -435,6 +441,40 @@ const WorkforceManagement = () => {
                   Delete
                 </button>
                 <button className="btn btn-ghost flex-1" onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Attendance Confirmation Modal */}
+        {showSaveConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
+              <button
+                className="absolute top-2 right-2 btn btn-sm btn-circle"
+                type="button"
+                onClick={() => setShowSaveConfirm(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <MdSave />
+                Save Attendance Changes
+              </h2>
+              <p className="mb-6">
+                Are you sure you want to save attendance changes for{" "}
+                <span className="font-bold">{Object.keys(attendanceState).length}</span>{" "}
+                workers for <span className="font-bold">{attendanceDate}</span>?
+              </p>
+              <div className="flex gap-4">
+                <button className="btn btn-success flex-1" onClick={confirmSaveAttendance}>
+                  <MdSave />
+                  Save Changes
+                </button>
+                <button className="btn btn-ghost flex-1" onClick={() => setShowSaveConfirm(false)}>
                   Cancel
                 </button>
               </div>
