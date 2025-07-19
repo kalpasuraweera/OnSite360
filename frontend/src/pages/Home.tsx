@@ -256,7 +256,7 @@ const Home = () => {
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="lg:flex gap-2 hidden">
           <Link to="/login">
             <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a]">
               Login
@@ -271,7 +271,7 @@ const Home = () => {
         </div>
         {/* Mobile nav links dropdown */}
         {navOpen && (
-          <div className="fixed inset-0 bg-white/20 backdrop-blur-lg z-50 flex flex-col items-center justify-center gap-6 px-4 py-8 md:hidden animate-slide-down">
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-lg z-[99] flex flex-col items-center justify-center gap-6 px-4 py-8 md:hidden animate-slide-down">
             <button
               className="absolute top-6 right-6 text-3xl font-bold text-[#a35608] bg-white rounded-full w-12 h-12 flex items-center justify-center shadow"
               onClick={() => setNavOpen(false)}
@@ -323,7 +323,7 @@ const Home = () => {
             With <span className="text-[#fdc700]">Precision</span>
           </h2>
 
-          <div className="flex gap-1 justify-center w-full z-50 mt-4">
+          <div className="flex flex-wrap gap-1 justify-center w-full z-50 mt-4">
             <button
               className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400]"
               onClick={handleDemoClick}
