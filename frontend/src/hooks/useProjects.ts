@@ -78,6 +78,35 @@ export interface UserProject {
   };
 }
 
+// User Projects
+export interface UserProjectWithProject {
+  id: string;
+  userId: string;
+  projectId: string;
+  projectRole?: string;
+  accessLevel?: number;
+  workSchedule?: string;
+  hourlyRate?: number;
+  emergencyContact?: string;
+  notes?: string;
+  endDate?: string;
+  isActive: boolean;
+  assignedBy?: string;
+  assignedDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  project: {
+    id: string;
+    name: string;
+    description?: string;
+    type?: string;
+    budget?: number;
+    location?: string;
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
 export interface AssignUserToProjectDto {
   userId: string;
   projectRole?: string;

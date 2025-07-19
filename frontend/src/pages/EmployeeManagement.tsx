@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useRoles } from "../hooks/useRoles";
 import { useUsers, type User } from "../hooks/useUsers";
+import { useUserProjects, useProjects, type Project, type UserProjectWithProject } from "../hooks/useProjects";
+import { useTasks, useUserTaskStats, type Task } from "../hooks/useTasks";
 
 const EmployeeManagement = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -10,6 +12,21 @@ const EmployeeManagement = () => {
   // Fetch roles and users using the hooks
   const { data: roles, isLoading: rolesLoading } = useRoles();
   const { data: users, isLoading: usersLoading } = useUsers();
+  
+  // Fetch projects list to get project names
+  const { data: allProjects } = useProjects();
+  
+  // Fetch user projects and tasks data for selected employee
+  const { data: userProjects, isLoading: projectsLoading } = useUserProjects(
+    selectedEmployee?.id || ""
+  );
+  const { data: userTasks, isLoading: tasksLoading } = useTasks(
+    selectedEmployee ? { assigneeId: selectedEmployee.id } : undefined
+  );
+  const { data: userTaskStats, isLoading: taskStatsLoading } = useUserTaskStats();
+
+  // Extract the actual user projects data from the API response
+  const actualUserProjects = userProjects?.data || [];
 
   const handleViewEmployee = (employee: User) => {
     setSelectedEmployee(employee);
@@ -298,12 +315,264 @@ const EmployeeManagement = () => {
                 </div>
               </div>
 
-              {/* User Projects */}
+              {/* User Projects and Task Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* User Projects */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    User Projects
+                    {projectsLoading && <span className="loading loading-spinner loading-sm"></span>}
+                  </h3>
+                  {projectsLoading ? (
+                    <div className="text-center py-4">
+                      <span className="loading loading-spinner loading-md"></span>
+                      <p className="text-sm text-gray-500 mt-2">Loading projects...</p>
+                    </div>
+                  ) : actualUserProjects && actualUserProjects.length > 0 ? (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {actualUserProjects.map((userProject: UserProjectWithProject) => {
+                        // The API now returns the project object directly in the userProject
+                        const project = userProject.project;
+                        return (
+                        <div key={userProject.id} className="border border-base-300 rounded-lg p-3">
+                          <div className="font-medium text-primary mb-1">
+                            {project?.name || `Project ID: ${userProject.projectId.slice(0, 8)}...`}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Role: {userProject.projectRole || 'Not specified'}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Access Level: {userProject.accessLevel || 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Status: {userProject.isActive ? 'Active' : 'Inactive'}
+                          </div>
+                          {project?.type && (
+                            <div className="text-sm text-gray-500">
+                              Type: {project.type}
+                            </div>
+                          )}
+                          {project?.budget && (
+                            <div className="text-sm text-gray-500">
+                              Budget: ${project.budget.toLocaleString()}
+                            </div>
+                          )}
+                          {userProject.hourlyRate && (
+                            <div className="text-sm text-gray-500">
+                              Rate: ${userProject.hourlyRate}/hr
+                            </div>
+                          )}
+                          {userProject.workSchedule && (
+                            <div className="text-sm text-gray-500">
+                              Schedule: {userProject.workSchedule}
+                            </div>
+                          )}
+                          {userProject.assignedDate && (
+                            <div className="text-sm text-gray-500">
+                              Assigned: {new Date(userProject.assignedDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      No project assignments found for this user.
+                    </p>
+                  )}
+                </div>
+
+                {/* Task Performance */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    Task Performance
+                    {tasksLoading && <span className="loading loading-spinner loading-sm"></span>}
+                  </h3>
+                  {tasksLoading ? (
+                    <div className="text-center py-4">
+                      <span className="loading loading-spinner loading-md"></span>
+                      <p className="text-sm text-gray-500 mt-2">Loading tasks...</p>
+                    </div>
+                  ) : userTasks && userTasks.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Task Statistics */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Total Tasks</div>
+                          <div className="stat-value text-lg text-primary">{userTasks.length}</div>
+                        </div>
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Completed</div>
+                          <div className="stat-value text-lg text-success">
+                            {userTasks.filter(task => task.status === 'Completed').length}
+                          </div>
+                        </div>
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">In Progress</div>
+                          <div className="stat-value text-lg text-warning">
+                            {userTasks.filter(task => task.status === 'In Progress').length}
+                          </div>
+                        </div>
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Pending</div>
+                          <div className="stat-value text-lg text-info">
+                            {userTasks.filter(task => task.status === 'Pending').length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recent Tasks */}
+                      <div>
+                        <h4 className="font-medium mb-2">Recent Tasks</h4>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {userTasks.slice(0, 3).map((task: Task) => (
+                            <div key={task.id} className="text-sm border border-base-300 rounded p-2">
+                              <div className="font-medium">{task.title}</div>
+                              <div className="flex justify-between text-xs text-gray-500">
+                                <span className={`badge badge-xs ${
+                                  task.status === 'Completed' ? 'badge-success' :
+                                  task.status === 'In Progress' ? 'badge-warning' :
+                                  task.status === 'Pending' ? 'badge-info' : 'badge-ghost'
+                                }`}>
+                                  {task.status}
+                                </span>
+                                <span className={`badge badge-xs ${
+                                  task.priority === 'Critical' ? 'badge-error' :
+                                  task.priority === 'High' ? 'badge-warning' :
+                                  task.priority === 'Medium' ? 'badge-info' : 'badge-ghost'
+                                }`}>
+                                  {task.priority}
+                                </span>
+                              </div>
+                              {task.progress !== undefined && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Progress: {task.progress}%
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      No tasks assigned to this user.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Analytics */}
               <div className="bg-base-100 rounded-xl p-4">
-                <h3 className="text-lg font-semibold mb-4">User Projects</h3>
-                <p className="text-gray-500 text-sm">
-                  To view this user's project assignments, use the user projects endpoint with their ID: <code className="bg-gray-100 px-2 py-1 rounded">{selectedEmployee.id}</code>
-                </p>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  Performance Analytics
+                  {taskStatsLoading && <span className="loading loading-spinner loading-sm"></span>}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Project Engagement */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Project Engagement</div>
+                    <div className="stat-value text-lg text-primary">
+                      {projectsLoading ? '...' : actualUserProjects?.length || 0}
+                    </div>
+                    <div className="stat-desc">Active projects</div>
+                  </div>
+
+                  {/* Task Completion Rate */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Completion Rate</div>
+                    <div className="stat-value text-lg text-success">
+                      {tasksLoading ? '...' : userTasks && userTasks.length > 0 
+                        ? `${Math.round((userTasks.filter(task => task.status === 'Completed').length / userTasks.length) * 100)}%`
+                        : '0%'
+                      }
+                    </div>
+                    <div className="stat-desc">Tasks completed</div>
+                  </div>
+
+                  {/* Average Progress */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Avg Progress</div>
+                    <div className="stat-value text-lg text-info">
+                      {tasksLoading ? '...' : userTasks && userTasks.length > 0
+                        ? `${Math.round(userTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / userTasks.length)}%`
+                        : '0%'
+                      }
+                    </div>
+                    <div className="stat-desc">Across all tasks</div>
+                  </div>
+                </div>
+
+                {/* Global User Task Statistics */}
+                {userTaskStats && (
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-3">Global Task Performance</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Tasks</div>
+                        <div className="stat-value text-lg text-primary">{userTaskStats.totalTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Completed</div>
+                        <div className="stat-value text-lg text-success">{userTaskStats.completedTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">In Progress</div>
+                        <div className="stat-value text-lg text-warning">{userTaskStats.inProgressTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Overdue</div>
+                        <div className="stat-value text-lg text-error">{userTaskStats.overdueTasks}</div>
+                      </div>
+                    </div>
+                    
+                    {userTaskStats.averageCompletionTime && (
+                      <div className="mt-3">
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Avg Completion Time</div>
+                          <div className="stat-value text-lg text-info">
+                            {Math.round(userTaskStats.averageCompletionTime)} days
+                          </div>
+                          <div className="stat-desc">Average time to complete tasks</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {userTaskStats.totalHoursLogged && (
+                      <div className="mt-3">
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Total Hours Logged</div>
+                          <div className="stat-value text-lg text-accent">
+                            {userTaskStats.totalHoursLogged} hrs
+                          </div>
+                          <div className="stat-desc">Across all tasks</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Current Project Time Analytics */}
+                {userTasks && userTasks.some(task => task.estimatedHours || task.actualHours) && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Current Project Time Analytics</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Estimated Hours</div>
+                        <div className="stat-value text-lg text-warning">
+                          {userTasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0)} hrs
+                        </div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Actual Hours</div>
+                        <div className="stat-value text-lg text-info">
+                          {userTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0)} hrs
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -404,6 +673,186 @@ const EmployeeManagement = () => {
                         Live API data
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project & Task Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Project Analytics */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    Project Overview
+                    {allProjects ? null : <span className="loading loading-spinner loading-sm"></span>}
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Total Projects:</span>
+                      <span className="font-bold text-primary">{allProjects?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Active Projects:</span>
+                      <span className="font-bold text-success">
+                        {allProjects?.filter((project: Project) =>
+                          !project.endDate || new Date(project.endDate) > new Date()
+                        ).length || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Projects with Budgets:</span>
+                      <span className="font-bold text-info">
+                        {allProjects?.filter((project: Project) => project.budget).length || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Avg Project Size:</span>
+                      <span className="font-bold text-warning">
+                        {allProjects && allProjects.length > 0 
+                          ? `${Math.round(allProjects.reduce((sum: number, project: Project) =>
+                              sum + (project.squareFeet || 0), 0) / allProjects.length).toLocaleString()} sq ft`
+                          : '0 sq ft'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Project Types Distribution */}
+                  {allProjects && allProjects.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Project Types</h4>
+                      <div className="space-y-2">
+                        {(Array.from(new Set(allProjects.map((p: Project) => p.type).filter(Boolean))) as string[]).map((type: string) => (
+                          <div key={type} className="flex justify-between text-sm">
+                            <span>{type}:</span>
+                            <span className="font-medium">
+                              {allProjects.filter((p: Project) => p.type === type).length} projects
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Team Task Performance */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    Team Task Performance
+                    {taskStatsLoading && <span className="loading loading-spinner loading-sm"></span>}
+                  </h3>
+                  {userTaskStats ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span>Global Total Tasks:</span>
+                        <span className="font-bold text-primary">{userTaskStats.totalTasks}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Global Completed:</span>
+                        <span className="font-bold text-success">{userTaskStats.completedTasks}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Global In Progress:</span>
+                        <span className="font-bold text-warning">{userTaskStats.inProgressTasks}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Global Overdue:</span>
+                        <span className="font-bold text-error">{userTaskStats.overdueTasks}</span>
+                      </div>
+                      
+                      {userTaskStats.averageCompletionTime && (
+                        <div className="flex justify-between">
+                          <span>Avg Completion:</span>
+                          <span className="font-bold text-info">
+                            {Math.round(userTaskStats.averageCompletionTime)} days
+                          </span>
+                        </div>
+                      )}
+                      
+                      {userTaskStats.totalHoursLogged && (
+                        <div className="flex justify-between">
+                          <span>Total Hours Logged:</span>
+                          <span className="font-bold text-accent">
+                            {userTaskStats.totalHoursLogged} hrs
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Team Performance Metrics */}
+                      <div className="mt-4 pt-3 border-t border-base-300">
+                        <h4 className="font-medium mb-2">Team Efficiency</h4>
+                        <div className="flex justify-between text-sm">
+                          <span>Completion Rate:</span>
+                          <span className="font-medium text-success">
+                            {userTaskStats.totalTasks > 0 
+                              ? `${Math.round((userTaskStats.completedTasks / userTaskStats.totalTasks) * 100)}%`
+                              : '0%'
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>On-Time Performance:</span>
+                          <span className="font-medium text-info">
+                            {userTaskStats.totalTasks > 0 
+                              ? `${Math.round(((userTaskStats.totalTasks - userTaskStats.overdueTasks) / userTaskStats.totalTasks) * 100)}%`
+                              : '0%'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-gray-500">Loading team performance data...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* User-Project Assignment Analytics */}
+              <div className="bg-base-100 rounded-xl p-4 mt-6">
+                <h3 className="text-lg font-semibold mb-4">Employee Project Engagement</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="stat bg-base-200 rounded-lg p-3">
+                    <div className="stat-title text-xs">Users with Projects</div>
+                    <div className="stat-value text-lg text-primary">
+                      {employees.filter(emp => 
+                        allProjects?.some((project: Project) => 
+                          project.userProjects?.some((up: { userId: string; id: string; projectRole: string; accessLevel: number; isActive: boolean; user: { id: string; firstName: string; lastName: string; email: string; }; }) => up.userId === emp.id)
+                        )
+                      ).length}
+                    </div>
+                    <div className="stat-desc">Active assignments</div>
+                  </div>
+                  <div className="stat bg-base-200 rounded-lg p-3">
+                    <div className="stat-title text-xs">Unassigned Users</div>
+                    <div className="stat-value text-lg text-warning">
+                      {employees.length - employees.filter(emp => 
+                        allProjects?.some((project: Project) => 
+                          project.userProjects?.some((up: { userId: string; id: string; projectRole: string; accessLevel: number; isActive: boolean; user: { id: string; firstName: string; lastName: string; email: string; }; }) => up.userId === emp.id)
+                        )
+                      ).length}
+                    </div>
+                    <div className="stat-desc">Need assignments</div>
+                  </div>
+                  <div className="stat bg-base-200 rounded-lg p-3">
+                    <div className="stat-title text-xs">Avg Projects/User</div>
+                    <div className="stat-value text-lg text-info">
+                      {employees.length > 0 && allProjects 
+                        ? Math.round((allProjects.reduce((sum: number, project: Project) => 
+                            sum + (project.userProjects?.length || 0), 0) / employees.length) * 10) / 10
+                        : 0
+                      }
+                    </div>
+                    <div className="stat-desc">Per employee</div>
+                  </div>
+                  <div className="stat bg-base-200 rounded-lg p-3">
+                    <div className="stat-title text-xs">Total Assignments</div>
+                    <div className="stat-value text-lg text-accent">
+                      {allProjects?.reduce((sum: number, project: Project) => 
+                        sum + (project.userProjects?.length || 0), 0) || 0
+                      }
+                    </div>
+                    <div className="stat-desc">Across all projects</div>
                   </div>
                 </div>
               </div>
