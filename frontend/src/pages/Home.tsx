@@ -16,6 +16,7 @@ const Home = () => {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hideFeatureCards, setHideFeatureCards] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const featureCardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,6 +107,9 @@ const Home = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Helper for all "Request a Demo" buttons
+  const handleDemoClick = () => setShowDemoModal(true);
+
   return (
     <div className="">
       {/* Navbar */}
@@ -153,7 +157,10 @@ const Home = () => {
             </Link>
           </button>
 
-          <button className="w-[177px] h-[47px] absolute top-[45px] left-[1096px] bg-[#fdc700] rounded-[10px] hover:bg-[#e5b400]">
+          <button
+            className="w-[177px] h-[47px] absolute top-[45px] left-[1096px] bg-[#fdc700] rounded-[10px] hover:bg-[#e5b400]"
+            onClick={handleDemoClick}
+          >
             <span className="[font-family:'Figtree',Helvetica] font-medium text-[#a35608] ">
               Request a Demo
             </span>
@@ -261,17 +268,39 @@ const Home = () => {
                     style={{
                       width: hoveredCard === index ? 350 : 316,
                       height: hoveredCard === index ? 120 : 85,
+                      overflow: "hidden",
                     }}
                     onMouseEnter={() => setHoveredCard(index)}
                     onMouseLeave={() => setHoveredCard(null)}
                   >
-                    <div className="flex items-center justify-center h-full">
+                    {/* Animated background square */}
+                    <div
+                      className={`absolute transition-all duration-300 ease-in-out pointer-events-none`}
+                      style={{
+                        zIndex: 0,
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: hoveredCard === index ? 340 : 80,
+                        height: hoveredCard === index ? 110 : 30,
+                        background: "#fde68a", // yellow-200 tailwind
+                        opacity: hoveredCard === index ? 0.5 : 0.15,
+                        borderRadius: 16,
+                        boxShadow:
+                          hoveredCard === index
+                            ? "0 0 40px 10px #fde68a"
+                            : "0 0 10px 2px #fde68a",
+                        transition: "all 0.3s cubic-bezier(.4,0,.2,1)",
+                      }}
+                    />
+                    {/* Card content */}
+                    <div className="flex items-center justify-center h-full relative z-10">
                       <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] w-full text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
                         {card.title}
                       </div>
                     </div>
                     {hoveredCard === index && (
-                      <div className="mt-2 text-sm text-neutral-500 text-center   transition-opacity duration-200 opacity-100">
+                      <div className="mt-2 text-sm text-neutral-500 text-center   transition-opacity duration-200 opacity-100 relative z-10">
                         {featureCardDescriptions[card.title]}
                       </div>
                     )}
@@ -281,7 +310,10 @@ const Home = () => {
             </div>
 
             {/* CTA button */}
-            <button className="w-[214px] h-[68px] absolute top-[219px] left-[920px] bg-[#fdc700] rounded-[15px] shadow-[0px_4px_30px_#d1a500] hover:bg-[#e5b400]">
+            <button
+              className="w-[214px] h-[68px] absolute top-[219px] left-[920px] bg-[#fdc700] rounded-[15px] shadow-[0px_4px_30px_#d1a500] hover:bg-[#e5b400]"
+              onClick={handleDemoClick}
+            >
               <span className="[font-family:'Figtree',Helvetica] font-semibold text-[#a45505] text-[19px]">
                 Request a Demo
               </span>
@@ -326,7 +358,10 @@ const Home = () => {
                   to get done every day to stay on schedule and prevent rework.
                 </p>
                 <br />
-                <button className="btn btn-primary mt-60">
+                <button
+                  className="btn btn-primary mt-60"
+                  onClick={handleDemoClick}
+                >
                   Request a Demo
                 </button>
               </div>
@@ -355,7 +390,10 @@ const Home = () => {
                   <br />
                   Mitigate risks with accurate data logs
                   <br />
-                  <button className="btn btn-primary mt-5">
+                  <button
+                    className="btn btn-primary mt-5"
+                    onClick={handleDemoClick}
+                  >
                     Request a Demo
                   </button>
                 </div>
@@ -391,7 +429,9 @@ const Home = () => {
                   Track all steps and speed up the approval process.
                 </div>
                 <div className="flex absolute w-[570px] top-80 gap-3 left-[5px]">
-                  <button className="btn btn-primary">Request a Demo</button>
+                  <button className="btn btn-primary" onClick={handleDemoClick}>
+                    Request a Demo
+                  </button>
                   <button
                     onClick={handleInstallClick}
                     className="btn btn-neutral"
@@ -414,7 +454,9 @@ const Home = () => {
                   See how Project Management can work for your team.
                 </h2>
                 <div className="flex absolute w-[570px] top-64 gap-3 left-[5px]">
-                  <button className="btn btn-primary">Request a Demo</button>
+                  <button className="btn btn-primary" onClick={handleDemoClick}>
+                    Request a Demo
+                  </button>
                 </div>
               </div>
               <img
@@ -435,6 +477,130 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* DaisyUI Modal using modal/modal-open classes */}
+      {showDemoModal && (
+        <div className="modal modal-open backdrop-blur-md">
+          <div className="modal-box max-w-2xl  py-5 px-10 relative">
+            {/* Close icon at top right */}
+            <button
+              className="btn btn-sm btn-circle absolute right-4 top-4"
+              onClick={() => setShowDemoModal(false)}
+              aria-label="Close"
+              type="button"
+            >
+              ✕
+            </button>
+            <h2 className="text-3xl font-bold text-center mb-10">
+              Unlock our product demo
+            </h2>
+            <form className="space-y-6">
+              <div className="flex gap-6">
+                <div className="flex-1">
+                  <label className="block font-medium mb-2">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className="input input-bordered w-full bg-[#f6f8fa]"
+                    type="text"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block font-medium mb-2">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    className="input input-bordered w-full bg-[#f6f8fa]"
+                    type="text"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <div className="flex-1">
+                  <input
+                    className="input input-bordered w-full bg-[#f6f8fa]"
+                    type="tel"
+                    placeholder="(555) 555-5555"
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    className="input input-bordered w-full bg-[#f6f8fa]"
+                    type="text"
+                    placeholder="Company *"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <input
+                  className="input input-bordered w-full bg-[#f6f8fa]"
+                  type="email"
+                  placeholder="Email *"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium mb-2">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="select select-bordered w-full bg-[#f6f8fa]"
+                  required
+                >
+                  <option value="">Select</option>
+                  <option value="us">United States</option>
+                  <option value="ca">Canada</option>
+                  <option value="uk">United Kingdom</option>
+                  {/* ...other countries... */}
+                </select>
+              </div>
+              <div>
+                <label className="block font-medium mb-2">
+                  Which builder type best describes your business?{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="select select-bordered w-full bg-[#f6f8fa]"
+                  required
+                >
+                  <option value="">Select</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  {/* ...other types... */}
+                </select>
+              </div>
+              <div>
+                <label className="block font-medium mb-2">
+                  What is your average annual revenue?{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="select select-bordered w-full bg-[#f6f8fa]"
+                  required
+                >
+                  <option value="">Select</option>
+                  <option value="under1m">Under $1M</option>
+                  <option value="1m-5m">$1M - $5M</option>
+                  <option value="5m-20m">$5M - $20M</option>
+                  <option value="over20m">Over $20M</option>
+                </select>
+              </div>
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-full font-bold text-black"
+                >
+                  Unlock Demo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
