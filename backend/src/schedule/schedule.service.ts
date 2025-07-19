@@ -556,6 +556,17 @@ export class ScheduleService {
             email: true,
           },
         },
+        activities: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            dailyLog: {
+              select: {
+                id: true,
+                date: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             activities: true,
