@@ -39,6 +39,7 @@ model User {
   comments       Comment[]  // Comments made by this user
   scheduleEvents ScheduleEvent[] @relation("EventAssignees") // Events assigned to this user
   createdEvents  ScheduleEvent[] @relation("EventCreator") // Events created by this user
+  markedAttendance ProjectAttendance[] // Attendance records marked by this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -112,6 +113,7 @@ model Project {
   ProjectPhase        ProjectPhase[]
   EquipmentAssignment EquipmentAssignment[]
   RFI                 RFI[]
+  attendance          ProjectAttendance[]
 }
 
 // Junction table for many-to-many relationship between User and Project
@@ -388,6 +390,75 @@ model Issue {
   updatedAt    DateTime  @updatedAt
 }
 
+// Project-based attendance tracking
+model ProjectAttendance {
+  id           String                    @id @default(uuid())
+  projectId    String
+  project      Project                   @relation(fields: [projectId], references: [id])
+  date         DateTime                  @db.Date
+  
+  // Work schedule information
+  actualStartTime    DateTime?  // When work actually started
+  workDelayed        Boolean    @default(false)
+  delayReason        String?
+  delayDuration      Int?       // Delay in minutes
+  
+  // Marked attendance
+  markedById String
+  markedBy   User                      @relation(fields: [markedById], references: [id])
+  
+  // Day type information
+  dayType            String     @default("WORKDAY") // "WORKDAY", "HOLIDAY", "WEEKEND", "WEATHER_DELAY", "NO_WORK_SCHEDULED"
+  dayTypeReason      String?    // Holiday name, weather condition, etc.
+  isWorkDay          Boolean    @default(true)      // Whether work was scheduled for this day
+
+  // Many-to-many relationship with crew members
+  crewAttendance AttendanceRecord[]
+  
+  // General notes for the day
+  notes        String?
+  
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@unique([projectId, date]) // One attendance record per project per day
+}
+
+// Individual crew member attendance within a project attendance
+model AttendanceRecord {
+  id                   String            @id @default(uuid())
+  projectAttendanceId  String
+  projectAttendance    ProjectAttendance @relation(fields: [projectAttendanceId], references: [id], onDelete: Cascade)
+  crewMemberId         String
+  crewMember           CrewMember        @relation(fields: [crewMemberId], references: [id])
+  
+  // Attendance status
+  status               String            // "PRESENT", "ABSENT", "HALF_DAY", "LATE", "EARLY_DEPARTURE", "SICK_LEAVE", "VACATION", "HOLIDAY"
+  
+  // Time tracking
+  checkInTime          DateTime?
+  checkOutTime         DateTime?
+  breakDuration        Int?              // Break duration in minutes
+  totalHours           Float?            // Total working hours
+  scheduledHours       Float?            // Scheduled hours for the day
+  
+  // Leave/absence details
+  leaveType            String?           // "SICK", "VACATION", "PERSONAL", "EMERGENCY", "UNAUTHORIZED"
+  isApproved           Boolean?          // Whether leave was pre-approved
+  
+  // Work details
+  workLocation         String?           // Specific area where they worked
+  tasks                String[]          // Array of tasks/activities performed
+  
+  // Individual notes for this crew member
+  notes                String?
+  
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@unique([projectAttendanceId, crewMemberId]) // One record per crew member per project attendance
+}
+
 // Crew members (non-system users)
 model CrewMember {
   id             String           @id @default(uuid())
@@ -400,6 +471,7 @@ model CrewMember {
   hireDate       DateTime?
   assignments    CrewAssignment[]
   dailyActivities DailyActivity[]
+  attendanceRecords AttendanceRecord[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 }
