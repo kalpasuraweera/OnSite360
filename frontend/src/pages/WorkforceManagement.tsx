@@ -1065,9 +1065,52 @@ const WorkforceManagement = () => {
           </div>
         )}
 
-        {/* Workforce Table */}
-        <div className="overflow-x-auto">
-          <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
+        {/* No Attendance Data Message for Attendance Tab */}
+        {activeTab === "attendance" && attendanceDataStatus.noDataForDate && (
+          <div className="text-center py-12">
+            <div className="bg-base-100 p-8 rounded-xl border border-base-300">
+              <MdSchedule className="mx-auto text-6xl text-gray-400 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Attendance Record</h3>
+              <p className="text-gray-500 mb-4">
+                No attendance has been recorded for {attendanceDate}.
+              </p>
+              {isToday ? (
+                <div className="text-sm text-gray-600">
+                  {(!filteredWorkers || filteredWorkers.length === 0) ? (
+                    <div>
+                      <p className="mb-2 text-warning">No crew members found for this project.</p>
+                      <p className="mb-2">To start recording attendance:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+                        <li>First, add crew members to this project using the "Add Worker" button</li>
+                        <li>Then return to the Attendance tab to record their attendance</li>
+                        <li>Mark attendance status for each worker</li>
+                        <li>Click "Save Changes" to create the attendance record</li>
+                      </ol>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="mb-2">To start recording attendance:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+                        <li>Use the date selector above to ensure today's date is selected</li>
+                        <li>Mark attendance status for each worker (table will appear once attendance is created)</li>
+                        <li>Click "Save Changes" to create the attendance record</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  Attendance records can only be created for today's date.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Workforce Table - Only show if not on attendance tab with no data */}
+        {!(activeTab === "attendance" && attendanceDataStatus.noDataForDate) && (
+          <div className="overflow-x-auto">
+            <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
             <thead>
               <tr>
                 <th>Name</th>
@@ -1415,6 +1458,7 @@ const WorkforceManagement = () => {
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Edit Worker Modal */}
         {editWorker && (
