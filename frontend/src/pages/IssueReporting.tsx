@@ -382,6 +382,8 @@ const IssueReporting = () => {
                 <button
                   className="btn btn-primary"
                   onClick={() => setShowCreateIssueModal(true)}
+                  disabled={!selectedProject}
+                  title={!selectedProject ? "Please select a project first" : ""}
                 >
                   + Report Issue
                 </button>
@@ -653,36 +655,31 @@ const IssueReporting = () => {
       {showCreateIssueModal && (
         <div className="modal modal-open">
           <div className="modal-box max-w-4xl">
-            <h3 className="font-bold text-lg mb-4">Report New Issue</h3>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="font-bold text-lg">Report New Issue</h3>
+                {selectedProject && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    For project: <span className="font-medium text-primary">
+                      {projects.find((p: Project) => p.id === selectedProject)?.name || "Selected Project"}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleCreateIssue} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Issue Title *</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    className="input input-bordered"
-                    placeholder="Brief description of the issue..."
-                    required
-                  />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Project *</span>
-                  </label>
-                  <select name="projectId" className="select select-bordered" required>
-                    <option value="">Select a project</option>
-                    {projects.map((project: Project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Issue Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered"
+                  placeholder="Brief description of the issue..."
+                  required
+                />
               </div>
 
               <div className="form-control">
