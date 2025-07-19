@@ -9,6 +9,7 @@ import {
   useDeleteCrewMember,
   useMarkAttendance,
   useAssignCrewMemberToProject,
+  useProjectAttendanceByDate,
   type CrewMember,
   type CreateCrewMemberDto,
   type AttendanceRecord,
@@ -32,6 +33,40 @@ interface CrewAssignment {
   notes: string;
   projectId: string;
   updatedAt: string;
+}
+
+// Interface for attendance API response
+interface AttendanceApiResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+    projectId: string;
+    date: string;
+    actualStartTime?: string;
+    workDelayed: boolean;
+    delayReason?: string;
+    delayDuration?: number;
+    dayType?: string;
+    dayTypeReason?: string;
+    isWorkDay: boolean;
+    notes?: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    crewAttendance?: (AttendanceRecord & { crewMemberId: string })[];
+  };
+}
+
+// Interface for Axios error response
+interface AxiosErrorResponse {
+  response?: {
+    status: number;
+    data?: {
+      message?: string;
+    };
+  };
+  message: string;
 }
 
 // Common construction skills for quick selection
@@ -102,6 +137,12 @@ const WorkforceManagement = () => {
     user?.id || ""
   );
   const { data: crewMembersResponse, isLoading: crewMembersLoading } = useProjectCrewMembers(selectedProject || "");
+  
+  // Fetch attendance data for the selected date
+  const { data: attendanceResponse, isLoading: attendanceLoading, error: attendanceError } = useProjectAttendanceByDate(
+    selectedProject || "",
+    attendanceDate
+  );
   
   // Extract crew members from response - handle both .data and direct array
   const crewMembers = React.useMemo(() => {
@@ -189,6 +230,101 @@ const WorkforceManagement = () => {
     }
   }, [projects, selectedProject, projectsLoading]);
 
+  // State for tracking attendance data status
+  const [attendanceDataStatus, setAttendanceDataStatus] = React.useState<{
+    loading: boolean;
+    error: string | null;
+    noDataForDate: boolean;
+  }>({
+    loading: false,
+    error: null,
+    noDataForDate: false
+  });
+
+  // Update attendance state when attendance data is fetched
+  React.useEffect(() => {
+    // Set loading state when attendance is being fetched
+    if (attendanceLoading) {
+      setAttendanceDataStatus({
+        loading: true,
+        error: null,
+        noDataForDate: false
+      });
+      return;
+    }
+
+    if (attendanceError) {
+      console.error('Error fetching attendance data:', attendanceError);
+      
+      // Check if it's a 404 error (no attendance data for this date)
+      const axiosError = attendanceError as AxiosErrorResponse;
+      const is404Error = axiosError?.response?.status === 404;
+      const errorMessage = axiosError?.response?.data?.message || axiosError?.message || 'Unknown error';
+      
+      if (is404Error) {
+        setAttendanceDataStatus({
+          loading: false,
+          error: null,
+          noDataForDate: true
+        });
+      } else {
+        setAttendanceDataStatus({
+          loading: false,
+          error: `Failed to load attendance data: ${errorMessage}`,
+          noDataForDate: false
+        });
+      }
+      
+      setAttendanceState({});
+      return;
+    }
+
+    if (attendanceResponse?.data) {
+      // Handle the API response structure: { statusCode, message, data: attendance }
+      const attendanceData = attendanceResponse.data as AttendanceApiResponse['data'];
+      
+      // Initialize attendance state object
+      const newAttendanceState: Record<string, { status: string; notes: string }> = {};
+      
+      // Check if attendanceData has crewAttendance array
+      if (attendanceData && attendanceData.crewAttendance && Array.isArray(attendanceData.crewAttendance)) {
+        attendanceData.crewAttendance.forEach((record) => {
+          if (record.crewMemberId) {
+            newAttendanceState[record.crewMemberId] = {
+              status: record.status || "Present",
+              notes: record.notes || ""
+            };
+          }
+        });
+      }
+      
+      setAttendanceState(newAttendanceState);
+      setAttendanceDataStatus({
+        loading: false,
+        error: null,
+        noDataForDate: false
+      });
+    } else {
+      // Reset attendance state if no data or when date changes
+      setAttendanceState({});
+      setAttendanceDataStatus({
+        loading: false,
+        error: null,
+        noDataForDate: false
+      });
+    }
+  }, [attendanceResponse, attendanceError, attendanceLoading]);
+
+  // Reset attendance state when project changes
+  React.useEffect(() => {
+    setAttendanceState({});
+    setAttendanceDataStatus({
+      loading: false,
+      error: null,
+      noDataForDate: false
+    });
+  }, [selectedProject]);
+
   // Filter workers by project, search term, and attendance status
   const filteredWorkers = React.useMemo(() => {
     // Handle case when crewMembers is undefined, null, or not an array
@@ -217,7 +353,7 @@ const WorkforceManagement = () => {
   const isToday = attendanceDate === todayStr;
 
   // Early return for loading states to prevent render errors
-  if (projectsLoading || crewMembersLoading) {
+  if (projectsLoading || crewMembersLoading || attendanceLoading) {
     return (
       <div className="p-8">
         <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
@@ -790,6 +926,41 @@ const WorkforceManagement = () => {
         {/* Attendance Controls */}
         {activeTab === "attendance" && (
           <div className="bg-base-100 p-6 rounded-xl border border-base-300 mb-4">
+            {/* Attendance Loading Indicator */}
+            {attendanceDataStatus.loading && (
+              <div className="alert alert-info mb-4">
+                <span className="loading loading-spinner loading-sm"></span>
+                <span>Loading attendance data for {attendanceDate}...</span>
+              </div>
+            )}
+            
+            {/* Attendance Status Message */}
+            {attendanceDataStatus.noDataForDate && (
+              <div className="alert alert-info mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                  <span className="font-medium">No attendance record found for {attendanceDate}</span>
+                  <div className="text-sm opacity-80 mt-1">
+                    {isToday 
+                      ? "You can start recording attendance for today by marking worker status below and clicking 'Save Changes'."
+                      : "No attendance was recorded for this date. You can only modify attendance for today."
+                    }
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {attendanceDataStatus.error && (
+              <div className="alert alert-error mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{attendanceDataStatus.error}</span>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
                 <label className="font-semibold flex items-center gap-2">
