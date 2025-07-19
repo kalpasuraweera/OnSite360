@@ -99,9 +99,9 @@ const UserManagement = () => {
     return role?.name || "Unknown Role";
   };
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-1">User Management</h1>
-      <p className="text-gray-500 mb-6">Manage user accounts and access</p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-1">User Management</h1>
+      <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base">Manage user accounts and access</p>
 
       {/* Tabs navigation */}
       <div className="tabs tabs-border">
@@ -114,11 +114,11 @@ const UserManagement = () => {
           onChange={() => setActiveTab("users")}
         />
         {activeTab === "users" && (
-          <div className="tab-content p-5">
+          <div className="tab-content p-3 sm:p-5">
             {/* Users List Section */}
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-              <h2 className="text-2xl font-bold">Users</h2>
-              <p className="text-neutral-500 mb-4">
+            <div className="bg-base-200 border border-base-300 p-4 sm:p-6 rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-bold">Users</h2>
+              <p className="text-neutral-500 mb-4 text-sm sm:text-base">
                 Manage user accounts and access
               </p>
 
@@ -131,34 +131,36 @@ const UserManagement = () => {
                   users.map((user) => (
                     <div
                       key={user.id}
-                      className="flex flex-col md:flex-row md:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4 gap-3"
                     >
-                      <div>
-                        <div className="font-semibold">
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm sm:text-base">
                           {user.firstName} {user.lastName}
                         </div>
-                        <div className="text-gray-500 text-sm">{user.email}</div>
-                        <span className="badge badge-neutral mt-2">
+                        <div className="text-gray-500 text-xs sm:text-sm">{user.email}</div>
+                        <span className="badge badge-neutral mt-2 text-xs">
                           {getRoleName(user.roleId)}
                         </span>
                       </div>
-                      <div className="flex gap-2 mt-4 md:mt-0">
-                        <span className="badge badge-success badge-lg text-xs px-3 py-1">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <span className="badge badge-success badge-sm sm:badge-lg text-xs px-2 py-1">
                           Active
                         </span>
-                        <button 
-                          className="btn btn-soft btn-accent btn-sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className="btn btn-sm btn-outline btn-error"
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={deleteUser.isPending}
-                        >
-                          {deleteUser.isPending ? "Deleting..." : "Delete"}
-                        </button>
+                        <div className="flex gap-2">
+                          <button 
+                            className="btn btn-soft btn-accent btn-sm flex-1 sm:flex-none"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            className="btn btn-sm btn-outline btn-error"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={deleteUser.isPending}
+                          >
+                            {deleteUser.isPending ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))

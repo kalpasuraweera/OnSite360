@@ -25,40 +25,62 @@ const Sidebar = ({
       return a.page_name.localeCompare(b.page_name);
     });
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useSystemStore((s) => s.setSidebarOpen);
+  
   return (
-    <div
-      className={`${
-        sidebarOpen ? "w-64 min-w-64" : "w-16"
-      } bg-base-200 border border-base-300 transition-all duration-200 flex flex-col`}
-    >
-      <div className="flex flex-col gap-2 px-4 py-4">
-        {/* Sidebar toggle button is now handled in TopNav via useSystemStore */}
-        {sidebarOpen && (
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="w-52 flex justify-center"
-          />
-        )}
+    <>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      <div
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } fixed lg:relative lg:translate-x-0 top-0 left-0 h-full z-50 lg:z-auto
+        ${sidebarOpen ? "w-64 min-w-64" : "lg:w-16"} 
+        bg-base-200 border-r border-base-300 transition-all duration-200 flex flex-col`}
+      >
+        <div className="flex flex-col gap-2 px-4 py-4">
+          {/* Show logo on mobile when sidebar is open, or on desktop when expanded */}
+          {(sidebarOpen) && (
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-52 flex justify-center"
+            />
+          )}
+        </div>
+        <nav className="flex-1">
+          <ul className="menu p-2 w-full mt-5">
+            {accessiblePages.map((page) => (
+              <li key={page.page_id}>
+                <a
+                  className={`flex text-base-content items-center gap-3 px-4 py-3 hover:bg-base-300 w-full rounded-lg ${
+                    activeRoute === `/${page.page_id}` ? "bg-neutral-focus" : ""
+                  }`}
+                  onClick={() => {
+                    onNavigate(`/${page.page_id}`);
+                    // Close sidebar on mobile after navigation
+                    if (window.innerWidth < 1024) {
+                      setSidebarOpen(false);
+                    }
+                  }}
+                >
+                  {/* Show page name when sidebar is open */}
+                  {sidebarOpen && (
+                    <span className="truncate">{page.page_name}</span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
-      <nav className="flex-1">
-        <ul className="menu p-2 w-full mt-5">
-          {accessiblePages.map((page) => (
-            <li key={page.page_id}>
-              <a
-                className={`flex text-base-content items-center gap-3 px-4 py-2 hover:bg-base-300 w-full ${
-                  activeRoute === `/${page.page_id}` ? "bg-neutral-focus" : ""
-                }`}
-                onClick={() => onNavigate(`/${page.page_id}`)}
-              >
-                {/* <HiOutlineHome className="w-5 h-5" /> */}
-                {sidebarOpen && page.page_name}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+    </>
   );
 };
 

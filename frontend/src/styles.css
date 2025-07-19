@@ -1,6 +1,42 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+/* Mobile-first responsive utilities */
+.mobile-container {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+.mobile-heading {
+  @apply text-2xl sm:text-3xl lg:text-4xl font-bold;
+}
+
+.mobile-subheading {
+  @apply text-lg sm:text-xl lg:text-2xl font-semibold;
+}
+
+.mobile-text {
+  @apply text-sm sm:text-base;
+}
+
+.mobile-card {
+  @apply p-3 sm:p-4 lg:p-6 rounded-lg sm:rounded-xl lg:rounded-2xl;
+}
+
+.mobile-grid-2 {
+  @apply grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4;
+}
+
+.mobile-grid-cards {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6;
+}
+
+.mobile-button {
+  @apply btn-sm sm:btn-md;
+}
+
+.mobile-input {
+  @apply input-sm sm:input-md;
+}
 
 /* Add bumblebee theme */
 @plugin "daisyui/theme" {

@@ -7,19 +7,33 @@ interface SystemState {
   toggleSidebar: () => void;
   theme: "bumblebee" | "halloween";
   setTheme: (theme: "bumblebee" | "halloween") => void;
+  isMobile: boolean;
+  setIsMobile: (mobile: boolean) => void;
 }
 
 export const useSystemStore = create<SystemState>()(
   persist(
-    (set) => ({
-      sidebarOpen: true,
+    (set, get) => ({
+      sidebarOpen: window.innerWidth >= 1024, // Default closed on mobile
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+      toggleSidebar: () => {
+        const { isMobile } = get();
+        // On mobile, always close sidebar after opening; on desktop, toggle normally
+        set((s) => ({ sidebarOpen: isMobile ? !s.sidebarOpen : !s.sidebarOpen }));
+      },
       theme: "bumblebee",
       setTheme: (theme) => {
         set({ theme });
         // Update the data-theme attribute on the HTML element
         document.documentElement.setAttribute("data-theme", theme);
+      },
+      isMobile: window.innerWidth < 1024,
+      setIsMobile: (mobile) => {
+        set({ isMobile: mobile });
+        // Auto-close sidebar on mobile by default
+        if (mobile) {
+          set({ sidebarOpen: false });
+        }
       },
     }),
     {

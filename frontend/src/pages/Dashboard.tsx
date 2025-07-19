@@ -672,21 +672,21 @@ const Dashboard = () => {
     : chartsGrid;
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
-      <p className="text-gray-500 mb-6">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-1">Dashboard</h1>
+      <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base">
         System overview and key performance metrics
       </p>
 
       {/* Quick Actions - Only for System Admin */}
       {user?.role?.name === "System Admin" && (
-        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
-          <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300 mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {quickActions.map((action) => (
               <button
                 key={action.label}
-                className={`btn ${action.className} w-full`}
+                className={`btn ${action.className} w-full text-sm sm:text-base`}
               >
                 {action.label}
               </button>
@@ -697,25 +697,25 @@ const Dashboard = () => {
 
       {/* Recent Updates - For all except System Admin */}
       {user?.role?.name !== "System Admin" && (
-        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
-          <div className="flex justify-between items-center mb-2">
+        <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-2">
             <div>
-              <h3 className="text-xl font-semibold">Today Updates </h3>
+              <h3 className="text-lg sm:text-xl font-semibold">Today Updates</h3>
               <p className="text-sm text-neutral">Downtown Project</p>
             </div>
-            <button className="btn btn-primary">Go to Project</button>
+            <button className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">Go to Project</button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-1">
-            <img src="/img1.jpg" alt="" className="w-70" />
-            <img src="/img2.jpg" alt="" className="w-70" />
-            <img src="/img1.jpg" alt="" className="w-70" />
-            <img src="/img2.jpg" alt="" className="w-70" />
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-1">
+            <img src="/img1.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
+            <img src="/img2.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
+            <img src="/img1.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
+            <img src="/img2.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
           </div>
         </div>
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {visibleStatCards.map((card) => (
           <StatCard
             key={card.label}
@@ -727,31 +727,31 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         {visibleCharts.map((item) => (
           <div
             key={item.key}
-            className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 "
+            className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300"
           >
-            <h3 className="text-xl font-semibold mb-4">{item.title}</h3>
-            <div className="h-64">{item.chart}</div>
+            <h3 className="text-lg sm:text-xl font-semibold mb-4">{item.title}</h3>
+            <div className="h-48 sm:h-64">{item.chart}</div>
           </div>
         ))}
       </div>
 
       {/* Map */}
-      <div className="bg-base-200 rounded-2xl p-6 border border-base-300 shadow-xl shadow-base-300 mb-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold mb-4">Map</h3>
+      <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+          <h3 className="text-lg sm:text-xl font-semibold">Map</h3>
           <input
             type="search"
             placeholder="Enter Map Location"
-            className="input input-bordered w-full max-w-xs"
+            className="input input-bordered w-full sm:w-auto sm:max-w-xs text-sm"
           />
         </div>
-        <div className=" p-4 w-full relative">
-          <h3 className="text-lg font-semibold mb-2">Pick Project Location</h3>
-          <div style={{ height: 350, width: "100%" }}>
+        <div className="p-2 sm:p-4 w-full relative mt-4">
+          <h3 className="text-base sm:text-lg font-semibold mb-2">Pick Project Location</h3>
+          <div style={{ height: 250, width: "100%" }} className="sm:h-[350px]">
             <MapContainer
               center={locationCoords || { lat: 40.7128, lng: -74.006 }}
               zoom={13}
@@ -766,15 +766,15 @@ const Dashboard = () => {
               />
             </MapContainer>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
             <button
-              className="btn btn-outline btn-sm"
+              className="btn btn-outline btn-sm order-2 sm:order-1"
               onClick={handleCancelLocation}
             >
               Cancel
             </button>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm order-1 sm:order-2"
               onClick={handleConfirmLocation}
             >
               Confirm Location
@@ -785,9 +785,9 @@ const Dashboard = () => {
 
       {/* Performance Chart - Full Width */}
       {!roleLayout && (
-        <div className="bg-base-200 rounded-2xl p-6 border border-base-300 mb-6 shadow-xl shadow-base-300 ">
-          <h3 className="text-xl font-semibold mb-4">{lastChart[0].title}</h3>
-          <div className="h-80">{lastChart[0].chart}</div>
+        <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 mb-4 sm:mb-6 shadow-xl shadow-base-300">
+          <h3 className="text-lg sm:text-xl font-semibold mb-4">{lastChart[0].title}</h3>
+          <div className="h-64 sm:h-80">{lastChart[0].chart}</div>
         </div>
       )}
     </div>

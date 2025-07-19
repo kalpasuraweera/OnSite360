@@ -31,15 +31,15 @@ export default function Login() {
   };
 
   return (
-    <div className="lg:p-1 bg-base-100 flex justify-center h-full items-center w-full">
-      <div className="w-full  rounded-4xl gap-1 flex ">
+    <div className="min-h-screen p-2 sm:p-4 lg:p-1 bg-base-100 flex justify-center items-center w-full">
+      <div className="w-full max-w-7xl rounded-2xl sm:rounded-4xl gap-1 flex">
         <div className="hidden lg:relative lg:flex">
-          <div className="flex flex-col gap-5 text-white  absolute z-40 p-20 w-full backdrop-blur-md rounded-3xl">
+          <div className="flex flex-col gap-5 text-white absolute z-40 p-20 w-full backdrop-blur-md rounded-3xl">
             <div>
-              <h1 className="text-5xl font-bold">Welcome to OnSite360</h1>
-              <p>Construction Project Management Software</p>
+              <h1 className="text-3xl lg:text-5xl font-bold">Welcome to OnSite360</h1>
+              <p className="text-sm lg:text-base">Construction Project Management Software</p>
             </div>
-            <p className="text-">
+            <p className="text-sm lg:text-base">
               Lorem Ipsum is simply dummy text of the printing and typesetting
               industry. Lorem Ipsum has been the industry's standard dummy text
               ever since the 1500s, when an unknown printer took a galley of
@@ -55,19 +55,19 @@ export default function Login() {
             alt="construction-img"
           />
         </div>
-        <div className="bg-base-200 h-screen flex flex-col flex-1 rounded-3xl p-5 lg:p-5">
+        <div className="bg-base-200 min-h-screen h-full flex flex-col flex-1 rounded-2xl sm:rounded-3xl p-3 sm:p-5">
           <Button variant="back" />
-          <div className="flex justify-center mt-36">
-            <img src="/logo.png" alt="" className="w-80 flex justify-center" />
+          <div className="flex justify-center mt-20 sm:mt-32 lg:mt-36">
+            <img src="/logo.png" alt="" className="w-64 sm:w-80 flex justify-center" />
           </div>
 
           {error && <ErrorMsg>{error}</ErrorMsg>}
 
           <form
             onSubmit={handleLogin}
-            className="flex flex-col justify-evenly h-screen p-5 lg:px-10"
+            className="flex flex-col justify-between flex-1 p-3 sm:p-5 lg:px-10 pb-8 sm:pb-12"
           >
-            <div className="flex gap-5 flex-col">
+            <div className="flex gap-4 sm:gap-5 flex-col mt-8 sm:mt-12">
               <TextInput
                 id="email"
                 label="Email"
@@ -85,7 +85,7 @@ export default function Login() {
             <Button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full"
+              className="btn-primary w-full mt-8 sm:mt-0"
             >
               {loading ? (
                 <span className="loading loading-spinner text-primary"></span>
