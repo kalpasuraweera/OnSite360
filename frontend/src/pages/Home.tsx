@@ -7,6 +7,7 @@ import {
   FaHardHat,
   FaFileAlt,
 } from "react-icons/fa";
+import P5Background from "../components/P5Background";
 
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
@@ -16,70 +17,6 @@ const featureCardDescriptions: Record<string, string> = {
   "Project Oversight": "Gain insights and control over all ongoing projects.",
   "Workforce Management": "Optimize labor allocation and productivity on site.",
   "Document Management": "Centralize and secure all your project documents.",
-};
-
-const YellowSquaresBackground = () => {
-  const SQUARE_COUNT = 100;
-  const [squares, setSquares] = useState(() =>
-    Array.from({ length: SQUARE_COUNT }, () => ({
-      size: Math.floor(Math.random() * 18) + 12,
-      top: Math.random() * 80 + 5,
-      left: Math.random() * 90 + 2,
-      opacity: Math.random() * 0.4 + 0.3,
-    }))
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSquares((prev) =>
-        prev.map((sq) => ({
-          // Smoothly transition to new random values
-          size: Math.max(12, Math.min(30, sq.size + (Math.random() - 0.5) * 8)),
-          top: Math.max(5, Math.min(85, sq.top + (Math.random() - 0.5) * 6)),
-          left: Math.max(2, Math.min(92, sq.left + (Math.random() - 0.5) * 8)),
-          opacity: Math.max(
-            0.3,
-            Math.min(0.7, sq.opacity + (Math.random() - 0.5) * 0.08)
-          ),
-        }))
-      );
-    }, 1200); // update every 1.2s
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    >
-      {squares.map((sq, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            top: `${sq.top}%`,
-            left: `${sq.left}%`,
-            width: `${sq.size}px`,
-            height: `${sq.size}px`,
-            background: "#fdc700",
-            opacity: sq.opacity,
-            borderRadius: "4px",
-            zIndex: 0,
-            boxShadow: "0 2px 8px rgba(253,199,0,0.08)",
-            transition: "top 1s, left 1s, width 1s, height 1s, opacity 1s",
-          }}
-        />
-      ))}
-    </div>
-  );
 };
 
 const Home = () => {
@@ -309,9 +246,8 @@ const Home = () => {
         className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative"
         style={{ overflow: "hidden" }}
       >
-        {/* --- Add the yellow squares background here --- */}
-        <YellowSquaresBackground />
-        {/* <P5Background /> */}
+        {/* --- Add the P5.js interactive background here --- */}
+        <P5Background />
         <div className="z-50 flex flex-col justify-center items-center bg-neutral-100/10 backdrop-blur-md p-5 md:p-10 rounded-3xl  max-w-5xl mx-auto">
           <div className="text-neutral-500 z-50 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
             CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
