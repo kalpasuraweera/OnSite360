@@ -3,7 +3,7 @@ import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, M
 import React from "react";
 import TagsInput from "../components/TagsInput";
 import {
-  useCrewMembers,
+  useProjectCrewMembers,
   useCreateCrewMember,
   useUpdateCrewMember,
   useDeleteCrewMember,
@@ -19,6 +19,20 @@ import { useAuthStore } from "../stores/useAuthStore";
 
 // Add date-fns for date formatting (optional, or use native Date)
 const todayStr = new Date().toISOString().slice(0, 10);
+
+// Interface for crew assignment response
+interface CrewAssignment {
+  id: string;
+  assignedDate: string;
+  createdAt: string;
+  crewMember: CrewMember;
+  crewMemberId: string;
+  endDate: string | null;
+  isActive: boolean;
+  notes: string;
+  projectId: string;
+  updatedAt: string;
+}
 
 // Common construction skills for quick selection
 const COMMON_SKILLS = [
@@ -75,19 +89,51 @@ const WORKFORCE_TAB_LABELS: Record<WorkforceTab, string> = {
 // }
 
 const WorkforceManagement = () => {
-  // API hooks
-  const { user } = useAuthStore();
-  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
-    user?.id || ""
-  );
-  const { data: crewMembers, isLoading: crewMembersLoading } = useCrewMembers();
-  
   // State management
   const [activeTab, setActiveTab] = useState<WorkforceTab>("all");
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [attendanceDate, setAttendanceDate] = useState<string>(todayStr);
   const [showAddWorker, setShowAddWorker] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  
+  // API hooks
+  const { user } = useAuthStore();
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
+    user?.id || ""
+  );
+  const { data: crewMembersResponse, isLoading: crewMembersLoading } = useProjectCrewMembers(selectedProject || "");
+  
+  // Extract crew members from response - handle both .data and direct array
+  const crewMembers = React.useMemo(() => {
+    if (!crewMembersResponse) return [];
+    
+    let assignments: CrewAssignment[] = [];
+    // Check if response has .data property or is direct array
+    if (Array.isArray(crewMembersResponse)) {
+      assignments = crewMembersResponse as CrewAssignment[];
+    } else if (crewMembersResponse.data && Array.isArray(crewMembersResponse.data)) {
+      assignments = crewMembersResponse.data as CrewAssignment[];
+    } else {
+      return [];
+    }
+    
+    // Extract crew members from assignments and ensure they have the expected structure
+    return assignments.map((assignment: CrewAssignment) => {
+      if (assignment.crewMember) {
+        // Return the crew member with assignment info
+        return {
+          ...assignment.crewMember,
+          assignmentId: assignment.id,
+          assignedDate: assignment.assignedDate,
+          isActiveAssignment: assignment.isActive,
+          assignmentNotes: assignment.notes
+        };
+      }
+      // Fallback for direct crew member objects (backward compatibility)
+      return assignment.crewMember;
+    }).filter((member) => member && member.id); // Filter out any invalid entries
+  }, [crewMembersResponse]);
+
   const [editWorker, setEditWorker] = useState<CrewMember | null>(null);
   const [editWorkerData, setEditWorkerData] = useState<CreateCrewMemberDto>({
     name: "",
@@ -149,6 +195,12 @@ const WorkforceManagement = () => {
     if (!crewMembers || !Array.isArray(crewMembers)) return [];
     
     return crewMembers.filter((worker: CrewMember) => {
+      // Ensure worker has required properties
+      if (!worker || !worker.name || typeof worker.name !== 'string') {
+        console.warn('Invalid worker object:', worker);
+        return false;
+      }
+      
       const nameMatch = worker.name.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (activeTab === "attendance" && attendanceFilter !== "all") {
