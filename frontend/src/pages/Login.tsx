@@ -33,25 +33,23 @@ export default function Login() {
   return (
     <div className="lg:p-1 bg-base-100 flex justify-center h-full items-center w-full">
       <div className="w-full  rounded-4xl gap-1 flex ">
-        <div className="hidden lg:relative lg:flex">
-          <div className="flex flex-col gap-5 text-white  absolute z-40 p-20 w-full backdrop-blur-md rounded-3xl">
+        <div className="hidden lg:relative lg:flex w-[850px] flex-col justify-end items-center">
+          <div className="flex flex-col gap-5 text-black absolute z-40 p-20 w-full rounded-3xl top-0">
             <div>
               <h1 className="text-5xl font-bold">Welcome to OnSite360</h1>
               <p>Construction Project Management Software</p>
             </div>
             <p className="text-">
-              Lorem Ipsum is simply dummy text of the printing and typesetting
-              industry. Lorem Ipsum has been the industry's standard dummy text
-              ever since the 1500s, when an unknown printer took a galley of
-              type and scrambled it to make a type specimen book. It has
-              survived not only five centuries, but also the leap into
-              electronic typesetting, remaining essentially unchanged.
+              OnSite360 is your all-in-one solution for managing construction
+              projects efficiently. From daily logs to workforce management, we
+              provide the tools you need to streamline operations and enhance
+              productivity.
             </p>
           </div>
 
           <img
             src="/construction.jpg"
-            className="w-[850px]  z-10 rounded-3xl"
+            className="h-2/3 object-cover z-10 rounded-3xl mb-0 mt-auto"
             alt="construction-img"
           />
         </div>
