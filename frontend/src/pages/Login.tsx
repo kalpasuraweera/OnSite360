@@ -31,9 +31,9 @@ export default function Login() {
   };
 
   return (
-    <div className="lg:p-1 bg-base-100 flex justify-center h-full items-center w-full">
+    <div className="xl:p-1 bg-base-100 flex justify-center h-full items-center w-full">
       <div className="w-full  rounded-4xl gap-1 flex ">
-        <div className="hidden lg:relative lg:flex w-[850px] flex-col justify-end items-center">
+        <div className="hidden xl:relative xl:flex w-[850px] flex-col justify-end items-center">
           <div className="flex flex-col gap-5 text-black absolute z-40 p-20 w-full rounded-3xl top-0">
             <div>
               <h1 className="text-5xl font-bold">Welcome to OnSite360</h1>
@@ -53,7 +53,7 @@ export default function Login() {
             alt="construction-img"
           />
         </div>
-        <div className="bg-base-200 h-screen flex flex-col flex-1 rounded-3xl p-5 lg:p-5">
+        <div className="bg-base-200 h-screen flex flex-col flex-1 rounded-3xl p-5 xl:p-5">
           <Button variant="back" />
           <div className="flex justify-center mt-36">
             <img src="/logo.png" alt="" className="w-80 flex justify-center" />
@@ -63,7 +63,7 @@ export default function Login() {
 
           <form
             onSubmit={handleLogin}
-            className="flex flex-col justify-evenly h-screen p-5 lg:px-10"
+            className="flex flex-col justify-evenly h-screen p-5 xl:px-10"
           >
             <div className="flex gap-5 flex-col">
               <TextInput
