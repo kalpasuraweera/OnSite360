@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule } from "react-icons/md";
+import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule, MdSave, MdNoteAdd, MdCheck } from "react-icons/md";
 import React from "react";
 
 // Add date-fns for date formatting (optional, or use native Date)
@@ -36,15 +36,15 @@ interface Worker {
   profilePic?: string;
 }
 
-// Update mockWorkers with demo personal data
+// Update mockWorkers with demo personal data and proper worker roles
 const mockWorkers: Worker[] = [
   {
     id: "1",
     name: "Alice Johnson",
-    role: "Site Engineer",
-    assignedTask: "Foundation Inspection",
+    role: "Mason",
+    assignedTask: "Foundation Work",
     attendance: "Present",
-    skills: ["Inspection", "Surveying"],
+    skills: ["Bricklaying", "Stonework"],
     safetyStatus: "Cleared",
     projectId: "p1",
     age: 32,
@@ -55,10 +55,10 @@ const mockWorkers: Worker[] = [
   {
     id: "2",
     name: "Bob Smith",
-    role: "Foreman",
-    assignedTask: "Material Delivery",
+    role: "Electrician",
+    assignedTask: "Electrical Installation",
     attendance: "Absent",
-    skills: ["Logistics", "Team Lead"],
+    skills: ["Wiring", "Electrical Safety"],
     safetyStatus: "Pending",
     projectId: "p1",
     age: 45,
@@ -69,10 +69,10 @@ const mockWorkers: Worker[] = [
   {
     id: "3",
     name: "Charlie Lee",
-    role: "Electrician",
-    assignedTask: "Wiring",
+    role: "Carpenter",
+    assignedTask: "Framing Work",
     attendance: "Present",
-    skills: ["Wiring", "Safety"],
+    skills: ["Framing", "Finishing"],
     safetyStatus: "Cleared",
     projectId: "p2",
     age: 28,
@@ -83,16 +83,44 @@ const mockWorkers: Worker[] = [
   {
     id: "4",
     name: "Diana Green",
-    role: "Safety Officer",
-    assignedTask: "Safety Audit",
+    role: "Labourer",
+    assignedTask: "Site Cleanup",
     attendance: "Present",
-    skills: ["Safety", "First Aid"],
+    skills: ["General Labor", "Equipment Operation"],
     safetyStatus: "Cleared",
     projectId: "p3",
     age: 38,
     phone: "555-4321",
     address: "321 Maple St, Harbor",
     profilePic: "https://randomuser.me/api/portraits/women/4.jpg",
+  },
+  {
+    id: "5",
+    name: "Mike Wilson",
+    role: "Plumber",
+    assignedTask: "Pipe Installation",
+    attendance: "Half Day",
+    skills: ["Plumbing", "Pipe Fitting"],
+    safetyStatus: "Cleared",
+    projectId: "p1",
+    age: 35,
+    phone: "555-9876",
+    address: "567 Cedar Ave, Downtown",
+    profilePic: "https://randomuser.me/api/portraits/men/5.jpg",
+  },
+  {
+    id: "6",
+    name: "Sarah Miller",
+    role: "Welder",
+    assignedTask: "Steel Fabrication",
+    attendance: "Sick Leave",
+    skills: ["Arc Welding", "Metal Cutting"],
+    safetyStatus: "Cleared",
+    projectId: "p2",
+    age: 29,
+    phone: "555-4567",
+    address: "890 Birch St, Greenfield",
+    profilePic: "https://randomuser.me/api/portraits/women/6.jpg",
   },
 ];
 
@@ -124,17 +152,18 @@ const WorkforceManagement = () => {
 
   // Attendance state: { [workerId]: { status, notes } }
   const [attendanceState, setAttendanceState] = useState<Record<string, { status: string; notes: string }>>({});
-  const [showAttendanceNotes, setShowAttendanceNotes] = useState<Record<string, boolean>>({});
-  const [bulkAttendanceMode, setBulkAttendanceMode] = useState<boolean>(false);
-  const [selectedWorkers, setSelectedWorkers] = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus] = useState<string>("Present");
   const [attendanceFilter] = useState<string>("all"); // Only using attendanceFilter, not setter
+  
+  // Bulk operations state
+  const [bulkMode, setBulkMode] = useState<boolean>(false);
+  const [bulkStatus, setBulkStatus] = useState<string>("Present");
+  
+  // Notes visibility state
+  const [showNotes, setShowNotes] = useState<Record<string, boolean>>({});
   
   // Modal states for confirmations
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
-  const [showSaveConfirm, setShowSaveConfirm] = useState<boolean>(false);
-  const [saveMessage, setSaveMessage] = useState<string>("");
   // Removed unused showBulkSaveConfirm state
 
   // Filter workers by project, search term, and attendance status
@@ -163,6 +192,7 @@ const WorkforceManagement = () => {
       [workerId]: {
         ...prev[workerId],
         status,
+        notes: prev[workerId]?.notes || "",
       },
     }));
   };
@@ -173,70 +203,36 @@ const WorkforceManagement = () => {
       ...prev,
       [workerId]: {
         ...prev[workerId],
+        status: prev[workerId]?.status || "Present",
         notes,
       },
     }));
   };
 
-  // Handler for save/update (show modal instead of alert)
-  const handleSave = (workerId: string) => {
-    const worker = mockWorkers.find(w => w.id === workerId);
-    const workerName = worker?.name || "Unknown Worker";
-    const status = attendanceState[workerId]?.status || "Present";
-    const notes = attendanceState[workerId]?.notes || "";
-    setSaveMessage(`Saved attendance for ${workerName}: ${status}${notes ? `, Notes: ${notes}` : ""}`);
-    setShowSaveConfirm(true);
-  };
-
-  const toggleNotesVisibility = (workerId: string) => {
-    setShowAttendanceNotes(prev => ({
+  // Toggle notes visibility
+  const toggleNotes = (workerId: string) => {
+    setShowNotes(prev => ({
       ...prev,
       [workerId]: !prev[workerId]
     }));
   };
 
-  const handleBulkAttendanceToggle = () => {
-    setBulkAttendanceMode(!bulkAttendanceMode);
-    setSelectedWorkers(new Set());
-  };
-
-  const handleWorkerSelection = (workerId: string, isChecked: boolean) => {
-    setSelectedWorkers(prev => {
-      const newSet = new Set(prev);
-      if (isChecked) {
-        newSet.add(workerId);
-      } else {
-        newSet.delete(workerId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAllWorkers = (isChecked: boolean) => {
-    if (isChecked) {
-      const allWorkerIds = filteredWorkers.map(w => w.id);
-      setSelectedWorkers(new Set(allWorkerIds));
-    } else {
-      setSelectedWorkers(new Set());
-    }
-  };
-
+  // Bulk attendance operations
   const applyBulkAttendance = () => {
     const updates: Record<string, { status: string; notes: string }> = {};
-    selectedWorkers.forEach(workerId => {
-      updates[workerId] = {
+    filteredWorkers.forEach(worker => {
+      updates[worker.id] = {
         status: bulkStatus,
-        notes: attendanceState[workerId]?.notes || ""
+        notes: attendanceState[worker.id]?.notes || ""
       };
     });
-    
-    setAttendanceState(prev => ({
-      ...prev,
-      ...updates
-    }));
-    
-    setBulkAttendanceMode(false);
-    setSelectedWorkers(new Set());
+    setAttendanceState(prev => ({ ...prev, ...updates }));
+  };
+
+  // Save all attendance changes
+  const saveAttendanceChanges = () => {
+    // In a real app, this would save to backend
+    alert(`Saved attendance for ${Object.keys(attendanceState).length} workers`);
   };
 
   // Handle input changes for add worker form
@@ -420,27 +416,6 @@ const WorkforceManagement = () => {
           </div>
         )}
 
-        {/* Save Attendance Confirmation Modal */}
-        {showSaveConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                type="button"
-                onClick={() => setShowSaveConfirm(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4">Attendance Saved</h2>
-              <p className="mb-6">{saveMessage}</p>
-              <button className="btn btn-primary w-full" onClick={() => setShowSaveConfirm(false)}>
-                OK
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Delete Worker Confirmation Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -467,66 +442,77 @@ const WorkforceManagement = () => {
           </div>
         )}
 
-        {/* Sticky Controls: Date Picker for Attendance */}
+        {/* Attendance Controls */}
         {activeTab === "attendance" && (
-          <div className="sticky top-0 z-10 bg-base-200 py-4 mb-4 rounded-lg border">
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="font-semibold flex items-center gap-2">
-                <span>Date:</span>
-                <input
-                  type="date"
-                  className="input input-bordered input-sm"
-                  style={{ minWidth: "130px" }}
-                  value={attendanceDate}
-                  max={todayStr}
-                  onChange={(e) => setAttendanceDate(e.target.value)}
-                />
-              </label>
+          <div className="bg-base-100 p-6 rounded-xl border border-base-300 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <label className="font-semibold flex items-center gap-2">
+                  <span>Date:</span>
+                  <input
+                    type="date"
+                    className="input input-bordered input-sm"
+                    style={{ minWidth: "130px" }}
+                    value={attendanceDate}
+                    max={todayStr}
+                    onChange={(e) => setAttendanceDate(e.target.value)}
+                  />
+                </label>
+                
+                {isToday && (
+                  <>
+                    <div className="divider divider-horizontal"></div>
+                    <div className="flex items-center gap-2">
+                      <label className="label cursor-pointer flex items-center gap-2">
+                        <span className="label-text font-medium">Bulk Mode:</span>
+                        <input 
+                          type="checkbox" 
+                          className="toggle toggle-primary" 
+                          checked={bulkMode}
+                          onChange={(e) => setBulkMode(e.target.checked)}
+                        />
+                      </label>
+                    </div>
+                    
+                    {bulkMode && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="select select-bordered select-sm"
+                          value={bulkStatus}
+                          onChange={(e) => setBulkStatus(e.target.value)}
+                        >
+                          <option value="Present">Present</option>
+                          <option value="Absent">Absent</option>
+                          <option value="Half Day">Half Day</option>
+                          <option value="Sick Leave">Sick Leave</option>
+                          <option value="Holiday">Holiday</option>
+                        </select>
+                        <button
+                          className="btn btn-success btn-sm"
+                          onClick={applyBulkAttendance}
+                        >
+                          Apply to All ({filteredWorkers.length})
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
               
+              {/* Save Changes button */}
               {isToday && (
-                <>
-                  <div className="divider divider-horizontal"></div>
-                  <button
-                    className={`btn btn-sm ${bulkAttendanceMode ? 'btn-error' : 'btn-primary'}`}
-                    onClick={handleBulkAttendanceToggle}
-                  >
-                    {bulkAttendanceMode ? 'Cancel Bulk' : 'Bulk Update'}
-                  </button>
-                  
-                  {bulkAttendanceMode && (
-                    <>
-                      <select
-                        className="select select-bordered select-sm"
-                        value={bulkStatus}
-                        onChange={(e) => setBulkStatus(e.target.value)}
-                      >
-                        <option value="Present">Present</option>
-                        <option value="Absent">Absent</option>
-                        <option value="Late">Late</option>
-                        <option value="Sick Leave">Sick Leave</option>
-                      </select>
-                      <button
-                        className="btn btn-success btn-sm"
-                        onClick={applyBulkAttendance}
-                        disabled={selectedWorkers.size === 0}
-                      >
-                        Apply to {selectedWorkers.size} workers
-                      </button>
-                    </>
-                  )}
-                </>
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={saveAttendanceChanges}
+                >
+                  <MdSave />
+                  Save Changes
+                </button>
               )}
-              
-              <div className="flex-1"></div>
-              <span className="text-sm text-gray-500">
-                {isToday
-                  ? "You can mark attendance for today."
-                  : "Viewing past attendance (read-only)."}
-              </span>
             </div>
             
             {/* Attendance Summary */}
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {(() => {
                 const stats = filteredWorkers.reduce((acc, worker) => {
                   const status = attendanceState[worker.id]?.status ?? worker.attendance;
@@ -536,21 +522,25 @@ const WorkforceManagement = () => {
                 
                 return (
                   <>
-                    <div className="stat bg-base-100 rounded-lg">
-                      <div className="stat-title text-xs">Present</div>
-                      <div className="stat-value text-lg text-success">{stats.Present || 0}</div>
+                    <div className="stat bg-success text-success-content rounded-xl">
+                      <div className="stat-title text-xs opacity-80">Present</div>
+                      <div className="stat-value text-2xl">{stats.Present || 0}</div>
                     </div>
-                    <div className="stat bg-base-100 rounded-lg">
-                      <div className="stat-title text-xs">Absent</div>
-                      <div className="stat-value text-lg text-error">{stats.Absent || 0}</div>
+                    <div className="stat bg-error text-error-content rounded-xl">
+                      <div className="stat-title text-xs opacity-80">Absent</div>
+                      <div className="stat-value text-2xl">{stats.Absent || 0}</div>
                     </div>
-                    <div className="stat bg-base-100 rounded-lg">
-                      <div className="stat-title text-xs">Late</div>
-                      <div className="stat-value text-lg text-warning">{stats.Late || 0}</div>
+                    <div className="stat bg-warning text-warning-content rounded-xl">
+                      <div className="stat-title text-xs opacity-80">Half Day</div>
+                      <div className="stat-value text-2xl">{stats["Half Day"] || 0}</div>
                     </div>
-                    <div className="stat bg-base-100 rounded-lg">
-                      <div className="stat-title text-xs">Sick Leave</div>
-                      <div className="stat-value text-lg text-info">{stats["Sick Leave"] || 0}</div>
+                    <div className="stat bg-info text-info-content rounded-xl">
+                      <div className="stat-title text-xs opacity-80">Sick Leave</div>
+                      <div className="stat-value text-2xl">{stats["Sick Leave"] || 0}</div>
+                    </div>
+                    <div className="stat bg-neutral text-neutral-content rounded-xl">
+                      <div className="stat-title text-xs opacity-80">Holiday</div>
+                      <div className="stat-value text-2xl">{stats.Holiday || 0}</div>
                     </div>
                   </>
                 );
@@ -564,23 +554,13 @@ const WorkforceManagement = () => {
           <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
             <thead>
               <tr>
-                {activeTab === "attendance" && bulkAttendanceMode && (
-                  <th>
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={selectedWorkers.size === filteredWorkers.length && filteredWorkers.length > 0}
-                      onChange={(e) => handleSelectAllWorkers(e.target.checked)}
-                    />
-                  </th>
-                )}
                 <th>Name</th>
                 <th>Role</th>
                 {activeTab === "attendance" ? (
                   <>
                     <th>Status</th>
+                    <th>Quick Toggle</th>
                     <th>Notes</th>
-                    {isToday && <th>Actions</th>}
                   </>
                 ) : activeTab === "all" ? (
                   <>
@@ -719,54 +699,75 @@ const WorkforceManagement = () => {
                   const att = attendanceState[worker.id]?.status ?? worker.attendance;
 
                   if (activeTab === "attendance") {
-                    // Enhanced attendance view with notes and better UI
+                    // Enhanced attendance view with toggle buttons and notes
                     return (
                       <tr key={worker.id} className="hover:bg-base-200">
-                        {bulkAttendanceMode && (
-                          <td>
-                            <input
-                              type="checkbox"
-                              className="checkbox checkbox-sm"
-                              checked={selectedWorkers.has(worker.id)}
-                              onChange={(e) => handleWorkerSelection(worker.id, e.target.checked)}
-                            />
-                          </td>
-                        )}
-                        <td className="font-medium">{worker.name}</td>
+                        <td className="font-medium flex items-center gap-2">
+                          <img
+                            src={worker.profilePic}
+                            alt={worker.name}
+                            className="w-8 h-8 rounded-full object-cover border"
+                          />
+                          {worker.name}
+                          <span className="text-sm text-gray-500">({worker.role})</span>
+                        </td>
                         <td>{worker.role}</td>
                         <td>
-                          <div className="flex items-center gap-2">
-                            {isToday ? (
-                              <select
-                                className={`select select-sm select-bordered ${
-                                  att === "Present" ? "select-success" :
-                                  att === "Absent" ? "select-error" :
-                                  att === "Late" ? "select-warning" :
-                                  "select-info"
-                                }`}
-                                value={att}
-                                onChange={(e) => handleAttendanceChange(worker.id, e.target.value)}
-                              >
-                                <option value="Present">Present</option>
-                                <option value="Absent">Absent</option>
-                                <option value="Late">Late</option>
-                                <option value="Sick Leave">Sick Leave</option>
-                              </select>
-                            ) : (
-                              <span className={`badge ${
-                                att === "Present" ? "badge-success" :
-                                att === "Absent" ? "badge-error" :
-                                att === "Late" ? "badge-warning" :
-                                "badge-info"
-                              }`}>
-                                {att}
-                              </span>
-                            )}
-                          </div>
+                          {isToday ? (
+                            <select
+                              className={`select select-sm select-bordered ${
+                                att === "Present" ? "select-success" :
+                                att === "Absent" ? "select-error" :
+                                att === "Half Day" ? "select-warning" :
+                                att === "Sick Leave" ? "select-info" :
+                                att === "Holiday" ? "select-neutral" :
+                                "select-bordered"
+                              }`}
+                              value={att}
+                              onChange={(e) => handleAttendanceChange(worker.id, e.target.value)}
+                            >
+                              <option value="Present">Present</option>
+                              <option value="Absent">Absent</option>
+                              <option value="Half Day">Half Day</option>
+                              <option value="Sick Leave">Sick Leave</option>
+                              <option value="Holiday">Holiday</option>
+                            </select>
+                          ) : (
+                            <span className={`badge badge-lg ${
+                              att === "Present" ? "badge-success" :
+                              att === "Absent" ? "badge-error" :
+                              att === "Half Day" ? "badge-warning" :
+                              att === "Sick Leave" ? "badge-info" :
+                              att === "Holiday" ? "badge-neutral" :
+                              "badge-ghost"
+                            }`}>
+                              {att}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {isToday && (
+                            <div className="flex items-center gap-2">
+                              <label className="label cursor-pointer flex items-center gap-2">
+                                <span className="label-text text-sm">Present:</span>
+                                <input 
+                                  type="checkbox" 
+                                  className="toggle toggle-success toggle-sm" 
+                                  checked={att === "Present"}
+                                  onChange={(e) => {
+                                    handleAttendanceChange(
+                                      worker.id, 
+                                      e.target.checked ? "Present" : "Absent"
+                                    );
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div className="flex items-center gap-2">
-                            {showAttendanceNotes[worker.id] || (attendanceState[worker.id]?.notes && attendanceState[worker.id].notes.length > 0) ? (
+                            {showNotes[worker.id] ? (
                               <div className="flex items-center gap-2 w-full">
                                 <input
                                   type="text"
@@ -778,32 +779,29 @@ const WorkforceManagement = () => {
                                 />
                                 <button
                                   className="btn btn-ghost btn-xs"
-                                  onClick={() => toggleNotesVisibility(worker.id)}
+                                  onClick={() => toggleNotes(worker.id)}
                                 >
-                                  ✕
+                                  <MdCheck />
                                 </button>
                               </div>
                             ) : (
-                              <button
-                                className="btn btn-ghost btn-xs"
-                                onClick={() => toggleNotesVisibility(worker.id)}
-                                disabled={!isToday}
-                              >
-                                📝 Add Note
-                              </button>
+                              <div className="flex items-center gap-2">
+                                {attendanceState[worker.id]?.notes && (
+                                  <span className="text-xs text-gray-600 truncate max-w-20">
+                                    {attendanceState[worker.id].notes}
+                                  </span>
+                                )}
+                                <button
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={() => toggleNotes(worker.id)}
+                                  disabled={!isToday}
+                                >
+                                  <MdNoteAdd />
+                                </button>
+                              </div>
                             )}
                           </div>
                         </td>
-                        {isToday && (
-                          <td>
-                            <button
-                              className="btn btn-success btn-xs"
-                              onClick={() => handleSave(worker.id)}
-                            >
-                              Save
-                            </button>
-                          </td>
-                        )}
                       </tr>
                     );
                   }
@@ -891,7 +889,7 @@ const WorkforceManagement = () => {
                   <td
                     colSpan={
                       activeTab === "attendance"
-                        ? (bulkAttendanceMode ? 3 : 2) + (isToday ? 3 : 2)
+                        ? 5
                         : activeTab === "all"
                         ? 7
                         : 2
@@ -1089,21 +1087,6 @@ const WorkforceManagement = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Update button for attendance (only for today, only if attendance tab) */}
-        {activeTab === "attendance" && isToday && (
-          <div className="flex justify-end mt-4">
-            <button
-              className="btn btn-success"
-              onClick={() => {
-                // Save all attendance at once
-                filteredWorkers.forEach((worker) => handleSave(worker.id));
-              }}
-            >
-              Update Attendance
-            </button>
           </div>
         )}
       </div>
