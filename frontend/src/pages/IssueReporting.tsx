@@ -196,16 +196,12 @@ const IssueReporting = () => {
 
   // Create issue modal state
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedTaggedUsers, setSelectedTaggedUsers] = useState<string[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
   // Edit issue modal state
   const [showEditIssueModal, setShowEditIssueModal] = useState(false);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
-  const [editSelectedAssignees, setEditSelectedAssignees] = useState<string[]>(
-    []
-  );
   const [editSelectedTaggedUsers, setEditSelectedTaggedUsers] = useState<
     string[]
   >([]);
@@ -311,8 +307,8 @@ const IssueReporting = () => {
       ),
       reporterId: currentUser?.id || "1",
       reporter: currentUser || dummyUsers[0],
-      assignedToIds: selectedAssignees,
-      assignees: dummyUsers.filter((u) => selectedAssignees.includes(u.id)),
+      assignedToIds: [],
+      assignees: [],
       taggedUserIds: selectedTaggedUsers,
       taggedUsers: dummyUsers.filter((u) => selectedTaggedUsers.includes(u.id)),
       attachments: uploadedFiles,
@@ -324,19 +320,8 @@ const IssueReporting = () => {
     setIssues((prev) => [...prev, newIssue]);
     setShowCreateIssueModal(false);
     (event.target as HTMLFormElement).reset();
-    setSelectedAssignees([]);
     setSelectedTaggedUsers([]);
     setUploadedFiles([]);
-  };
-
-  const handleAddAssignee = (userId: string) => {
-    if (!selectedAssignees.includes(userId)) {
-      setSelectedAssignees((prev) => [...prev, userId]);
-    }
-  };
-
-  const handleRemoveAssignee = (userId: string) => {
-    setSelectedAssignees((prev) => prev.filter((id) => id !== userId));
   };
 
   const handleAddTaggedUser = (userId: string) => {
@@ -364,7 +349,6 @@ const IssueReporting = () => {
   // Edit issue handlers
   const handleEditIssue = (issue: Issue) => {
     setEditingIssue(issue);
-    setEditSelectedAssignees(issue.assignedToIds);
     setEditSelectedTaggedUsers(issue.taggedUserIds);
     setEditUploadedFiles(issue.attachments);
     setShowEditIssueModal(true);
@@ -382,8 +366,8 @@ const IssueReporting = () => {
       type: formData.get("type") as string,
       priority: formData.get("priority") as string,
       status: formData.get("status") as string,
-      assignedToIds: editSelectedAssignees,
-      assignees: dummyUsers.filter((u) => editSelectedAssignees.includes(u.id)),
+      assignedToIds: editingIssue.assignedToIds,
+      assignees: editingIssue.assignees,
       taggedUserIds: editSelectedTaggedUsers,
       taggedUsers: dummyUsers.filter((u) =>
         editSelectedTaggedUsers.includes(u.id)
@@ -403,7 +387,6 @@ const IssueReporting = () => {
     );
     setShowEditIssueModal(false);
     setEditingIssue(null);
-    setEditSelectedAssignees([]);
     setEditSelectedTaggedUsers([]);
     setEditUploadedFiles([]);
   };
@@ -620,18 +603,6 @@ const IssueReporting = () => {
                           <span className="font-medium"> Reporter:</span>{" "}
                           {issue.reporter?.firstName}{" "}
                           {issue.reporter?.lastName}
-                          {issue.assignees && issue.assignees.length > 0 && (
-                            <>
-                              |{" "}
-                              <span className="font-medium">
-                                {" "}
-                                Assigned to:
-                              </span>{" "}
-                              {issue.assignees
-                                .map((a) => `${a.firstName} ${a.lastName}`)
-                                .join(", ")}
-                            </>
-                          )}
                         </div>
 
                         <div className="text-sm text-gray-600">
@@ -858,48 +829,6 @@ const IssueReporting = () => {
                 </div>
               </div>
 
-              {/* Assign Users */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Assign To</span>
-                </label>
-                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
-                  <div className="space-y-2">
-                    {dummyUsers.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between">
-                        <span className="text-sm">
-                          {user.firstName} {user.lastName} ({user.email})
-                        </span>
-                        {selectedAssignees.includes(user.id) ? (
-                          <button
-                            type="button"
-                            className="btn btn-error btn-xs"
-                            onClick={() => handleRemoveAssignee(user.id)}
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-xs"
-                            onClick={() => handleAddAssignee(user.id)}
-                          >
-                            Assign
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {selectedAssignees.length > 0 && (
-                  <div className="label">
-                    <span className="label-text-alt text-info">
-                      Assigned to: {selectedAssignees.length} user(s)
-                    </span>
-                  </div>
-                )}
-              </div>
-
               {/* Tag Users */}
               <div className="form-control">
                 <label className="label">
@@ -978,7 +907,6 @@ const IssueReporting = () => {
                   className="btn"
                   onClick={() => {
                     setShowCreateIssueModal(false);
-                    setSelectedAssignees([]);
                     setSelectedTaggedUsers([]);
                     setUploadedFiles([]);
                   }}
@@ -1127,7 +1055,6 @@ const IssueReporting = () => {
                   onClick={() => {
                     setShowEditIssueModal(false);
                     setEditingIssue(null);
-                    setEditSelectedAssignees([]);
                     setEditSelectedTaggedUsers([]);
                     setEditUploadedFiles([]);
                   }}
@@ -1218,19 +1145,6 @@ const IssueReporting = () => {
                   </div>
                 )}
               </div>
-
-              {viewingIssue.assignees && viewingIssue.assignees.length > 0 && (
-                <div>
-                  <span className="font-medium">Assigned to:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {viewingIssue.assignees.map((assignee) => (
-                      <span key={assignee.id} className="badge badge-info">
-                        {assignee.firstName} {assignee.lastName}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {viewingIssue.taggedUsers &&
                 viewingIssue.taggedUsers.length > 0 && (
