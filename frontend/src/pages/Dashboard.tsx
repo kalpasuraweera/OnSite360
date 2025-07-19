@@ -73,16 +73,15 @@ const Dashboard = () => {
     // This is the correct way to show a marker at the selected position:
     return locationCoords ? <Marker position={locationCoords} /> : null;
   }
-  const [showMapModal, setShowMapModal] = useState(false);
 
   // Confirm location selection
   const handleConfirmLocation = () => {
-    setShowMapModal(false);
+    // Logic for confirming location selection
   };
 
   // Cancel location selection
   const handleCancelLocation = () => {
-    setShowMapModal(false);
+    // Logic for canceling location selection
   };
   // Chart data configurations
   const projectStatusData = {
@@ -509,7 +508,12 @@ const Dashboard = () => {
               legend: { display: false },
             },
             scales: {
-              y: { beginAtZero: true, stepSize: 1 },
+              y: { 
+                beginAtZero: true, 
+                ticks: {
+                  stepSize: 1
+                }
+              },
             },
           }}
         />
