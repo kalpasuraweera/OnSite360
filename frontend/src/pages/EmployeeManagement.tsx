@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRoles } from "../hooks/useRoles";
 
 // Enhanced dummy data for employee performance tracking
 const dummyEmployees = [
@@ -303,7 +304,10 @@ const dummyEmployees = [
 const EmployeeManagement = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedEmployee, setSelectedEmployee] = useState<typeof dummyEmployees[0] | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
+  const [selectedRole, setSelectedRole] = useState<string>("All");
+  
+  // Fetch roles using the useRoles hook
+  const { data: roles, isLoading: rolesLoading } = useRoles();
 
   const handleViewEmployee = (employee: typeof dummyEmployees[0]) => {
     setSelectedEmployee(employee);
@@ -348,11 +352,24 @@ const EmployeeManagement = () => {
     return "text-error";
   };
 
-  const departments = ["All", ...Array.from(new Set(dummyEmployees.map(emp => emp.department)))];
+  // Create role options from API data and employee positions
+  const roleOptions = ["All"];
+  if (roles && roles.length > 0) {
+    // Add roles from API
+    const apiRoleNames = roles.map(role => role.name);
+    roleOptions.push(...apiRoleNames);
+  }
+  // Also add unique employee positions as fallback roles
+  const employeePositions = Array.from(new Set(dummyEmployees.map(emp => emp.position)));
+  employeePositions.forEach(position => {
+    if (!roleOptions.includes(position)) {
+      roleOptions.push(position);
+    }
+  });
   
-  const filteredEmployees = selectedDepartment === "All" 
+  const filteredEmployees = selectedRole === "All" 
     ? dummyEmployees 
-    : dummyEmployees.filter(emp => emp.department === selectedDepartment);
+    : dummyEmployees.filter(emp => emp.position === selectedRole);
 
   const activeEmployees = dummyEmployees.filter(emp => emp.status === "Active");
   const avgPerformance = activeEmployees.reduce((acc, emp) => acc + emp.performance.overallRating, 0) / activeEmployees.length;
@@ -400,17 +417,21 @@ const EmployeeManagement = () => {
         />
         {activeTab === "dashboard" && (
           <div className="tab-content p-5">
-            {/* Department Filter */}
+            {/* Role Filter */}
             <div className="mb-4">
               <select 
                 className="select select-bordered w-64" 
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                disabled={rolesLoading}
               >
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept} Department{dept === "All" ? "s" : ""}</option>
+                {roleOptions.map(role => (
+                  <option key={role} value={role}>
+                    {role === "All" ? "All Roles" : role}
+                  </option>
                 ))}
               </select>
+              {rolesLoading && <span className="loading loading-spinner loading-sm ml-2"></span>}
             </div>
 
             {/* Employee Performance Grid */}
@@ -683,38 +704,40 @@ const EmployeeManagement = () => {
                 Comprehensive workforce analytics and insights
               </p>
               
-              {/* Department Performance */}
+              {/* Role Performance */}
               <div className="bg-base-100 rounded-xl p-4 mb-6">
-                <h3 className="text-lg font-semibold mb-4">Department Performance Breakdown</h3>
+                <h3 className="text-lg font-semibold mb-4">Role Performance Breakdown</h3>
                 <div className="space-y-4">
-                  {departments.filter(dept => dept !== "All").map(dept => {
-                    const deptEmployees = dummyEmployees.filter(emp => emp.department === dept);
-                    const deptAvgRating = deptEmployees.reduce((acc, emp) => acc + emp.performance.overallRating, 0) / deptEmployees.length;
-                    const deptAvgWorkload = deptEmployees.reduce((acc, emp) => acc + emp.workload, 0) / deptEmployees.length;
-                    const deptActiveProjects = deptEmployees.reduce((acc, emp) => acc + emp.performance.projectsActive, 0);
+                  {roleOptions.filter(role => role !== "All").map(role => {
+                    const roleEmployees = dummyEmployees.filter(emp => emp.position === role);
+                    if (roleEmployees.length === 0) return null;
+                    
+                    const roleAvgRating = roleEmployees.reduce((acc, emp) => acc + emp.performance.overallRating, 0) / roleEmployees.length;
+                    const roleAvgWorkload = roleEmployees.reduce((acc, emp) => acc + emp.workload, 0) / roleEmployees.length;
+                    const roleActiveProjects = roleEmployees.reduce((acc, emp) => acc + emp.performance.projectsActive, 0);
                     
                     return (
-                      <div key={dept} className="border border-base-300 rounded-lg p-3">
+                      <div key={role} className="border border-base-300 rounded-lg p-3">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{dept} Department</span>
-                          <span className="text-sm text-gray-500">{deptEmployees.length} employees</span>
+                          <span className="font-medium">{role}</span>
+                          <span className="text-sm text-gray-500">{roleEmployees.length} employees</span>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-500">Avg Performance:</span>
-                            <div className={`font-bold ${getPerformanceColor(deptAvgRating)}`}>
-                              {deptAvgRating.toFixed(1)}/5.0
+                            <div className={`font-bold ${getPerformanceColor(roleAvgRating)}`}>
+                              {roleAvgRating.toFixed(1)}/5.0
                             </div>
                           </div>
                           <div>
                             <span className="text-gray-500">Avg Workload:</span>
-                            <div className={`font-bold ${getWorkloadColor(deptAvgWorkload)}`}>
-                              {deptAvgWorkload.toFixed(0)}%
+                            <div className={`font-bold ${getWorkloadColor(roleAvgWorkload)}`}>
+                              {roleAvgWorkload.toFixed(0)}%
                             </div>
                           </div>
                           <div>
                             <span className="text-gray-500">Active Projects:</span>
-                            <div className="font-bold text-warning">{deptActiveProjects}</div>
+                            <div className="font-bold text-warning">{roleActiveProjects}</div>
                           </div>
                         </div>
                       </div>
