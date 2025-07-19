@@ -308,7 +308,7 @@ export default function DailyLogsManagement() {
   // If no projects available, show a message
   if (!projectsLoading && !hasProjects) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      <div className="p-8">
         <div className="text-center py-16">
           <div className="bg-white p-8 rounded-2xl shadow-sm inline-block">
             <MdWork className="mx-auto text-6xl text-gray-300 mb-4" />
@@ -321,113 +321,114 @@ export default function DailyLogsManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-xl shadow-sm">
-            <MdCalendarToday className="text-3xl text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-1">Daily Logs Management</h1>
-            <p className="text-gray-600 flex items-center gap-2">
-              <MdWork className="text-blue-500" />
-              Track and manage daily project activities
-            </p>
-          </div>
+    <div className="p-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Daily Logs Management</h1>
+          <p className="text-gray-500 mt-1">
+            Track and manage daily project activities and work progress.
+          </p>
         </div>
-        
-        {/* Project Selection */}
-        {hasProjects && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-medium text-gray-700">Project:</label>
-              <select
-                className="select select-bordered select-sm"
-                value={selectedProject}
-                onChange={(e) => handleProjectChange(e.target.value)}
-              >
-                {projects.map((project) => (
+        {/* Project selection */}
+        <div className="flex items-center justify-end mb-1">
+          <div className="flex gap-4 items-center">
+            <select
+              className="select select-bordered"
+              value={selectedProject}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              disabled={projectsLoading}
+            >
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : Array.isArray(projects) && projects.length > 0 ? (
+                projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
-                ))}
-              </select>
-            </div>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
+            </select>
           </div>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-        <div className="tabs tabs-boxed bg-transparent p-2">
-          <button
-            className={`tab gap-2 ${activeTab === "view_all" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
-            onClick={() => setActiveTab("view_all")}
-          >
-            <MdVisibility />
-            All Logs
-          </button>
-          <button
-            className={`tab gap-2 ${activeTab === "view_specific" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
-            onClick={() => setActiveTab("view_specific")}
-          >
-            <MdSearch />
-            By Date
-          </button>
-          <button
-            className={`tab gap-2 ${activeTab === "add_log" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
-            onClick={() => {
-              setActiveTab("add_log");
-              setEditingLog(null);
-              setLogForm({
-                date: moment().format("YYYY-MM-DD"),
-                projectId: selectedProject,
-                weather: "",
-                notes: "",
-                workHours: 0,
-                workersPresent: 0,
-              });
-            }}
-          >
-            <MdAdd />
-            Add Log
-          </button>
-          {selectedLogForDetails && (
-            <button
-              className={`tab gap-2 ${activeTab === "view_details" ? "tab-active bg-indigo-500 text-white" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("view_details")}
-            >
-              <MdVisibility />
-              Log Details
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === "view_all" && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <MdVisibility className="text-blue-600" />
+      {/* Tabs for log management */}
+      <div className="tabs tabs-border mt-6">
+        <button
+          className={`tab text-base ${
+            activeTab === "view_all" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("view_all")}
+        >
+          All Logs
+        </button>
+        <button
+          className={`tab text-base ${
+            activeTab === "view_specific" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => setActiveTab("view_specific")}
+        >
+          By Date
+        </button>
+        <button
+          className={`tab text-base ${
+            activeTab === "add_log" ? "tab-active font-bold" : ""
+          }`}
+          onClick={() => {
+            setActiveTab("add_log");
+            setEditingLog(null);
+            setLogForm({
+              date: moment().format("YYYY-MM-DD"),
+              projectId: selectedProject,
+              weather: "",
+              notes: "",
+              workHours: 0,
+              workersPresent: 0,
+            });
+          }}
+        >
+          Add Log
+        </button>
+        {selectedLogForDetails && (
+          <button
+            className={`tab text-base ${
+              activeTab === "view_details" ? "tab-active font-bold" : ""
+            }`}
+            onClick={() => setActiveTab("view_details")}
+          >
+            Log Details
+          </button>
+        )}
+      </div>
+
+      <div
+        id="tab-navigation"
+        className="bg-base-200 border border-base-300 p-6 rounded-2xl min-h-[400px]"
+      >
+        {/* Tab Content */}
+        {activeTab === "view_all" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <MdVisibility className="text-blue-600" />
+                </div>
+                All Daily Logs
+              </h2>
+              <div className="bg-gray-100 px-3 py-1 rounded-full text-sm text-gray-600">
+                {allLogsLoading ? "Loading..." : `${allDailyLogs.length} logs found`}
               </div>
-              All Daily Logs
-            </h2>
-            <div className="bg-gray-100 px-3 py-1 rounded-full text-sm text-gray-600">
-              {allLogsLoading ? "Loading..." : `${allDailyLogs.length} logs found`}
             </div>
-          </div>
 
           {allLogsLoading ? (
-            <div className="text-center py-8">
-              <div className="loading loading-spinner loading-lg"></div>
-              <p className="mt-4 text-gray-500">Loading daily logs...</p>
+            <div className="flex items-center justify-center h-[300px]">
+              <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : allDailyLogs.length === 0 ? (
-            <div className="text-center py-16 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl">
-              <div className="bg-white p-6 rounded-2xl shadow-sm inline-block">
+            <div className="text-center py-16">
+              <div className="bg-base-100 p-6 rounded-2xl shadow-sm inline-block">
                 <MdCalendarToday className="mx-auto text-6xl text-gray-300 mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No Daily Logs Found</h3>
                 <p className="text-gray-500 mb-6">Start by creating your first daily log entry.</p>
@@ -443,7 +444,7 @@ export default function DailyLogsManagement() {
           ) : (
             <div className="space-y-6">
               {allDailyLogs.map((log) => (
-                <div key={log.id} className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div key={log.id} className="bg-base-100 rounded-xl p-6 border border-base-300 shadow-sm hover:shadow-xl hover:shadow-neutral/10 transition-all duration-200">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-4">
@@ -538,39 +539,38 @@ export default function DailyLogsManagement() {
             </div>
           )}
         </div>
-      )}
+        )}
 
-      {activeTab === "view_specific" && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
-              <div className="bg-green-100 p-2 rounded-lg">
-                <MdSearch className="text-green-600" />
+        {activeTab === "view_specific" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <MdSearch className="text-green-600" />
+                </div>
+                View Logs for Specific Date
+              </h2>
+              <div className="flex items-center gap-4 bg-base-300 p-4 rounded-lg">
+                <MdCalendarToday className="text-gray-500 text-xl" />
+                <label className="text-sm font-medium text-gray-700">Select Date:</label>
+                <input
+                  type="date"
+                  className="input input-bordered input-sm"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
               </div>
-              View Logs for Specific Date
-            </h2>
-            <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-              <MdCalendarToday className="text-gray-500 text-xl" />
-              <label className="text-sm font-medium text-gray-700">Select Date:</label>
-              <input
-                type="date"
-                className="input input-bordered input-sm"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
             </div>
-          </div>
 
           {selectedDate ? (
             <>
               {specificLogsLoading ? (
-                <div className="text-center py-8">
-                  <div className="loading loading-spinner loading-lg"></div>
-                  <p className="mt-4 text-gray-500">Loading logs for {moment(selectedDate).format("MMMM D, YYYY")}...</p>
+                <div className="flex items-center justify-center h-[300px]">
+                  <span className="loading loading-spinner loading-lg text-primary"></span>
                 </div>
               ) : specificDateLogs.length === 0 ? (
-                <div className="text-center py-16 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm inline-block">
+                <div className="text-center py-16">
+                  <div className="bg-base-100 p-6 rounded-2xl shadow-sm inline-block">
                     <MdCalendarToday className="mx-auto text-6xl text-gray-300 mb-4" />
                     <h3 className="text-xl font-semibold text-gray-700 mb-2">No Logs Found</h3>
                     <p className="text-gray-500 mb-6">
@@ -591,7 +591,7 @@ export default function DailyLogsManagement() {
               ) : (
                 <div className="space-y-6">
                   {specificDateLogs.map((log) => (
-                    <div key={log.id} className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <div key={log.id} className="bg-base-100 rounded-xl p-6 border border-base-300 shadow-sm hover:shadow-xl hover:shadow-neutral/10 transition-all duration-200">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -673,8 +673,8 @@ export default function DailyLogsManagement() {
               )}
             </>
           ) : (
-            <div className="text-center py-16 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl">
-              <div className="bg-white p-6 rounded-2xl shadow-sm inline-block">
+            <div className="text-center py-16">
+              <div className="bg-base-100 p-6 rounded-2xl shadow-sm inline-block">
                 <MdCalendarToday className="mx-auto text-6xl text-gray-300 mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">Select a Date</h3>
                 <p className="text-gray-500">Choose a date to view daily logs for that specific day.</p>
@@ -682,16 +682,16 @@ export default function DailyLogsManagement() {
             </div>
           )}
         </div>
-      )}
+        )}
 
-      {activeTab === "add_log" && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${editingLog ? 'bg-orange-100' : 'bg-purple-100'}`}>
-              {editingLog ? <MdEdit className="text-orange-600" /> : <MdAdd className="text-purple-600" />}
-            </div>
-            {editingLog ? "Edit Daily Log" : "Add New Daily Log"}
-          </h2>
+        {activeTab === "add_log" && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${editingLog ? 'bg-orange-100' : 'bg-purple-100'}`}>
+                {editingLog ? <MdEdit className="text-orange-600" /> : <MdAdd className="text-purple-600" />}
+              </div>
+              {editingLog ? "Edit Daily Log" : "Add New Daily Log"}
+            </h2>
           
           <form onSubmit={handleLogSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -808,11 +808,11 @@ export default function DailyLogsManagement() {
               )}
             </div>
           </form>
-        </div>
-      )}
+          </div>
+        )}
 
-      {activeTab === "view_details" && selectedLogForDetails && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {activeTab === "view_details" && selectedLogForDetails && (
+          <div>
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
@@ -852,7 +852,7 @@ export default function DailyLogsManagement() {
           </div>
 
           {/* Log Information */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
+          <div className="bg-base-100 rounded-xl p-6 mb-6 border border-base-300">
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-100 p-3 rounded-xl">
                 <MdCalendarToday className="text-blue-600 text-lg" />
@@ -897,7 +897,7 @@ export default function DailyLogsManagement() {
                   <MdNotes className="text-purple-500" />
                   <span className="text-sm font-medium text-gray-600">Notes:</span>
                 </div>
-                <p className="text-sm text-gray-700 bg-white p-3 rounded">{selectedLogForDetails.notes}</p>
+                <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">{selectedLogForDetails.notes}</p>
               </div>
             )}
 
@@ -907,7 +907,7 @@ export default function DailyLogsManagement() {
           </div>
 
           {/* Activities Section */}
-          <div className="bg-gray-50 rounded-xl p-6">
+          <div className="bg-base-100 rounded-xl p-6 border border-base-300">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 p-2 rounded-lg">
@@ -939,7 +939,7 @@ export default function DailyLogsManagement() {
                 {selectedLogForDetails.activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm"
+                    className="bg-base-200 rounded-lg p-6 border border-base-300 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -1000,7 +1000,7 @@ export default function DailyLogsManagement() {
                         )}
 
                         {activity.notes && (
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-base-300 p-3 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
                               <MdNotes className="text-gray-400" />
                               <span className="text-sm font-medium text-gray-600">Notes:</span>
@@ -1033,7 +1033,7 @@ export default function DailyLogsManagement() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+              <div className="text-center py-12 bg-base-200 rounded-lg border border-base-300">
                 <MdWork className="mx-auto text-5xl text-gray-300 mb-4" />
                 <h4 className="text-lg font-semibold text-gray-600 mb-2">No Activities Yet</h4>
                 <p className="text-gray-500 mb-6">Start by adding the first activity for this daily log.</p>
@@ -1049,8 +1049,8 @@ export default function DailyLogsManagement() {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && logToDelete && (
@@ -1248,6 +1248,7 @@ export default function DailyLogsManagement() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
