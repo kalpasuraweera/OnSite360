@@ -1043,10 +1043,10 @@ const WorkforceManagement = () => {
                     return (
                       <tr key={worker.id} className="hover:bg-base-200">
                         <td className="font-medium flex items-center gap-2">
-                          <div className="avatar">
-                            <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                              <span className="text-xs font-bold">{worker.name.charAt(0)}</span>
-                            </div>
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-xs font-medium text-primary">
+                              {worker.name.charAt(0)}
+                            </span>
                           </div>
                           {worker.name}
                           <span className="text-sm text-gray-500">({worker.role})</span>
@@ -1153,10 +1153,10 @@ const WorkforceManagement = () => {
                         className="hover:bg-base-200"
                       >
                         <td className="font-medium flex items-center gap-2">
-                          <div className="avatar">
-                            <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                              <span className="text-xs font-bold">{worker.name.charAt(0)}</span>
-                            </div>
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-xs font-medium text-primary">
+                              {worker.name.charAt(0)}
+                            </span>
                           </div>
                           {worker.name}
                         </td>
