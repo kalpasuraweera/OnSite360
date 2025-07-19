@@ -28,19 +28,20 @@ const P5Background: React.FC<P5BackgroundProps> = ({ className = "" }) => {
         for (let x = spacing / 2; x < p.width; x += spacing) {
           for (let y = spacing / 2; y < p.height; y += spacing) {
             const d = p.dist(p.mouseX, p.mouseY, x, y);
-            const r = p.map(d, 0, maxDist, 30, 6, true);
+            const size = p.map(d, 0, maxDist, 30, 6, true);
             const alpha = p.map(d, 0, maxDist, 200, 40, true);
             
             // Use the site's brand yellow color (#fbc700) with varying opacity
             p.colorMode(p.RGB, 255, 255, 255, 255);
             p.fill(251, 199, 0, alpha); // #fbc700 converted to RGB
-            p.ellipse(x, y, r);
+            p.rect(x - size/2, y - size/2, size, size);
             
-            // Add a subtle inner glow for circles near the mouse using the same yellow
+            // Add a subtle inner glow for squares near the mouse using the same yellow
             if (d < maxDist / 2) {
               const innerAlpha = p.map(d, 0, maxDist / 2, 100, 0, true);
+              const innerSize = size * 0.6;
               p.fill(251, 199, 0, innerAlpha); // Same yellow with reduced opacity
-              p.ellipse(x, y, r * 0.6);
+              p.rect(x - innerSize/2, y - innerSize/2, innerSize, innerSize);
             }
           }
         }
