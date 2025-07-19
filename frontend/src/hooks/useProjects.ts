@@ -208,6 +208,93 @@ export interface ProjectStatistics {
   completionPercentage: number;
 }
 
+// Issue Types
+export interface Issue {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  category: string;
+  severity: string;
+  status: string;
+  location?: string;
+  reportedBy: string;
+  reportedById?: string;
+  dueDate?: string;
+  resolvedAt?: string;
+  resolution?: string;
+  createdAt: string;
+  updatedAt: string;
+  reporter?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  taggedUsers?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }[];
+  attachments?: {
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+  }[];
+}
+
+export interface CreateIssueDto {
+  title: string;
+  description: string;
+  category: string;
+  severity: string;
+  location?: string;
+  reportedBy: string;
+  taggedUserIds?: string[];
+  dueDate?: string;
+  attachmentIds?: string[];
+}
+
+export interface UpdateIssueDto {
+  title?: string;
+  description?: string;
+  category?: string;
+  severity?: string;
+  status?: string;
+  location?: string;
+  reportedBy?: string;
+  taggedUserIds?: string[];
+  dueDate?: string;
+  resolution?: string;
+  attachmentIds?: string[];
+}
+
+export const IssueStatus = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In Progress',
+  RESOLVED: 'Resolved',
+  CLOSED: 'Closed',
+} as const;
+
+export const IssueSeverity = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical',
+} as const;
+
+export const IssueCategory = {
+  SAFETY: 'Safety',
+  QUALITY: 'Quality',
+  DELAY: 'Delay',
+  EQUIPMENT: 'Equipment',
+  ENVIRONMENTAL: 'Environmental',
+  MATERIAL: 'Material',
+  OTHER: 'Other',
+} as const;
+
 export const useProjects = () => {
   return useQuery({
     queryKey: ["projects"],
@@ -593,6 +680,88 @@ export const useMarkAttendance = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["project-attendance-history", variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ["project-attendance", variables.projectId, variables.date] });
+    },
+  });
+};
+
+// Issue Management Hooks
+export const useAllIssues = () => {
+  return useQuery({
+    queryKey: ["all-issues"],
+    queryFn: async () => {
+      const { data } = await instance.get("/projects/issues");
+      return data;
+    },
+  });
+};
+
+export const useProjectIssues = (projectId: string) => {
+  return useQuery({
+    queryKey: ["project-issues", projectId],
+    queryFn: async () => {
+      const { data } = await instance.get(`/projects/${projectId}/issues`);
+      return data;
+    },
+    enabled: !!projectId,
+  });
+};
+
+export const useIssue = (projectId: string, issueId: string) => {
+  return useQuery({
+    queryKey: ["issue", projectId, issueId],
+    queryFn: async () => {
+      const { data } = await instance.get(`/projects/${projectId}/issues/${issueId}`);
+      return data;
+    },
+    enabled: !!projectId && !!issueId,
+  });
+};
+
+export const useCreateIssue = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, ...issueData }: CreateIssueDto & { projectId: string }) => {
+      const { data } = await instance.post(`/projects/${projectId}/issues`, issueData);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-issues", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["all-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["project-statistics", variables.projectId] });
+    },
+  });
+};
+
+export const useUpdateIssue = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, issueId, ...updateData }: UpdateIssueDto & { projectId: string; issueId: string }) => {
+      const { data } = await instance.patch(`/projects/${projectId}/issues/${issueId}`, updateData);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-issues", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["issue", variables.projectId, variables.issueId] });
+      queryClient.invalidateQueries({ queryKey: ["all-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["project-statistics", variables.projectId] });
+    },
+  });
+};
+
+export const useDeleteIssue = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, issueId }: { projectId: string; issueId: string }) => {
+      const { data } = await instance.delete(`/projects/${projectId}/issues/${issueId}`);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-issues", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["all-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["project-statistics", variables.projectId] });
     },
   });
 };
