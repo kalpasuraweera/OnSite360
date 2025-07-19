@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload } from "react-icons/md";
+import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule } from "react-icons/md";
 import React from "react";
 
 // Add date-fns for date formatting (optional, or use native Date)
@@ -12,14 +12,12 @@ const mockProjects = [
   { id: "p3", name: "Harbor Bridge" },
 ];
 
-type WorkforceTab = "all" | "assignments" | "attendance" | "skills" | "safety";
+type WorkforceTab = "all" | "attendance" | "analytics";
 
 const WORKFORCE_TAB_LABELS: Record<WorkforceTab, string> = {
   all: "All Staff",
-  assignments: "Assignments",
   attendance: "Attendance",
-  skills: "Skills Matrix",
-  safety: "Safety Records",
+  analytics: "Analytics",
 };
 
 // Extend Worker type for demo (add age, phone, address, profilePic)
@@ -108,13 +106,6 @@ const WorkforceManagement = () => {
   const [showAddWorker, setShowAddWorker] = useState(false);
   // Removed unused newWorker state
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [editAssignmentWorker, setEditAssignmentWorker] = useState<Worker | null>(null);
-  const [editAssignedTask, setEditAssignedTask] = useState<string>("");
-  const [editSafetyWorker, setEditSafetyWorker] = useState<Worker | null>(null);
-  const [editSafetyStatus, setEditSafetyStatus] = useState<string>("");
-  const [editSkillsWorker, setEditSkillsWorker] = useState<Worker | null>(null);
-  const [editWorkerSkills, setEditWorkerSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState<string>("");
   const [editWorker, setEditWorker] = useState<Worker | null>(null);
   const [editWorkerData, setEditWorkerData] = useState<Worker>({
     id: "",
@@ -322,39 +313,6 @@ const WorkforceManagement = () => {
     setWorkerToDelete(null);
   };
 
-  // Handle skills update
-  const handleEditSkills = (worker: Worker) => {
-    setEditSkillsWorker(worker);
-    setEditWorkerSkills([...worker.skills]);
-    setNewSkill("");
-  };
-
-  // Add new skill
-  const handleAddSkill = () => {
-    if (newSkill.trim() && !editWorkerSkills.includes(newSkill.trim())) {
-      setEditWorkerSkills(prev => [...prev, newSkill.trim()]);
-      setNewSkill("");
-    }
-  };
-
-  // Remove skill
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setEditWorkerSkills(prev => prev.filter(skill => skill !== skillToRemove));
-  };
-
-  // Save skills update
-  const handleUpdateSkills = () => {
-    if (editSkillsWorker) {
-      const workerIndex = mockWorkers.findIndex(w => w.id === editSkillsWorker.id);
-      if (workerIndex !== -1) {
-        mockWorkers[workerIndex].skills = [...editWorkerSkills];
-      }
-    }
-    setEditSkillsWorker(null);
-    setEditWorkerSkills([]);
-    setNewSkill("");
-  };
-
   // Add new worker to mockWorkers (for demo, just push to array)
   // Removed unused handleAddWorker
 
@@ -413,11 +371,14 @@ const WorkforceManagement = () => {
           {(Object.keys(WORKFORCE_TAB_LABELS) as WorkforceTab[]).map((tab) => (
             <button
               key={tab}
-              className={`tab text-base ${
+              className={`tab text-base flex items-center gap-2 ${
                 activeTab === tab ? "tab-active font-bold" : ""
               }`}
               onClick={() => setActiveTab(tab)}
             >
+              {tab === "all" && <MdPeople />}
+              {tab === "attendance" && <MdSchedule />}
+              {tab === "analytics" && <MdAnalytics />}
               {WORKFORCE_TAB_LABELS[tab]}
             </button>
           ))}
@@ -621,26 +582,138 @@ const WorkforceManagement = () => {
                     <th>Notes</th>
                     {isToday && <th>Actions</th>}
                   </>
-                ) : (
+                ) : activeTab === "all" ? (
                   <>
-                    {activeTab === "assignments" && <th>Assigned Task</th>}
-                    {activeTab === "skills" && <th>Skills</th>}
-                    {activeTab === "safety" && <th>Safety Status</th>}
-                    {activeTab === "all" && (
-                      <>
-                        <th>Assigned Task</th>
-                        <th>Attendance</th>
-                        <th>Skills</th>
-                        <th>Safety Status</th>
-                      </>
-                    )}
+                    <th>Assigned Task</th>
+                    <th>Attendance</th>
+                    <th>Skills</th>
+                    <th>Safety Status</th>
                     <th>Actions</th>
                   </>
-                )}
+                ) : null}
               </tr>
             </thead>
             <tbody>
-              {filteredWorkers.length > 0 ? (
+              {activeTab === "analytics" ? (
+                <tr>
+                  <td colSpan={2} className="p-0">
+                    <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setActiveTab("all")}
+                          >
+                            ← Back to All Staff
+                          </button>
+                          <h2 className="text-2xl font-bold">Workforce Analytics</h2>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <div className="stat bg-base-100 rounded-xl shadow">
+                          <div className="stat-title">Total Staff</div>
+                          <div className="stat-value text-primary">
+                            {filteredWorkers.length}
+                          </div>
+                          <div className="stat-desc">All roles</div>
+                        </div>
+                        <div className="stat bg-base-100 rounded-xl shadow">
+                          <div className="stat-title">Present Today</div>
+                          <div className="stat-value text-success">
+                            {filteredWorkers.filter(w => w.attendance === "Present").length}
+                          </div>
+                          <div className="stat-desc">On site</div>
+                        </div>
+                        <div className="stat bg-base-100 rounded-xl shadow">
+                          <div className="stat-title">Safety Cleared</div>
+                          <div className="stat-value text-success">
+                            {filteredWorkers.filter(w => w.safetyStatus === "Cleared").length}
+                          </div>
+                          <div className="stat-desc">Safety compliant</div>
+                        </div>
+                        <div className="stat bg-base-100 rounded-xl shadow">
+                          <div className="stat-title">Active Roles</div>
+                          <div className="stat-value text-info">
+                            {Array.from(new Set(filteredWorkers.map(w => w.role))).length}
+                          </div>
+                          <div className="stat-desc">Role diversity</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-base-100 p-4 rounded-xl">
+                          <h3 className="font-bold text-lg mb-4">Attendance Status</h3>
+                          <div className="space-y-2">
+                            {Object.entries(
+                              filteredWorkers.reduce((acc, worker) => {
+                                const status = worker.attendance;
+                                acc[status] = (acc[status] || 0) + 1;
+                                return acc;
+                              }, {} as Record<string, number>)
+                            ).map(([status, count]) => (
+                              <div key={status} className="flex justify-between items-center">
+                                <span className={`badge ${
+                                  status === "Present" ? "badge-success" :
+                                  status === "Absent" ? "badge-error" :
+                                  status === "Late" ? "badge-warning" :
+                                  "badge-info"
+                                }`}>
+                                  {status}
+                                </span>
+                                <span className="font-bold">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="bg-base-100 p-4 rounded-xl">
+                          <h3 className="font-bold text-lg mb-4">Safety Status</h3>
+                          <div className="space-y-2">
+                            {Object.entries(
+                              filteredWorkers.reduce((acc, worker) => {
+                                const status = worker.safetyStatus;
+                                acc[status] = (acc[status] || 0) + 1;
+                                return acc;
+                              }, {} as Record<string, number>)
+                            ).map(([status, count]) => (
+                              <div key={status} className="flex justify-between items-center">
+                                <span className={`badge ${
+                                  status === "Cleared" ? "badge-success" :
+                                  status === "Pending" ? "badge-warning" :
+                                  "badge-error"
+                                }`}>
+                                  {status}
+                                </span>
+                                <span className="font-bold">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 bg-base-100 p-4 rounded-xl">
+                        <h3 className="font-bold text-lg mb-4">Skills Distribution</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(
+                            filteredWorkers.reduce((acc, worker) => {
+                              worker.skills.forEach(skill => {
+                                acc[skill] = (acc[skill] || 0) + 1;
+                              });
+                              return acc;
+                            }, {} as Record<string, number>)
+                          ).map(([skill, count]) => (
+                            <div key={skill} className="flex items-center gap-2 bg-neutral text-neutral-content px-3 py-1 rounded-lg">
+                              <span>{skill}</span>
+                              <span className="badge badge-sm">{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredWorkers.length > 0 ? (
                 filteredWorkers.map((worker) => {
                   // For demo: use attendanceState or fallback to worker.attendance
                   const att = attendanceState[worker.id]?.status ?? worker.attendance;
@@ -811,194 +884,17 @@ const WorkforceManagement = () => {
                     );
                   }
 
-                  if (activeTab === "assignments") {
-                    return (
-                      <tr key={worker.id} className="hover:bg-base-200">
-                        <td className="font-medium">{worker.name}</td>
-                        <td>{worker.role}</td>
-                        <td>{worker.assignedTask}</td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => {
-                              setEditAssignmentWorker(worker);
-                              setEditAssignedTask(worker.assignedTask);
-                            }}
-                          >
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  if (activeTab === "safety") {
-                    return (
-                      <tr key={worker.id} className="hover:bg-base-200">
-                        <td className="font-medium">{worker.name}</td>
-                        <td>{worker.role}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              worker.safetyStatus === "Cleared"
-                                ? "badge-success"
-                                : worker.safetyStatus === "Pending"
-                                ? "badge-warning"
-                                : worker.safetyStatus === "Suspended"
-                                ? "badge-error"
-                                : "badge-info"
-                            }`}
-                          >
-                            {worker.safetyStatus}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => {
-                              setEditSafetyWorker(worker);
-                              setEditSafetyStatus(worker.safetyStatus);
-                            }}
-                          >
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  if (activeTab === "skills") {
-                    return (
-                      <tr key={worker.id} className="hover:bg-base-200">
-                        <td className="font-medium">{worker.name}</td>
-                        <td>{worker.role}</td>
-                        <td>
-                          <div className="flex flex-wrap gap-1">
-                            {worker.skills.map((skill) => (
-                              <span key={skill} className="badge badge-neutral">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => handleEditSkills(worker)}
-                          >
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return (
-                    <tr key={worker.id} className="hover:bg-base-200">
-                      <td className="font-medium">{worker.name}</td>
-                      <td>{worker.role}</td>
-                      {activeTab === "assignments" && (
-                        <td>{worker.assignedTask}</td>
-                      )}
-                      {activeTab === "attendance" && (
-                        <td>
-                          <span
-                            className={`badge ${
-                              worker.attendance === "Present"
-                                ? "badge-success"
-                                : "badge-error"
-                            }`}
-                          >
-                            {worker.attendance}
-                          </span>
-                        </td>
-                      )}
-                      {activeTab === "skills" && (
-                        <td>
-                          <div className="flex flex-wrap gap-1">
-                            {worker.skills.map((skill) => (
-                              <span key={skill} className="badge badge-neutral">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                      )}
-                      {activeTab === "safety" && (
-                        <td>
-                          <span
-                            className={`badge ${
-                              worker.safetyStatus === "Cleared"
-                                ? "badge-success"
-                                : "badge-warning"
-                            }`}
-                          >
-                            {worker.safetyStatus}
-                          </span>
-                        </td>
-                      )}
-                      {activeTab === "all" && (
-                        <>
-                          <td>{worker.assignedTask}</td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                worker.attendance === "Present"
-                                  ? "badge-success"
-                                  : "badge-error"
-                              }`}
-                            >
-                              {worker.attendance}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="flex flex-wrap gap-1">
-                              {worker.skills.map((skill) => (
-                                <span key={skill} className="badge badge-neutral">
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                worker.safetyStatus === "Cleared"
-                                  ? "badge-success"
-                                  : "badge-warning"
-                              }`}
-                            >
-                              {worker.safetyStatus}
-                            </span>
-                          </td>
-                        </>
-                      )}
-                      <td>
-                        <div className="flex gap-2">
-                          <button
-                            className="btn btn-sm btn-primary"
-                            title="Edit Worker"
-                          >
-                            <MdEdit />
-                          </button>
-                          <button
-                            className="btn btn-sm btn-error"
-                            title="Delete Worker"
-                          >
-                            <MdDelete />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
+                  return null;
                 })
               ) : (
                 <tr>
                   <td
                     colSpan={
-                      activeTab === "attendance" 
-                        ? (bulkAttendanceMode ? 6 : 5) + (isToday ? 1 : 0)
-                        : 8
+                      activeTab === "attendance"
+                        ? (bulkAttendanceMode ? 3 : 2) + (isToday ? 3 : 2)
+                        : activeTab === "all"
+                        ? 7
+                        : 2
                     }
                     className="text-center text-gray-500 py-8"
                   >
@@ -1009,233 +905,6 @@ const WorkforceManagement = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Update Assignment Modal */}
-        {editAssignmentWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                onClick={() => {
-                  setEditAssignmentWorker(null);
-                  setEditAssignedTask("");
-                }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4">Update Assignment</h2>
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <img
-                    src={editAssignmentWorker.profilePic}
-                    alt={editAssignmentWorker.name}
-                    className="w-8 h-8 rounded-full object-cover border"
-                  />
-                  <span className="font-semibold">{editAssignmentWorker.name}</span>
-                  <span className="text-gray-500">({editAssignmentWorker.role})</span>
-                </div>
-                <label className="label font-semibold">Assigned Task</label>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={editAssignedTask}
-                  onChange={(e) => setEditAssignedTask(e.target.value)}
-                  placeholder="Enter new task assignment..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  className="btn btn-outline flex-1"
-                  onClick={() => {
-                    setEditAssignmentWorker(null);
-                    setEditAssignedTask("");
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-primary flex-1"
-                  onClick={() => {
-                    // Update the worker's assigned task
-                    const workerIndex = mockWorkers.findIndex(w => w.id === editAssignmentWorker.id);
-                    if (workerIndex !== -1) {
-                      mockWorkers[workerIndex].assignedTask = editAssignedTask;
-                    }
-                    setEditAssignmentWorker(null);
-                    setEditAssignedTask("");
-                  }}
-                >
-                  Update
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Update Safety Status Modal */}
-        {editSafetyWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                onClick={() => {
-                  setEditSafetyWorker(null);
-                  setEditSafetyStatus("");
-                }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4">Update Safety Status</h2>
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <img
-                    src={editSafetyWorker.profilePic}
-                    alt={editSafetyWorker.name}
-                    className="w-8 h-8 rounded-full object-cover border"
-                  />
-                  <span className="font-semibold">{editSafetyWorker.name}</span>
-                  <span className="text-gray-500">({editSafetyWorker.role})</span>
-                </div>
-                <label className="label font-semibold">Safety Status</label>
-                <select
-                  className="select select-bordered w-full"
-                  value={editSafetyStatus}
-                  onChange={(e) => setEditSafetyStatus(e.target.value)}
-                >
-                  <option value="Cleared">Cleared</option>
-                  <option value="Pending">Pending</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  className="btn btn-outline flex-1"
-                  onClick={() => {
-                    setEditSafetyWorker(null);
-                    setEditSafetyStatus("");
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-primary flex-1"
-                  onClick={() => {
-                    // Update the worker's safety status
-                    const workerIndex = mockWorkers.findIndex(w => w.id === editSafetyWorker.id);
-                    if (workerIndex !== -1) {
-                      mockWorkers[workerIndex].safetyStatus = editSafetyStatus;
-                    }
-                    setEditSafetyWorker(null);
-                    setEditSafetyStatus("");
-                  }}
-                >
-                  Update
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Update Skills Modal */}
-        {editSkillsWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                onClick={() => {
-                  setEditSkillsWorker(null);
-                  setEditWorkerSkills([]);
-                  setNewSkill("");
-                }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4">Update Skills</h2>
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <img
-                    src={editSkillsWorker.profilePic}
-                    alt={editSkillsWorker.name}
-                    className="w-8 h-8 rounded-full object-cover border"
-                  />
-                  <span className="font-semibold">{editSkillsWorker.name}</span>
-                  <span className="text-gray-500">({editSkillsWorker.role})</span>
-                </div>
-                
-                {/* Add New Skill */}
-                <label className="label font-semibold">Add New Skill</label>
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    className="input input-bordered flex-1"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="Enter skill name..."
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddSkill();
-                      }
-                    }}
-                  />
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleAddSkill}
-                    disabled={!newSkill.trim()}
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {/* Current Skills */}
-                <label className="label font-semibold">Current Skills</label>
-                <div className="min-h-[100px] max-h-[200px] overflow-y-auto border border-base-300 rounded-lg p-3">
-                  {editWorkerSkills.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {editWorkerSkills.map((skill, index) => (
-                        <div key={index} className="flex items-center gap-1 bg-neutral text-neutral-content px-2 py-1 rounded-lg">
-                          <span className="text-sm">{skill}</span>
-                          <button
-                            className="btn btn-ghost btn-xs text-neutral-content hover:text-error"
-                            onClick={() => handleRemoveSkill(skill)}
-                            title="Remove skill"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 text-center py-8">
-                      No skills added yet
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  className="btn btn-outline flex-1"
-                  onClick={() => {
-                    setEditSkillsWorker(null);
-                    setEditWorkerSkills([]);
-                    setNewSkill("");
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-primary flex-1"
-                  onClick={handleUpdateSkills}
-                >
-                  Update Skills
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Edit Worker Modal */}
         {editWorker && (
@@ -1437,61 +1106,6 @@ const WorkforceManagement = () => {
             </button>
           </div>
         )}
-
-        {/* Summary Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Total Staff</div>
-            <div className="stat-value text-primary">
-              {
-                mockWorkers.filter((w) => w.projectId === selectedProject)
-                  .length
-              }
-            </div>
-            <div className="stat-desc">All roles</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Present</div>
-            <div className="stat-value text-success">
-              {
-                mockWorkers.filter(
-                  (w) =>
-                    w.projectId === selectedProject &&
-                    w.attendance === "Present"
-                ).length
-              }
-            </div>
-            <div className="stat-desc">On site</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Cleared Safety</div>
-            <div className="stat-value text-success">
-              {
-                mockWorkers.filter(
-                  (w) =>
-                    w.projectId === selectedProject &&
-                    w.safetyStatus === "Cleared"
-                ).length
-              }
-            </div>
-            <div className="stat-desc">Safety checks</div>
-          </div>
-          <div className="stat bg-base-100 rounded-xl shadow">
-            <div className="stat-title">Unique Skills</div>
-            <div className="stat-value text-info">
-              {
-                Array.from(
-                  new Set(
-                    mockWorkers
-                      .filter((w) => w.projectId === selectedProject)
-                      .flatMap((w) => w.skills)
-                  )
-                ).length
-              }
-            </div>
-            <div className="stat-desc">Skill diversity</div>
-          </div>
-        </div>
       </div>
     </div>
   );
