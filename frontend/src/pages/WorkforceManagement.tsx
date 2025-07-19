@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule, MdSave, MdNoteAdd, MdCheck } from "react-icons/md";
+import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdUpload, MdAnalytics, MdPeople, MdSchedule, MdSave, MdNoteAdd, MdCheck } from "react-icons/md";
 import React from "react";
 import TagsInput from "../components/TagsInput";
 import {
@@ -210,6 +210,19 @@ const WorkforceManagement = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
   const [showSaveConfirm, setShowSaveConfirm] = useState<boolean>(false);
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importStatus, setImportStatus] = useState<{
+    loading: boolean;
+    error: string | null;
+    success: string | null;
+    importedCount: number;
+  }>({
+    loading: false,
+    error: null,
+    success: null,
+    importedCount: 0
+  });
 
   // Mutation hooks
   const createCrewMemberMutation = useCreateCrewMember();
@@ -550,11 +563,11 @@ const WorkforceManagement = () => {
     if (!filteredWorkers.length) return;
     
     const csv =
-      "Name,Role,Phone,Email,Skills,Active Status,Hire Date,Created Date\n" +
+      "ID,Name,Role,Phone,Email,Skills,Active Status,Hire Date,Created Date\n" +
       filteredWorkers
         .map(
           (w: CrewMember) =>
-            `${w.name},${w.role},${w.phone || ""},${w.email || ""},"${(w.skills || []).join("|")}",${w.isActive ? "Active" : "Inactive"},${w.hireDate ? new Date(w.hireDate).toLocaleDateString() : ""},${new Date(w.createdAt).toLocaleDateString()}`
+            `${w.id},"${w.name}","${w.role}","${w.phone || ""}","${w.email || ""}","${(w.skills || []).join("|")}",${w.isActive ? "Active" : "Inactive"},${w.hireDate ? new Date(w.hireDate).toLocaleDateString() : ""},${new Date(w.createdAt).toLocaleDateString()}`
         )
         .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -566,6 +579,128 @@ const WorkforceManagement = () => {
     }.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === "text/csv") {
+      setImportFile(file);
+      setImportStatus({
+        loading: false,
+        error: null,
+        success: null,
+        importedCount: 0
+      });
+    } else {
+      setImportStatus({
+        loading: false,
+        error: "Please select a valid CSV file",
+        success: null,
+        importedCount: 0
+      });
+    }
+  };
+
+  const processImportCSV = async () => {
+    if (!importFile || !selectedProject) return;
+    
+    setImportStatus({
+      loading: true,
+      error: null,
+      success: null,
+      importedCount: 0
+    });
+
+    try {
+      const text = await importFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error("CSV file appears to be empty or invalid");
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      // Validate that this is a workforce CSV with ID column
+      const expectedHeaders = ['ID', 'Name', 'Role'];
+      const hasRequiredHeaders = expectedHeaders.every(header => 
+        headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
+      );
+      
+      if (!hasRequiredHeaders) {
+        throw new Error("Invalid CSV format. Please ensure this is a workforce export from OnSite360 platform with ID, Name, and Role columns.");
+      }
+
+      const idIndex = headers.findIndex(h => h.toLowerCase() === 'id');
+      
+      if (idIndex === -1) {
+        throw new Error("Missing ID column. Please use a CSV exported from OnSite360 platform.");
+      }
+
+      let importedCount = 0;
+      const errors: string[] = [];
+
+      // Process each worker line
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        
+        if (values.length < headers.length) continue; // Skip incomplete lines
+        
+        const workerId = values[idIndex];
+        
+        if (!workerId) {
+          errors.push(`Line ${i + 1}: Missing worker ID`);
+          continue;
+        }
+
+        try {
+          // Assign existing crew member to current project
+          await assignCrewMemberToProjectMutation.mutateAsync({
+            projectId: selectedProject,
+            crewMemberId: workerId,
+            notes: `Imported from CSV on ${new Date().toLocaleDateString()}`
+          });
+          importedCount++;
+        } catch (error) {
+          console.error(`Failed to assign worker ${workerId}:`, error);
+          errors.push(`Line ${i + 1}: Failed to assign worker (ID: ${workerId}) - worker may not exist or already be assigned`);
+        }
+      }
+
+      if (importedCount > 0) {
+        setImportStatus({
+          loading: false,
+          error: errors.length > 0 ? `${errors.length} workers could not be imported. Check console for details.` : null,
+          success: `Successfully imported ${importedCount} workers to the current project`,
+          importedCount
+        });
+      } else {
+        setImportStatus({
+          loading: false,
+          error: errors.length > 0 ? errors.join('\n') : "No workers were imported",
+          success: null,
+          importedCount: 0
+        });
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      setImportStatus({
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to process CSV file",
+        success: null,
+        importedCount: 0
+      });
+    }
+  };
+
+  const resetImport = () => {
+    setImportFile(null);
+    setImportStatus({
+      loading: false,
+      error: null,
+      success: null,
+      importedCount: 0
+    });
   };
 
   return (
@@ -636,6 +771,13 @@ const WorkforceManagement = () => {
             >
               <MdFileDownload />
               Export Workforce (CSV)
+            </button>
+            <button
+              className="btn btn-outline flex items-center gap-2"
+              onClick={() => setShowImportModal(true)}
+            >
+              <MdUpload />
+              Import Workers (CSV)
             </button>
           </div>
           <div className="flex items-center justify-end">
@@ -874,6 +1016,131 @@ const WorkforceManagement = () => {
             </div>
             <form method="dialog" className="modal-backdrop">
               <button onClick={() => setShowAddWorker(false)}>close</button>
+            </form>
+          </div>
+        )}
+
+        {/* Import Workers Modal */}
+        {showImportModal && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
+              <button
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                onClick={() => {
+                  setShowImportModal(false);
+                  resetImport();
+                }}
+              >
+                ✕
+              </button>
+              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                <MdUpload />
+                Import Workers from CSV
+              </h3>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-blue-500 shrink-0 w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div>
+                    <h4 className="font-semibold text-blue-800 mb-1">Import Instructions</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Only CSV files exported from OnSite360 platform are supported</li>
+                      <li>• Workers must already exist in the system (this assigns existing workers to current project)</li>
+                      <li>• CSV must include ID column for proper worker identification</li>
+                      <li>• Workers already assigned to this project will be skipped</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {!importFile ? (
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8">
+                    <MdUpload className="text-4xl text-gray-400 mb-2" />
+                    <p className="text-gray-600 mb-4">Select a CSV file to import workers</p>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="file-input file-input-bordered file-input-primary w-full max-w-xs"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Selected File:</p>
+                          <p className="text-sm text-gray-600">{importFile.name}</p>
+                          <p className="text-xs text-gray-500">Size: {(importFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          onClick={resetImport}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    {importStatus.error && (
+                      <div className="alert alert-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="whitespace-pre-line">{importStatus.error}</span>
+                      </div>
+                    )}
+
+                    {importStatus.success && (
+                      <div className="alert alert-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{importStatus.success}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-action">
+                {importFile && !importStatus.success && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={processImportCSV}
+                    disabled={importStatus.loading || !selectedProject}
+                  >
+                    {importStatus.loading ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <MdUpload />
+                        Import Workers
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    resetImport();
+                  }}
+                >
+                  {importStatus.success ? "Close" : "Cancel"}
+                </button>
+              </div>
+            </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => {
+                setShowImportModal(false);
+                resetImport();
+              }}>close</button>
             </form>
           </div>
         )}
