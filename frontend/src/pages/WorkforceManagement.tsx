@@ -1,16 +1,22 @@
 import { useState } from "react";
 import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule, MdSave, MdNoteAdd, MdCheck } from "react-icons/md";
 import React from "react";
+import {
+  useCrewMembers,
+  useCreateCrewMember,
+  useUpdateCrewMember,
+  useDeleteCrewMember,
+  useMarkAttendance,
+  type CrewMember,
+  type CreateCrewMemberDto,
+  type AttendanceRecord,
+  type Project,
+} from "../hooks/useProjects";
+import { useUserProjects } from "../hooks/useUsers";
+import { useAuthStore } from "../stores/useAuthStore";
 
 // Add date-fns for date formatting (optional, or use native Date)
 const todayStr = new Date().toISOString().slice(0, 10);
-
-// Mock projects
-const mockProjects = [
-  { id: "p1", name: "Downtown Tower" },
-  { id: "p2", name: "Greenfield Mall" },
-  { id: "p3", name: "Harbor Bridge" },
-];
 
 type WorkforceTab = "all" | "attendance" | "analytics";
 
@@ -20,139 +26,50 @@ const WORKFORCE_TAB_LABELS: Record<WorkforceTab, string> = {
   analytics: "Analytics",
 };
 
-// Extend Worker type for demo (add age, phone, address, profilePic)
-interface Worker {
-  id: string;
-  name: string;
-  role: string;
-  assignedTask: string;
-  attendance: string;
-  skills: string[];
-  safetyStatus: string;
-  projectId: string;
-  age?: number;
-  phone?: string;
-  address?: string;
-  profilePic?: string;
-}
-
-// Update mockWorkers with demo personal data and proper worker roles
-const mockWorkers: Worker[] = [
-  {
-    id: "1",
-    name: "Alice Johnson",
-    role: "Mason",
-    assignedTask: "Foundation Work",
-    attendance: "Present",
-    skills: ["Bricklaying", "Stonework"],
-    safetyStatus: "Cleared",
-    projectId: "p1",
-    age: 32,
-    phone: "555-1234",
-    address: "123 Main St, Downtown",
-    profilePic: "https://randomuser.me/api/portraits/women/1.jpg",
-  },
-  {
-    id: "2",
-    name: "Bob Smith",
-    role: "Electrician",
-    assignedTask: "Electrical Installation",
-    attendance: "Absent",
-    skills: ["Wiring", "Electrical Safety"],
-    safetyStatus: "Pending",
-    projectId: "p1",
-    age: 45,
-    phone: "555-5678",
-    address: "456 Oak Ave, Suburbia",
-    profilePic: "https://randomuser.me/api/portraits/men/2.jpg",
-  },
-  {
-    id: "3",
-    name: "Charlie Lee",
-    role: "Carpenter",
-    assignedTask: "Framing Work",
-    attendance: "Present",
-    skills: ["Framing", "Finishing"],
-    safetyStatus: "Cleared",
-    projectId: "p2",
-    age: 28,
-    phone: "555-8765",
-    address: "789 Pine Rd, Greenfield",
-    profilePic: "https://randomuser.me/api/portraits/men/3.jpg",
-  },
-  {
-    id: "4",
-    name: "Diana Green",
-    role: "Labourer",
-    assignedTask: "Site Cleanup",
-    attendance: "Present",
-    skills: ["General Labor", "Equipment Operation"],
-    safetyStatus: "Cleared",
-    projectId: "p3",
-    age: 38,
-    phone: "555-4321",
-    address: "321 Maple St, Harbor",
-    profilePic: "https://randomuser.me/api/portraits/women/4.jpg",
-  },
-  {
-    id: "5",
-    name: "Mike Wilson",
-    role: "Plumber",
-    assignedTask: "Pipe Installation",
-    attendance: "Half Day",
-    skills: ["Plumbing", "Pipe Fitting"],
-    safetyStatus: "Cleared",
-    projectId: "p1",
-    age: 35,
-    phone: "555-9876",
-    address: "567 Cedar Ave, Downtown",
-    profilePic: "https://randomuser.me/api/portraits/men/5.jpg",
-  },
-  {
-    id: "6",
-    name: "Sarah Miller",
-    role: "Welder",
-    assignedTask: "Steel Fabrication",
-    attendance: "Sick Leave",
-    skills: ["Arc Welding", "Metal Cutting"],
-    safetyStatus: "Cleared",
-    projectId: "p2",
-    age: 29,
-    phone: "555-4567",
-    address: "890 Birch St, Greenfield",
-    profilePic: "https://randomuser.me/api/portraits/women/6.jpg",
-  },
-];
+// Extended CrewMember interface for UI state - currently unused but may be needed for future features
+// interface CrewMemberWithAttendance extends CrewMember {
+//   assignedTask?: string;
+//   attendance?: string;
+//   safetyStatus?: string;
+// }
 
 const WorkforceManagement = () => {
-  const [activeTab, setActiveTab] = useState<WorkforceTab>("all");
-  const [selectedProject, setSelectedProject] = useState<string>(
-    mockProjects[0].id
+  // API hooks
+  const { user } = useAuthStore();
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
+    user?.id || ""
   );
+  const { data: crewMembers, isLoading: crewMembersLoading } = useCrewMembers();
+  
+  // State management
+  const [activeTab, setActiveTab] = useState<WorkforceTab>("all");
+  const [selectedProject, setSelectedProject] = useState<string>("");
   const [attendanceDate, setAttendanceDate] = useState<string>(todayStr);
-  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [showAddWorker, setShowAddWorker] = useState(false);
-  // Removed unused newWorker state
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [editWorker, setEditWorker] = useState<Worker | null>(null);
-  const [editWorkerData, setEditWorkerData] = useState<Worker>({
-    id: "",
+  const [editWorker, setEditWorker] = useState<CrewMember | null>(null);
+  const [editWorkerData, setEditWorkerData] = useState<CreateCrewMemberDto>({
     name: "",
     role: "",
-    assignedTask: "",
-    attendance: "Present",
-    skills: [],
-    safetyStatus: "Cleared",
-    projectId: mockProjects[0].id,
-    age: undefined,
     phone: "",
-    address: "",
-    profilePic: "",
+    email: "",
+    skills: [],
+    isActive: true,
+    hireDate: "",
+  });
+  const [newWorkerData, setNewWorkerData] = useState<CreateCrewMemberDto>({
+    name: "",
+    role: "",
+    phone: "",
+    email: "",
+    skills: [],
+    isActive: true,
+    hireDate: "",
   });
 
   // Attendance state: { [workerId]: { status, notes } }
   const [attendanceState, setAttendanceState] = useState<Record<string, { status: string; notes: string }>>({});
-  const [attendanceFilter] = useState<string>("all"); // Only using attendanceFilter, not setter
+  const [attendanceFilter] = useState<string>("all");
   
   // Bulk operations state
   const [bulkMode, setBulkMode] = useState<boolean>(false);
@@ -166,24 +83,58 @@ const WorkforceManagement = () => {
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
   const [showSaveConfirm, setShowSaveConfirm] = useState<boolean>(false);
 
+  // Mutation hooks
+  const createCrewMemberMutation = useCreateCrewMember();
+  const updateCrewMemberMutation = useUpdateCrewMember();
+  const deleteCrewMemberMutation = useDeleteCrewMember();
+  const markAttendanceMutation = useMarkAttendance();
+
+  // Set default project when projects are loaded
+  React.useEffect(() => {
+    if (
+      Array.isArray(projects) &&
+      projects.length > 0 &&
+      !selectedProject &&
+      !projectsLoading
+    ) {
+      setSelectedProject(projects[0].id);
+    }
+  }, [projects, selectedProject, projectsLoading]);
+
   // Filter workers by project, search term, and attendance status
-  const filteredWorkers = mockWorkers.filter(
-    (w) => {
-      const projectMatch = w.projectId === selectedProject || activeTab === "all";
-      const nameMatch = w.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredWorkers = React.useMemo(() => {
+    // Handle case when crewMembers is undefined, null, or not an array
+    if (!crewMembers || !Array.isArray(crewMembers)) return [];
+    
+    return crewMembers.filter((worker: CrewMember) => {
+      const nameMatch = worker.name.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (activeTab === "attendance" && attendanceFilter !== "all") {
-        const workerAttendance = attendanceState[w.id]?.status ?? w.attendance;
+        const workerAttendance = attendanceState[worker.id]?.status ?? "Present";
         const attendanceMatch = workerAttendance === attendanceFilter;
-        return projectMatch && nameMatch && attendanceMatch;
+        return nameMatch && attendanceMatch;
       }
       
-      return projectMatch && nameMatch;
-    }
-  );
+      return nameMatch;
+    });
+  }, [crewMembers, searchTerm, activeTab, attendanceFilter, attendanceState]);
 
   // Helper: is selected date today?
   const isToday = attendanceDate === todayStr;
+
+  // Early return for loading states to prevent render errors
+  if (projectsLoading || crewMembersLoading) {
+    return (
+      <div className="p-8">
+        <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+          <div className="text-center py-8">
+            <div className="loading loading-spinner loading-lg"></div>
+            <p className="mt-2">Loading workforce data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Handler for attendance change
   const handleAttendanceChange = (workerId: string, status: string) => {
@@ -220,7 +171,7 @@ const WorkforceManagement = () => {
   // Bulk attendance operations
   const applyBulkAttendance = () => {
     const updates: Record<string, { status: string; notes: string }> = {};
-    filteredWorkers.forEach(worker => {
+    (filteredWorkers || []).forEach((worker: CrewMember) => {
       updates[worker.id] = {
         status: bulkStatus,
         notes: attendanceState[worker.id]?.notes || ""
@@ -230,22 +181,52 @@ const WorkforceManagement = () => {
   };
 
   // Save all attendance changes
-  const saveAttendanceChanges = () => {
-    setShowSaveConfirm(true);
+  const saveAttendanceChanges = async () => {
+    if (!selectedProject) return;
+    
+    try {
+      const crewAttendance: AttendanceRecord[] = Object.entries(attendanceState).map(([crewMemberId, attendance]) => ({
+        crewMemberId,
+        status: attendance.status,
+        notes: attendance.notes,
+        checkInTime: new Date().toISOString(),
+        isApproved: true,
+      }));
+
+      await markAttendanceMutation.mutateAsync({
+        projectId: selectedProject,
+        date: attendanceDate,
+        crewAttendance,
+      });
+
+      setAttendanceState({});
+      setShowSaveConfirm(false);
+    } catch (error) {
+      console.error('Failed to save attendance:', error);
+    }
   };
 
   // Confirm save attendance changes
   const confirmSaveAttendance = () => {
-    // In a real app, this would save to backend
-    alert(`Saved attendance for ${Object.keys(attendanceState).length} workers`);
-    setShowSaveConfirm(false);
+    saveAttendanceChanges();
   };
 
-  // Handle input changes for add worker form
-  // Removed unused handleNewWorkerChange
+  // Handle input changes for new worker form
+  const handleNewWorkerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewWorkerData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  // Handle skills as comma separated
-  // Removed unused handleSkillsChange
+  // Handle skills change for new worker
+  const handleNewWorkerSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewWorkerData((prev) => ({
+      ...prev,
+      skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+    }));
+  };
 
   // Handle skills change for edit worker
   const handleEditWorkerSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,41 +241,69 @@ const WorkforceManagement = () => {
     const { name, value } = e.target;
     setEditWorkerData((prev) => ({
       ...prev,
-      [name]: name === "age" ? Number(value) : value,
+      [name]: value,
     }));
   };
 
   // Open edit worker modal
-  const handleEditWorker = (worker: Worker) => {
+  const handleEditWorker = (worker: CrewMember) => {
     setEditWorker(worker);
-    setEditWorkerData({ ...worker });
+    setEditWorkerData({
+      name: worker.name,
+      role: worker.role,
+      phone: worker.phone || "",
+      email: worker.email || "",
+      skills: worker.skills || [],
+      isActive: worker.isActive,
+      hireDate: worker.hireDate || "",
+    });
+  };
+
+  // Add new worker
+  const handleAddWorker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkerData.name || !newWorkerData.role) return;
+    
+    try {
+      await createCrewMemberMutation.mutateAsync(newWorkerData);
+      setShowAddWorker(false);
+      setNewWorkerData({
+        name: "",
+        role: "",
+        phone: "",
+        email: "",
+        skills: [],
+        isActive: true,
+        hireDate: "",
+      });
+    } catch (error) {
+      console.error('Failed to create crew member:', error);
+    }
   };
 
   // Update worker details
-  const handleUpdateWorker = (e: React.FormEvent) => {
+  const handleUpdateWorker = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editWorkerData.name || !editWorkerData.role) return;
+    if (!editWorkerData.name || !editWorkerData.role || !editWorker) return;
     
-    const workerIndex = mockWorkers.findIndex(w => w.id === editWorker?.id);
-    if (workerIndex !== -1) {
-      mockWorkers[workerIndex] = { ...editWorkerData };
+    try {
+      await updateCrewMemberMutation.mutateAsync({
+        crewMemberId: editWorker.id,
+        ...editWorkerData,
+      });
+      setEditWorker(null);
+      setEditWorkerData({
+        name: "",
+        role: "",
+        phone: "",
+        email: "",
+        skills: [],
+        isActive: true,
+        hireDate: "",
+      });
+    } catch (error) {
+      console.error('Failed to update crew member:', error);
     }
-    
-    setEditWorker(null);
-    setEditWorkerData({
-      id: "",
-      name: "",
-      role: "",
-      assignedTask: "",
-      attendance: "Present",
-      skills: [],
-      safetyStatus: "Cleared",
-      projectId: mockProjects[0].id,
-      age: undefined,
-      phone: "",
-      address: "",
-      profilePic: "",
-    });
   };
 
   // Delete worker (show modal instead of confirm)
@@ -304,30 +313,27 @@ const WorkforceManagement = () => {
   };
 
   // Confirm delete worker
-  const confirmDeleteWorker = () => {
-    if (workerToDelete) {
-      const workerIndex = mockWorkers.findIndex(w => w.id === workerToDelete);
-      if (workerIndex !== -1) {
-        mockWorkers.splice(workerIndex, 1);
-      }
+  const confirmDeleteWorker = async () => {
+    if (!workerToDelete) return;
+    
+    try {
+      await deleteCrewMemberMutation.mutateAsync(workerToDelete);
+      setShowDeleteConfirm(false);
+      setWorkerToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete crew member:', error);
     }
-    setShowDeleteConfirm(false);
-    setWorkerToDelete(null);
   };
 
-  // Add new worker to mockWorkers (for demo, just push to array)
-  // Removed unused handleAddWorker
-
   const handleExport = () => {
-    const workers = filteredWorkers;
+    if (!filteredWorkers.length) return;
+    
     const csv =
-      "Name,Role,Assigned Task,Attendance,Skills,Safety Status\n" +
-      workers
+      "Name,Role,Phone,Email,Skills,Active Status,Hire Date\n" +
+      filteredWorkers
         .map(
-          (w) =>
-            `${w.name},${w.role},${w.assignedTask},${
-              w.attendance
-            },"${w.skills.join("|")}",${w.safetyStatus}`
+          (w: CrewMember) =>
+            `${w.name},${w.role},${w.phone || ""},${w.email || ""},"${(w.skills || []).join("|")}",${w.isActive ? "Active" : "Inactive"},${w.hireDate || ""}`
         )
         .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -335,7 +341,7 @@ const WorkforceManagement = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `Workforce_${
-      mockProjects.find((p) => p.id === selectedProject)?.name || "Project"
+      projects.find((p: Project) => p.id === selectedProject)?.name || "Project"
     }.csv`;
     a.click();
     URL.revokeObjectURL(url);
@@ -358,12 +364,19 @@ const WorkforceManagement = () => {
               className="select select-bordered"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
+              disabled={projectsLoading}
             >
-              {mockProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : Array.isArray(projects) && projects.length > 0 ? (
+                projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
             </select>
           </div>
         </div>
@@ -426,8 +439,114 @@ const WorkforceManagement = () => {
                 ✕
               </button>
               <h3 className="font-bold text-lg mb-4">Add New Worker</h3>
-              {/* Add worker form content would go here */}
-              <p className="text-gray-500">Add worker form implementation needed</p>
+              <form onSubmit={handleAddWorker} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Name *</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="input input-bordered w-full"
+                      value={newWorkerData.name}
+                      onChange={handleNewWorkerChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Role *</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="role"
+                      className="input input-bordered w-full"
+                      value={newWorkerData.role}
+                      onChange={handleNewWorkerChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Phone</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      className="input input-bordered w-full"
+                      value={newWorkerData.phone}
+                      onChange={handleNewWorkerChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Email</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      className="input input-bordered w-full"
+                      value={newWorkerData.email}
+                      onChange={handleNewWorkerChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Hire Date</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="hireDate"
+                      className="input input-bordered w-full"
+                      value={newWorkerData.hireDate}
+                      onChange={handleNewWorkerChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">
+                      <span className="label-text">Status</span>
+                    </label>
+                    <select
+                      name="isActive"
+                      className="select select-bordered w-full"
+                      value={newWorkerData.isActive ? "true" : "false"}
+                      onChange={(e) => setNewWorkerData(prev => ({ ...prev, isActive: e.target.value === "true" }))}
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text">Skills (comma separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full"
+                    value={(newWorkerData.skills || []).join(", ")}
+                    onChange={handleNewWorkerSkillsChange}
+                    placeholder="e.g. Carpentry, Electrical, Safety"
+                  />
+                </div>
+                <div className="modal-action">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={createCrewMemberMutation.isPending}
+                  >
+                    {createCrewMemberMutation.isPending ? "Adding..." : "Add Worker"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setShowAddWorker(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
             <form method="dialog" className="modal-backdrop">
               <button onClick={() => setShowAddWorker(false)}>close</button>
@@ -534,7 +653,7 @@ const WorkforceManagement = () => {
                           className="btn btn-success btn-sm"
                           onClick={applyBulkAttendance}
                         >
-                          Apply to All ({filteredWorkers.length})
+                          Apply to All ({filteredWorkers?.length || 0})
                         </button>
                       </div>
                     )}
@@ -557,8 +676,8 @@ const WorkforceManagement = () => {
             {/* Attendance Summary */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {(() => {
-                const stats = filteredWorkers.reduce((acc, worker) => {
-                  const status = attendanceState[worker.id]?.status ?? worker.attendance;
+                const stats = (filteredWorkers || []).reduce((acc: Record<string, number>, worker: CrewMember) => {
+                  const status = attendanceState[worker.id]?.status ?? "Present";
                   acc[status] = (acc[status] || 0) + 1;
                   return acc;
                 }, {} as Record<string, number>);
@@ -607,10 +726,10 @@ const WorkforceManagement = () => {
                   </>
                 ) : activeTab === "all" ? (
                   <>
-                    <th>Assigned Task</th>
-                    <th>Attendance</th>
+                    <th>Phone</th>
+                    <th>Email</th>
                     <th>Skills</th>
-                    <th>Safety Status</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </>
                 ) : null}
@@ -637,28 +756,28 @@ const WorkforceManagement = () => {
                         <div className="stat bg-base-100 rounded-xl shadow">
                           <div className="stat-title">Total Staff</div>
                           <div className="stat-value text-primary">
-                            {filteredWorkers.length}
+                            {filteredWorkers?.length || 0}
                           </div>
                           <div className="stat-desc">All roles</div>
                         </div>
                         <div className="stat bg-base-100 rounded-xl shadow">
-                          <div className="stat-title">Present Today</div>
+                          <div className="stat-title">Active Workers</div>
                           <div className="stat-value text-success">
-                            {filteredWorkers.filter(w => w.attendance === "Present").length}
+                            {filteredWorkers?.filter((w: CrewMember) => w.isActive).length || 0}
                           </div>
-                          <div className="stat-desc">On site</div>
+                          <div className="stat-desc">Currently active</div>
                         </div>
                         <div className="stat bg-base-100 rounded-xl shadow">
-                          <div className="stat-title">Safety Cleared</div>
-                          <div className="stat-value text-success">
-                            {filteredWorkers.filter(w => w.safetyStatus === "Cleared").length}
-                          </div>
-                          <div className="stat-desc">Safety compliant</div>
-                        </div>
-                        <div className="stat bg-base-100 rounded-xl shadow">
-                          <div className="stat-title">Active Roles</div>
+                          <div className="stat-title">Total Skills</div>
                           <div className="stat-value text-info">
-                            {Array.from(new Set(filteredWorkers.map(w => w.role))).length}
+                            {Array.from(new Set(filteredWorkers?.flatMap((w: CrewMember) => w.skills || []) || [])).length}
+                          </div>
+                          <div className="stat-desc">Unique skills</div>
+                        </div>
+                        <div className="stat bg-base-100 rounded-xl shadow">
+                          <div className="stat-title">Roles</div>
+                          <div className="stat-value text-warning">
+                            {Array.from(new Set(filteredWorkers?.map((w: CrewMember) => w.role) || [])).length}
                           </div>
                           <div className="stat-desc">Role diversity</div>
                         </div>
@@ -666,49 +785,42 @@ const WorkforceManagement = () => {
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="bg-base-100 p-4 rounded-xl">
-                          <h3 className="font-bold text-lg mb-4">Attendance Status</h3>
+                          <h3 className="font-bold text-lg mb-4">Active Status</h3>
                           <div className="space-y-2">
                             {Object.entries(
-                              filteredWorkers.reduce((acc, worker) => {
-                                const status = worker.attendance;
+                              (filteredWorkers || []).reduce((acc: Record<string, number>, worker: CrewMember) => {
+                                const status = worker.isActive ? "Active" : "Inactive";
                                 acc[status] = (acc[status] || 0) + 1;
                                 return acc;
                               }, {} as Record<string, number>)
                             ).map(([status, count]) => (
                               <div key={status} className="flex justify-between items-center">
                                 <span className={`badge ${
-                                  status === "Present" ? "badge-success" :
-                                  status === "Absent" ? "badge-error" :
-                                  status === "Late" ? "badge-warning" :
-                                  "badge-info"
+                                  status === "Active" ? "badge-success" : "badge-error"
                                 }`}>
                                   {status}
                                 </span>
-                                <span className="font-bold">{count}</span>
+                                <span className="font-bold">{count as number}</span>
                               </div>
                             ))}
                           </div>
                         </div>
 
                         <div className="bg-base-100 p-4 rounded-xl">
-                          <h3 className="font-bold text-lg mb-4">Safety Status</h3>
+                          <h3 className="font-bold text-lg mb-4">Role Distribution</h3>
                           <div className="space-y-2">
                             {Object.entries(
-                              filteredWorkers.reduce((acc, worker) => {
-                                const status = worker.safetyStatus;
-                                acc[status] = (acc[status] || 0) + 1;
+                              (filteredWorkers || []).reduce((acc: Record<string, number>, worker: CrewMember) => {
+                                const role = worker.role;
+                                acc[role] = (acc[role] || 0) + 1;
                                 return acc;
                               }, {} as Record<string, number>)
-                            ).map(([status, count]) => (
-                              <div key={status} className="flex justify-between items-center">
-                                <span className={`badge ${
-                                  status === "Cleared" ? "badge-success" :
-                                  status === "Pending" ? "badge-warning" :
-                                  "badge-error"
-                                }`}>
-                                  {status}
+                            ).map(([role, count]) => (
+                              <div key={role} className="flex justify-between items-center">
+                                <span className="badge badge-outline">
+                                  {role}
                                 </span>
-                                <span className="font-bold">{count}</span>
+                                <span className="font-bold">{count as number}</span>
                               </div>
                             ))}
                           </div>
@@ -719,8 +831,8 @@ const WorkforceManagement = () => {
                         <h3 className="font-bold text-lg mb-4">Skills Distribution</h3>
                         <div className="flex flex-wrap gap-2">
                           {Object.entries(
-                            filteredWorkers.reduce((acc, worker) => {
-                              worker.skills.forEach(skill => {
+                            (filteredWorkers || []).reduce((acc: Record<string, number>, worker: CrewMember) => {
+                              (worker.skills || []).forEach((skill: string) => {
                                 acc[skill] = (acc[skill] || 0) + 1;
                               });
                               return acc;
@@ -728,7 +840,7 @@ const WorkforceManagement = () => {
                           ).map(([skill, count]) => (
                             <div key={skill} className="flex items-center gap-2 bg-neutral text-neutral-content px-3 py-1 rounded-lg">
                               <span>{skill}</span>
-                              <span className="badge badge-sm">{count}</span>
+                              <span className="badge badge-sm">{count as number}</span>
                             </div>
                           ))}
                         </div>
@@ -736,21 +848,21 @@ const WorkforceManagement = () => {
                     </div>
                   </td>
                 </tr>
-              ) : filteredWorkers.length > 0 ? (
-                filteredWorkers.map((worker) => {
-                  // For demo: use attendanceState or fallback to worker.attendance
-                  const att = attendanceState[worker.id]?.status ?? worker.attendance;
+              ) : (filteredWorkers && filteredWorkers.length > 0) ? (
+                filteredWorkers.map((worker: CrewMember) => {
+                  // For attendance: use attendanceState or default to "Present"
+                  const att = attendanceState[worker.id]?.status ?? "Present";
 
                   if (activeTab === "attendance") {
                     // Enhanced attendance view with toggle buttons and notes
                     return (
                       <tr key={worker.id} className="hover:bg-base-200">
                         <td className="font-medium flex items-center gap-2">
-                          <img
-                            src={worker.profilePic}
-                            alt={worker.name}
-                            className="w-8 h-8 rounded-full object-cover border"
-                          />
+                          <div className="avatar">
+                            <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                              <span className="text-xs font-bold">{worker.name.charAt(0)}</span>
+                            </div>
+                          </div>
                           {worker.name}
                           <span className="text-sm text-gray-500">({worker.role})</span>
                         </td>
@@ -853,33 +965,22 @@ const WorkforceManagement = () => {
                     return (
                       <tr
                         key={worker.id}
-                        className="hover:bg-base-200 cursor-pointer"
-                        onClick={() => setSelectedWorker(worker)}
+                        className="hover:bg-base-200"
                       >
                         <td className="font-medium flex items-center gap-2">
-                          <img
-                            src={worker.profilePic}
-                            alt={worker.name}
-                            className="w-8 h-8 rounded-full object-cover border"
-                          />
+                          <div className="avatar">
+                            <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                              <span className="text-xs font-bold">{worker.name.charAt(0)}</span>
+                            </div>
+                          </div>
                           {worker.name}
                         </td>
                         <td>{worker.role}</td>
-                        <td>{worker.assignedTask}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              worker.attendance === "Present"
-                                ? "badge-success"
-                                : "badge-error"
-                            }`}
-                          >
-                            {worker.attendance}
-                          </span>
-                        </td>
+                        <td>{worker.phone || "N/A"}</td>
+                        <td>{worker.email || "N/A"}</td>
                         <td>
                           <div className="flex flex-wrap gap-1">
-                            {worker.skills.map((skill) => (
+                            {(worker.skills || []).map((skill: string) => (
                               <span key={skill} className="badge badge-neutral">
                                 {skill}
                               </span>
@@ -889,12 +990,10 @@ const WorkforceManagement = () => {
                         <td>
                           <span
                             className={`badge ${
-                              worker.safetyStatus === "Cleared"
-                                ? "badge-success"
-                                : "badge-warning"
+                              worker.isActive ? "badge-success" : "badge-error"
                             }`}
                           >
-                            {worker.safetyStatus}
+                            {worker.isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
                         <td>
@@ -953,23 +1052,7 @@ const WorkforceManagement = () => {
             <div className="modal-box max-w-2xl">
               <button
                 className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                onClick={() => {
-                  setEditWorker(null);
-                  setEditWorkerData({
-                    id: "",
-                    name: "",
-                    role: "",
-                    assignedTask: "",
-                    attendance: "Present",
-                    skills: [],
-                    safetyStatus: "Cleared",
-                    projectId: mockProjects[0].id,
-                    age: undefined,
-                    phone: "",
-                    address: "",
-                    profilePic: "",
-                  });
-                }}
+                onClick={() => setEditWorker(null)}
               >
                 ✕
               </button>
@@ -997,110 +1080,69 @@ const WorkforceManagement = () => {
                     />
                   </div>
                   <div>
-                    <label className="label font-semibold">Skills (comma separated)</label>
-                    <input
-                      className="input input-bordered w-full"
-                      value={editWorkerData.skills.join(", ")}
-                      onChange={handleEditWorkerSkillsChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="label font-semibold">Project</label>
-                    <select
-                      className="select select-bordered w-full"
-                      name="projectId"
-                      value={editWorkerData.projectId}
-                      onChange={handleEditWorkerChange}
-                    >
-                      {mockProjects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label font-semibold">Age</label>
-                    <input
-                      className="input input-bordered w-full"
-                      name="age"
-                      type="number"
-                      min={16}
-                      value={editWorkerData.age ?? ""}
-                      onChange={handleEditWorkerChange}
-                    />
-                  </div>
-                  <div>
                     <label className="label font-semibold">Phone</label>
                     <input
                       className="input input-bordered w-full"
                       name="phone"
-                      value={editWorkerData.phone}
+                      type="tel"
+                      value={editWorkerData.phone || ""}
                       onChange={handleEditWorkerChange}
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="label font-semibold">Address</label>
+                  <div>
+                    <label className="label font-semibold">Email</label>
                     <input
                       className="input input-bordered w-full"
-                      name="address"
-                      value={editWorkerData.address}
+                      name="email"
+                      type="email"
+                      value={editWorkerData.email || ""}
                       onChange={handleEditWorkerChange}
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="label font-semibold">Profile Picture</label>
+                  <div>
+                    <label className="label font-semibold">Hire Date</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="file-input file-input-bordered w-full"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            setEditWorkerData(prev => ({
-                              ...prev,
-                              profilePic: ev.target?.result as string,
-                            }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      className="input input-bordered w-full"
+                      name="hireDate"
+                      type="date"
+                      value={editWorkerData.hireDate || ""}
+                      onChange={handleEditWorkerChange}
                     />
-                    {editWorkerData.profilePic && (
-                      <img
-                        src={editWorkerData.profilePic}
-                        alt="Profile Preview"
-                        className="mt-2 w-16 h-16 rounded-full object-cover border"
-                      />
-                    )}
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Status</label>
+                    <select
+                      className="select select-bordered w-full"
+                      name="isActive"
+                      value={editWorkerData.isActive ? "true" : "false"}
+                      onChange={(e) => setEditWorkerData(prev => ({ ...prev, isActive: e.target.value === "true" }))}
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
                   </div>
                 </div>
+                <div>
+                  <label className="label font-semibold">Skills (comma separated)</label>
+                  <input
+                    className="input input-bordered w-full"
+                    value={(editWorkerData.skills || []).join(", ")}
+                    onChange={handleEditWorkerSkillsChange}
+                    placeholder="e.g. Carpentry, Electrical, Safety"
+                  />
+                </div>
                 <div className="modal-action">
-                  <button className="btn btn-primary" type="submit">
-                    Update Worker
+                  <button 
+                    className="btn btn-primary" 
+                    type="submit"
+                    disabled={updateCrewMemberMutation.isPending}
+                  >
+                    {updateCrewMemberMutation.isPending ? "Updating..." : "Update Worker"}
                   </button>
                   <button 
                     type="button"
                     className="btn" 
-                    onClick={() => {
-                      setEditWorker(null);
-                      setEditWorkerData({
-                        id: "",
-                        name: "",
-                        role: "",
-                        assignedTask: "",
-                        attendance: "Present",
-                        skills: [],
-                        safetyStatus: "Cleared",
-                        projectId: mockProjects[0].id,
-                        age: undefined,
-                        phone: "",
-                        address: "",
-                        profilePic: "",
-                      });
-                    }}
+                    onClick={() => setEditWorker(null)}
                   >
                     Cancel
                   </button>
@@ -1108,71 +1150,32 @@ const WorkforceManagement = () => {
               </form>
             </div>
             <form method="dialog" className="modal-backdrop">
-              <button onClick={() => {
-                setEditWorker(null);
-                setEditWorkerData({
-                  id: "",
-                  name: "",
-                  role: "",
-                  assignedTask: "",
-                  attendance: "Present",
-                  skills: [],
-                  safetyStatus: "Cleared",
-                  projectId: mockProjects[0].id,
-                  age: undefined,
-                  phone: "",
-                  address: "",
-                  profilePic: "",
-                });
-              }}>close</button>
+              <button onClick={() => setEditWorker(null)}>close</button>
             </form>
           </div>
         )}
 
-        {/* Worker Personal Data Modal */}
-        {selectedWorker && (
-          <div className="modal modal-open">
-            <div className="modal-box">
+        {/* Loading and Error States */}
+        {!projectsLoading && !crewMembersLoading && (!crewMembers || !Array.isArray(crewMembers) || crewMembers.length === 0) && (
+          <div className="text-center py-8">
+            <div className="bg-base-100 p-6 rounded-xl border border-base-300">
+              <MdPeople className="mx-auto text-4xl text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Crew Members Found</h3>
+              <p className="text-gray-500 mb-4">Get started by adding your first crew member to this project.</p>
               <button
-                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                onClick={() => setSelectedWorker(null)}
+                className="btn btn-primary"
+                onClick={() => setShowAddWorker(true)}
               >
-                ✕
+                <MdPersonAdd />
+                Add First Crew Member
               </button>
-              <div className="flex flex-col items-center gap-4">
-                <img
-                  src={selectedWorker.profilePic}
-                  alt={selectedWorker.name}
-                  className="w-24 h-24 rounded-full object-cover border-2 border-primary"
-                />
-                <h3 className="text-2xl font-bold">{selectedWorker.name}</h3>
-                <div className="w-full">
-                  <div className="mb-2">
-                    <span className="font-semibold">Role:</span> {selectedWorker.role}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-semibold">Age:</span> {selectedWorker.age ?? "-"}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-semibold">Phone:</span> {selectedWorker.phone ?? "-"}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-semibold">Address:</span> {selectedWorker.address ?? "-"}
-                  </div>
-                </div>
-                <div className="modal-action w-full">
-                  <button className="btn btn-primary flex-1">
-                    Edit
-                  </button>
-                  <button className="btn btn-outline flex-1">
-                    Message
-                  </button>
-                </div>
-              </div>
             </div>
-            <form method="dialog" className="modal-backdrop">
-              <button onClick={() => setSelectedWorker(null)}>close</button>
-            </form>
+          </div>
+        )}
+
+        {!filteredWorkers.length && !projectsLoading && !crewMembersLoading && crewMembers && Array.isArray(crewMembers) && crewMembers.length > 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No workers match your current search criteria.</p>
           </div>
         )}
       </div>
