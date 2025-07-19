@@ -1,7 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState, useRef, useCallback } from "react";
-import type p5Type from "p5";
-
+import { useEffect, useState, useRef } from "react";
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
     "Manage your workforce efficiently and track employee progress.",
@@ -12,71 +10,8 @@ const featureCardDescriptions: Record<string, string> = {
   "Document Management": "Centralize and secure all your project documents.",
 };
 
-// const P5Background = () => {
-//   const containerRef = useRef<HTMLDivElement>(null);
-//   const p5InstanceRef = useRef<p5Type | null>(null);
-
-//   const sketch = useCallback((p: p5Type) => {
-//     const spacing = 60;
-//     p.setup = function () {
-//       p.createCanvas(p.windowWidth, p.windowHeight);
-//       p.noFill();
-//       p.strokeWeight(0.5);
-//     };
-//     p.draw = function () {
-//       p.background(255, 0); // transparent background
-//       p.stroke("#f1c40f");
-//       for (let x = 0; x < p.width; x += spacing) {
-//         for (let y = 0; y < p.height; y += spacing) {
-//           const d = p.dist(p.mouseX, p.mouseY, x, y);
-//           const s = p.map(d, 0, 200, 20, 5, true);
-//           p.rect(x - s / 2, y - s / 2, s, s);
-//         }
-//       }
-//     };
-//     p.windowResized = function () {
-//       p.resizeCanvas(p.windowWidth, p.windowHeight);
-//     };
-//   }, []);
-
-//   useEffect(() => {
-//     let isMounted = true;
-//     let p5: typeof p5Type | undefined;
-//     const loadP5 = async () => {
-//       // Dynamically import p5.js
-//       p5 = (await import("p5")).default;
-//       if (containerRef.current && isMounted) {
-//         p5InstanceRef.current = new p5!(sketch, containerRef.current);
-//       }
-//     };
-//     loadP5();
-
-//     return () => {
-//       isMounted = false;
-//       if (p5InstanceRef.current) {
-//         p5InstanceRef.current.remove();
-//         p5InstanceRef.current = null;
-//       }
-//     };
-//   }, [sketch]);
-
-//   return (
-//     <div
-//       ref={containerRef}
-//       style={{
-//         position: "absolute",
-//         inset: 0,
-//         width: "100%",
-//         height: "100%",
-//         zIndex: 0,
-//         pointerEvents: "none",
-//       }}
-//     />
-//   );
-// };
-
 const YellowSquaresBackground = () => {
-  const SQUARE_COUNT = 40;
+  const SQUARE_COUNT = 100;
   const [squares, setSquares] = useState(() =>
     Array.from({ length: SQUARE_COUNT }, () => ({
       size: Math.floor(Math.random() * 18) + 12,
@@ -349,32 +284,34 @@ const Home = () => {
         {/* --- Add the yellow squares background here --- */}
         <YellowSquaresBackground />
         {/* <P5Background /> */}
-        <div className="text-neutral-500 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
-          CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
-        </div>
-        <h1 className="text-4xl md:text-7xl font-bold text-[#fdc700] mb-2">
-          Shaping <span className="text-[#1c1c1c]">your vision</span>
-        </h1>
-        <h2 className="text-4xl md:text-7xl font-bold text-[#1c1c1c] mb-4">
-          With <span className="text-[#fdc700]">Precision</span>
-        </h2>
+        <div className="z-50 flex flex-col justify-center items-center bg-neutral-100/10 backdrop-blur-md p-5 md:p-10 rounded-3xl  max-w-5xl mx-auto">
+          <div className="text-neutral-500 z-50 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
+            CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
+          </div>
+          <h1 className="text-4xl md:text-7xl z-50 font-bold text-[#fdc700] mb-2">
+            Shaping <span className="text-[#1c1c1c]">your vision</span>
+          </h1>
+          <h2 className="text-4xl md:text-7xl z-50 font-bold text-[#1c1c1c] mb-4">
+            With <span className="text-[#fdc700]">Precision</span>
+          </h2>
 
-        <div className="flex gap-1 justify-center w-full  mt-4">
-          <button
-            className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400]"
-            onClick={handleDemoClick}
-          >
-            Request a Demo
-          </button>{" "}
-          <Link to="/login" className="md:hidden">
-            <button className="bg-[#3b3b3b] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#2a2a2a] w-full">
-              Login
-            </button>
-          </Link>
+          <div className="flex gap-1 justify-center w-full z-50 mt-4">
+            <button
+              className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400]"
+              onClick={handleDemoClick}
+            >
+              Request a Demo
+            </button>{" "}
+            <Link to="/login" className="md:hidden">
+              <button className="bg-[#3b3b3b] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#2a2a2a] w-full">
+                Login
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Glow effects */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 -z-10" />
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 z-10" />
       </section>
 
       {/* Feature Cards */}
