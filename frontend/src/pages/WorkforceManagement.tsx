@@ -7,6 +7,7 @@ import {
   useUpdateCrewMember,
   useDeleteCrewMember,
   useMarkAttendance,
+  useAssignCrewMemberToProject,
   type CrewMember,
   type CreateCrewMemberDto,
   type AttendanceRecord,
@@ -88,6 +89,7 @@ const WorkforceManagement = () => {
   const updateCrewMemberMutation = useUpdateCrewMember();
   const deleteCrewMemberMutation = useDeleteCrewMember();
   const markAttendanceMutation = useMarkAttendance();
+  const assignCrewMemberToProjectMutation = useAssignCrewMemberToProject();
 
   // Set default project when projects are loaded
   React.useEffect(() => {
@@ -220,22 +222,6 @@ const WorkforceManagement = () => {
     }));
   };
 
-  // Handle skills change for new worker
-  const handleNewWorkerSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewWorkerData((prev) => ({
-      ...prev,
-      skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-    }));
-  };
-
-  // Handle skills change for edit worker
-  const handleEditWorkerSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditWorkerData((prev) => ({
-      ...prev,
-      skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-    }));
-  };
-
   // Handle input changes for edit worker form
   const handleEditWorkerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -263,9 +249,24 @@ const WorkforceManagement = () => {
   const handleAddWorker = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWorkerData.name || !newWorkerData.role) return;
+    if (!selectedProject) {
+      console.error('No project selected');
+      alert('Please select a project before adding a worker.');
+      return;
+    }
     
     try {
-      await createCrewMemberMutation.mutateAsync(newWorkerData);
+      // First, create the crew member
+      const createdCrewMember = await createCrewMemberMutation.mutateAsync(newWorkerData);
+      
+      // Then, assign the crew member to the selected project
+      await assignCrewMemberToProjectMutation.mutateAsync({
+        projectId: selectedProject,
+        crewMemberId: createdCrewMember.id,
+        notes: `Automatically assigned to project on ${new Date().toLocaleDateString()}`
+      });
+      
+      // Success - reset form and close modal
       setShowAddWorker(false);
       setNewWorkerData({
         name: "",
@@ -276,8 +277,14 @@ const WorkforceManagement = () => {
         isActive: true,
         hireDate: "",
       });
+      
+      // Optional: Show success message (you might want to add a toast notification system)
+      console.log('Successfully created and assigned crew member to project');
+      
     } catch (error) {
-      console.error('Failed to create crew member:', error);
+      console.error('Failed to create and assign crew member:', error);
+      // You might want to show an error message to the user here
+      alert('Failed to add worker. Please try again.');
     }
   };
 
@@ -329,11 +336,11 @@ const WorkforceManagement = () => {
     if (!filteredWorkers.length) return;
     
     const csv =
-      "Name,Role,Phone,Email,Skills,Active Status,Hire Date\n" +
+      "Name,Role,Phone,Email,Skills,Active Status,Hire Date,Created Date\n" +
       filteredWorkers
         .map(
           (w: CrewMember) =>
-            `${w.name},${w.role},${w.phone || ""},${w.email || ""},"${(w.skills || []).join("|")}",${w.isActive ? "Active" : "Inactive"},${w.hireDate || ""}`
+            `${w.name},${w.role},${w.phone || ""},${w.email || ""},"${(w.skills || []).join("|")}",${w.isActive ? "Active" : "Inactive"},${w.hireDate ? new Date(w.hireDate).toLocaleDateString() : ""},${new Date(w.createdAt).toLocaleDateString()}`
         )
         .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -438,7 +445,10 @@ const WorkforceManagement = () => {
               >
                 ✕
               </button>
-              <h3 className="font-bold text-lg mb-4">Add New Worker</h3>
+              <h3 className="font-bold text-lg mb-2">Add New Worker</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Worker will be automatically assigned to: <span className="font-semibold">{projects.find((p: Project) => p.id === selectedProject)?.name || "Current Project"}</span>
+              </p>
               <form onSubmit={handleAddWorker} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -458,14 +468,41 @@ const WorkforceManagement = () => {
                     <label className="label">
                       <span className="label-text">Role *</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="role"
-                      className="input input-bordered w-full"
+                      className="select select-bordered w-full"
                       value={newWorkerData.role}
                       onChange={handleNewWorkerChange}
                       required
-                    />
+                    >
+                      <option value="">Select a role</option>
+                      <option value="Foreman">Foreman</option>
+                      <option value="Carpenter">Carpenter</option>
+                      <option value="Electrician">Electrician</option>
+                      <option value="Plumber">Plumber</option>
+                      <option value="Mason">Mason</option>
+                      <option value="Roofer">Roofer</option>
+                      <option value="HVAC Technician">HVAC Technician</option>
+                      <option value="Heavy Equipment Operator">Heavy Equipment Operator</option>
+                      <option value="General Laborer">General Laborer</option>
+                      <option value="Safety Officer">Safety Officer</option>
+                      <option value="Quality Control Inspector">Quality Control Inspector</option>
+                      <option value="Welder">Welder</option>
+                      <option value="Painter">Painter</option>
+                      <option value="Drywall Installer">Drywall Installer</option>
+                      <option value="Flooring Specialist">Flooring Specialist</option>
+                      <option value="Concrete Worker">Concrete Worker</option>
+                      <option value="Landscaper">Landscaper</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {newWorkerData.role === "Other" && (
+                      <input
+                        type="text"
+                        className="input input-bordered w-full mt-2"
+                        placeholder="Specify custom role"
+                        onChange={(e) => setNewWorkerData(prev => ({ ...prev, role: e.target.value }))}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="label">
@@ -477,6 +514,7 @@ const WorkforceManagement = () => {
                       className="input input-bordered w-full"
                       value={newWorkerData.phone}
                       onChange={handleNewWorkerChange}
+                      placeholder="(555) 123-4567"
                     />
                   </div>
                   <div>
@@ -489,6 +527,7 @@ const WorkforceManagement = () => {
                       className="input input-bordered w-full"
                       value={newWorkerData.email}
                       onChange={handleNewWorkerChange}
+                      placeholder="worker@company.com"
                     />
                   </div>
                   <div>
@@ -522,21 +561,27 @@ const WorkforceManagement = () => {
                   <label className="label">
                     <span className="label-text">Skills (comma separated)</span>
                   </label>
-                  <input
-                    type="text"
-                    className="input input-bordered w-full"
+                  <textarea
+                    className="textarea textarea-bordered w-full h-20"
                     value={(newWorkerData.skills || []).join(", ")}
-                    onChange={handleNewWorkerSkillsChange}
-                    placeholder="e.g. Carpentry, Electrical, Safety"
+                    onChange={(e) => setNewWorkerData(prev => ({ ...prev, skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
+                    placeholder="e.g. Carpentry, Electrical Installation, Safety Protocols, Blueprint Reading, Heavy Machinery Operation, Welding, Quality Control"
                   />
+                  <div className="label">
+                    <span className="label-text-alt text-gray-500">
+                      Common skills: Safety, Blueprint Reading, Tool Operation, Quality Control, Time Management
+                    </span>
+                  </div>
                 </div>
                 <div className="modal-action">
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={createCrewMemberMutation.isPending}
+                    disabled={createCrewMemberMutation.isPending || assignCrewMemberToProjectMutation.isPending}
                   >
-                    {createCrewMemberMutation.isPending ? "Adding..." : "Add Worker"}
+                    {(createCrewMemberMutation.isPending || assignCrewMemberToProjectMutation.isPending) 
+                      ? (createCrewMemberMutation.isPending ? "Creating..." : "Assigning to Project...")
+                      : "Add Worker to Project"}
                   </button>
                   <button
                     type="button"
@@ -729,7 +774,9 @@ const WorkforceManagement = () => {
                     <th>Phone</th>
                     <th>Email</th>
                     <th>Skills</th>
+                    <th>Hire Date</th>
                     <th>Status</th>
+                    <th>Created</th>
                     <th>Actions</th>
                   </>
                 ) : null}
@@ -988,12 +1035,26 @@ const WorkforceManagement = () => {
                           </div>
                         </td>
                         <td>
+                          {worker.hireDate ? (
+                            <span className="text-sm">
+                              {new Date(worker.hireDate).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td>
                           <span
                             className={`badge ${
                               worker.isActive ? "badge-success" : "badge-error"
                             }`}
                           >
                             {worker.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="text-sm text-gray-500">
+                            {new Date(worker.createdAt).toLocaleDateString()}
                           </span>
                         </td>
                         <td>
@@ -1033,7 +1094,7 @@ const WorkforceManagement = () => {
                       activeTab === "attendance"
                         ? 5
                         : activeTab === "all"
-                        ? 7
+                        ? 9
                         : 2
                     }
                     className="text-center text-gray-500 py-8"
@@ -1071,13 +1132,43 @@ const WorkforceManagement = () => {
                   </div>
                   <div>
                     <label className="label font-semibold">Role</label>
-                    <input
-                      className="input input-bordered w-full"
+                    <select
                       name="role"
+                      className="select select-bordered w-full"
                       value={editWorkerData.role}
                       onChange={handleEditWorkerChange}
                       required
-                    />
+                    >
+                      <option value="">Select a role</option>
+                      <option value="Project Manager">Project Manager</option>
+                      <option value="Site Supervisor">Site Supervisor</option>
+                      <option value="Foreman">Foreman</option>
+                      <option value="Carpenter">Carpenter</option>
+                      <option value="Electrician">Electrician</option>
+                      <option value="Plumber">Plumber</option>
+                      <option value="Mason">Mason</option>
+                      <option value="Roofer">Roofer</option>
+                      <option value="HVAC Technician">HVAC Technician</option>
+                      <option value="Heavy Equipment Operator">Heavy Equipment Operator</option>
+                      <option value="General Laborer">General Laborer</option>
+                      <option value="Safety Officer">Safety Officer</option>
+                      <option value="Quality Control Inspector">Quality Control Inspector</option>
+                      <option value="Welder">Welder</option>
+                      <option value="Painter">Painter</option>
+                      <option value="Drywall Installer">Drywall Installer</option>
+                      <option value="Flooring Specialist">Flooring Specialist</option>
+                      <option value="Concrete Worker">Concrete Worker</option>
+                      <option value="Landscaper">Landscaper</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {editWorkerData.role === "Other" && (
+                      <input
+                        type="text"
+                        className="input input-bordered w-full mt-2"
+                        placeholder="Specify custom role"
+                        onChange={(e) => setEditWorkerData(prev => ({ ...prev, role: e.target.value }))}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="label font-semibold">Phone</label>
@@ -1087,6 +1178,7 @@ const WorkforceManagement = () => {
                       type="tel"
                       value={editWorkerData.phone || ""}
                       onChange={handleEditWorkerChange}
+                      placeholder="(555) 123-4567"
                     />
                   </div>
                   <div>
@@ -1097,6 +1189,7 @@ const WorkforceManagement = () => {
                       type="email"
                       value={editWorkerData.email || ""}
                       onChange={handleEditWorkerChange}
+                      placeholder="worker@company.com"
                     />
                   </div>
                   <div>
@@ -1124,12 +1217,17 @@ const WorkforceManagement = () => {
                 </div>
                 <div>
                   <label className="label font-semibold">Skills (comma separated)</label>
-                  <input
-                    className="input input-bordered w-full"
+                  <textarea
+                    className="textarea textarea-bordered w-full h-20"
                     value={(editWorkerData.skills || []).join(", ")}
-                    onChange={handleEditWorkerSkillsChange}
-                    placeholder="e.g. Carpentry, Electrical, Safety"
+                    onChange={(e) => setEditWorkerData(prev => ({ ...prev, skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
+                    placeholder="e.g. Carpentry, Electrical Installation, Safety Protocols, Blueprint Reading, Heavy Machinery Operation, Welding, Quality Control"
                   />
+                  <div className="label">
+                    <span className="label-text-alt text-gray-500">
+                      Common skills: Safety, Blueprint Reading, Tool Operation, Quality Control, Time Management
+                    </span>
+                  </div>
                 </div>
                 <div className="modal-action">
                   <button 
