@@ -3,6 +3,34 @@ import { useRoles } from "../hooks/useRoles";
 import { useUsers, type User } from "../hooks/useUsers";
 import { useUserProjects, useProjects, type Project, type UserProjectWithProject } from "../hooks/useProjects";
 import { useTasks, useUserTaskStats, type Task } from "../hooks/useTasks";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
+
+// Interface for user project with embedded project data
 
 const EmployeeManagement = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -15,6 +43,9 @@ const EmployeeManagement = () => {
   
   // Fetch projects list to get project names
   const { data: allProjects } = useProjects();
+  
+  // Extract the actual projects data from the API response (same structure as userProjects)
+  const actualProjects = allProjects?.data || allProjects || [];
   
   // Fetch user projects and tasks data for selected employee
   const { data: userProjects, isLoading: projectsLoading } = useUserProjects(
@@ -594,33 +625,6 @@ const EmployeeManagement = () => {
                 Comprehensive workforce analytics and insights
               </p>
               
-              {/* Role Distribution */}
-              <div className="bg-base-100 rounded-xl p-4 mb-6">
-                <h3 className="text-lg font-semibold mb-4">Role Distribution</h3>
-                <div className="space-y-4">
-                  {roleOptions.filter(role => role !== "All").map(role => {
-                    const roleEmployees = employees.filter(emp => emp.role?.name === role);
-                    if (roleEmployees.length === 0) return null;
-                    
-                    return (
-                      <div key={role} className="border border-base-300 rounded-lg p-3">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{role}</span>
-                          <span className="text-sm text-gray-500">{roleEmployees.length} employees</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-500">Assigned Users:</span>
-                          <div className="mt-1">
-                            {roleEmployees.slice(0, 3).map(emp => emp.firstName + ' ' + emp.lastName).join(', ')}
-                            {roleEmployees.length > 3 && ` and ${roleEmployees.length - 3} more`}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* System Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-base-100 rounded-xl p-4">
@@ -683,17 +687,17 @@ const EmployeeManagement = () => {
                 <div className="bg-base-100 rounded-xl p-4">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     Project Overview
-                    {allProjects ? null : <span className="loading loading-spinner loading-sm"></span>}
+                    {actualProjects ? null : <span className="loading loading-spinner loading-sm"></span>}
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span>Total Projects:</span>
-                      <span className="font-bold text-primary">{allProjects?.length || 0}</span>
+                      <span className="font-bold text-primary">{actualProjects?.length || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Active Projects:</span>
                       <span className="font-bold text-success">
-                        {allProjects?.filter((project: Project) =>
+                        {actualProjects?.filter((project: Project) =>
                           !project.endDate || new Date(project.endDate) > new Date()
                         ).length || 0}
                       </span>
@@ -701,15 +705,15 @@ const EmployeeManagement = () => {
                     <div className="flex justify-between">
                       <span>Projects with Budgets:</span>
                       <span className="font-bold text-info">
-                        {allProjects?.filter((project: Project) => project.budget).length || 0}
+                        {actualProjects?.filter((project: Project) => project.budget).length || 0}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Avg Project Size:</span>
                       <span className="font-bold text-warning">
-                        {allProjects && allProjects.length > 0 
-                          ? `${Math.round(allProjects.reduce((sum: number, project: Project) =>
-                              sum + (project.squareFeet || 0), 0) / allProjects.length).toLocaleString()} sq ft`
+                        {actualProjects && actualProjects.length > 0 
+                          ? `${Math.round(actualProjects.reduce((sum: number, project: Project) =>
+                              sum + (project.squareFeet || 0), 0) / actualProjects.length).toLocaleString()} sq ft`
                           : '0 sq ft'
                         }
                       </span>
@@ -717,15 +721,15 @@ const EmployeeManagement = () => {
                   </div>
                   
                   {/* Project Types Distribution */}
-                  {allProjects && allProjects.length > 0 && (
+                  {actualProjects && actualProjects.length > 0 && (
                     <div className="mt-4">
                       <h4 className="font-medium mb-2">Project Types</h4>
                       <div className="space-y-2">
-                        {(Array.from(new Set(allProjects.map((p: Project) => p.type).filter(Boolean))) as string[]).map((type: string) => (
+                        {(Array.from(new Set(actualProjects.map((p: Project) => p.type).filter(Boolean))) as string[]).map((type: string) => (
                           <div key={type} className="flex justify-between text-sm">
                             <span>{type}:</span>
                             <span className="font-medium">
-                              {allProjects.filter((p: Project) => p.type === type).length} projects
+                              {actualProjects.filter((p: Project) => p.type === type).length} projects
                             </span>
                           </div>
                         ))}
@@ -816,7 +820,7 @@ const EmployeeManagement = () => {
                     <div className="stat-title text-xs">Users with Projects</div>
                     <div className="stat-value text-lg text-primary">
                       {employees.filter(emp => 
-                        allProjects?.some((project: Project) => 
+                        actualProjects?.some((project: Project) => 
                           project.userProjects?.some((up: { userId: string; id: string; projectRole: string; accessLevel: number; isActive: boolean; user: { id: string; firstName: string; lastName: string; email: string; }; }) => up.userId === emp.id)
                         )
                       ).length}
@@ -827,7 +831,7 @@ const EmployeeManagement = () => {
                     <div className="stat-title text-xs">Unassigned Users</div>
                     <div className="stat-value text-lg text-warning">
                       {employees.length - employees.filter(emp => 
-                        allProjects?.some((project: Project) => 
+                        actualProjects?.some((project: Project) => 
                           project.userProjects?.some((up: { userId: string; id: string; projectRole: string; accessLevel: number; isActive: boolean; user: { id: string; firstName: string; lastName: string; email: string; }; }) => up.userId === emp.id)
                         )
                       ).length}
@@ -837,8 +841,8 @@ const EmployeeManagement = () => {
                   <div className="stat bg-base-200 rounded-lg p-3">
                     <div className="stat-title text-xs">Avg Projects/User</div>
                     <div className="stat-value text-lg text-info">
-                      {employees.length > 0 && allProjects 
-                        ? Math.round((allProjects.reduce((sum: number, project: Project) => 
+                      {employees.length > 0 && actualProjects 
+                        ? Math.round((actualProjects.reduce((sum: number, project: Project) => 
                             sum + (project.userProjects?.length || 0), 0) / employees.length) * 10) / 10
                         : 0
                       }
@@ -848,13 +852,311 @@ const EmployeeManagement = () => {
                   <div className="stat bg-base-200 rounded-lg p-3">
                     <div className="stat-title text-xs">Total Assignments</div>
                     <div className="stat-value text-lg text-accent">
-                      {allProjects?.reduce((sum: number, project: Project) => 
+                      {actualProjects?.reduce((sum: number, project: Project) => 
                         sum + (project.userProjects?.length || 0), 0) || 0
                       }
                     </div>
                     <div className="stat-desc">Across all projects</div>
                   </div>
                 </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Role Distribution Chart */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Role Distribution Chart</h3>
+                  <div className="h-64">
+                    <Doughnut
+                      data={{
+                        labels: roleOptions.filter(role => role !== "All"),
+                        datasets: [{
+                          label: 'Employees',
+                          data: roleOptions.filter(role => role !== "All").map(role => 
+                            employees.filter(emp => emp.role?.name === role).length
+                          ),
+                          backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                          ],
+                          borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)',
+                            'rgba(34, 197, 94, 1)',
+                          ],
+                          borderWidth: 2
+                        }]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                          },
+                          title: {
+                            display: true,
+                            text: 'Employee Distribution by Role'
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Task Status Overview */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Task Status Overview</h3>
+                  {userTaskStats ? (
+                    <div className="h-64">
+                      <Bar
+                        data={{
+                          labels: ['Total', 'Completed', 'In Progress', 'Pending', 'Overdue'],
+                          datasets: [{
+                            label: 'Tasks',
+                            data: [
+                              userTaskStats.totalTasks,
+                              userTaskStats.completedTasks,
+                              userTaskStats.inProgressTasks,
+                              userTaskStats.pendingTasks,
+                              userTaskStats.overdueTasks
+                            ],
+                            backgroundColor: [
+                              'rgba(59, 130, 246, 0.8)',
+                              'rgba(16, 185, 129, 0.8)',
+                              'rgba(245, 158, 11, 0.8)',
+                              'rgba(6, 182, 212, 0.8)',
+                              'rgba(239, 68, 68, 0.8)',
+                            ],
+                            borderColor: [
+                              'rgba(59, 130, 246, 1)',
+                              'rgba(16, 185, 129, 1)',
+                              'rgba(245, 158, 11, 1)',
+                              'rgba(6, 182, 212, 1)',
+                              'rgba(239, 68, 68, 1)',
+                            ],
+                            borderWidth: 2
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              display: false,
+                            },
+                            title: {
+                              display: true,
+                              text: 'Global Task Status Distribution'
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <span className="text-gray-500">Loading task data...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Project Analytics Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Project Types Chart */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Project Types Distribution</h3>
+                  {actualProjects && actualProjects.length > 0 ? (
+                    <div className="h-64">
+                      <Doughnut
+                        data={{
+                          labels: Array.from(new Set(actualProjects.map((p: Project) => p.type).filter(Boolean))) as string[],
+                          datasets: [{
+                            label: 'Projects',
+                            data: (Array.from(new Set(actualProjects.map((p: Project) => p.type).filter(Boolean))) as string[]).map(type =>
+                              actualProjects.filter((p: Project) => p.type === type).length
+                            ),
+                            backgroundColor: [
+                              'rgba(16, 185, 129, 0.8)',
+                              'rgba(59, 130, 246, 0.8)',
+                              'rgba(245, 158, 11, 0.8)',
+                              'rgba(139, 92, 246, 0.8)',
+                              'rgba(236, 72, 153, 0.8)',
+                              'rgba(6, 182, 212, 0.8)',
+                            ],
+                            borderColor: [
+                              'rgba(16, 185, 129, 1)',
+                              'rgba(59, 130, 246, 1)',
+                              'rgba(245, 158, 11, 1)',
+                              'rgba(139, 92, 246, 1)',
+                              'rgba(236, 72, 153, 1)',
+                              'rgba(6, 182, 212, 1)',
+                            ],
+                            borderWidth: 2
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              position: 'bottom',
+                            },
+                            title: {
+                              display: true,
+                              text: 'Projects by Type'
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <span className="text-gray-500">No project data available</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Project Status Chart */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Project Status Overview</h3>
+                  {actualProjects && actualProjects.length > 0 ? (
+                    <div className="h-64">
+                      <Bar
+                        data={{
+                          labels: ['Total Projects', 'Active Projects', 'With Budgets'],
+                          datasets: [{
+                            label: 'Count',
+                            data: [
+                              actualProjects.length,
+                              actualProjects.filter((project: Project) =>
+                                !project.endDate || new Date(project.endDate) > new Date()
+                              ).length,
+                              actualProjects.filter((project: Project) => project.budget).length
+                            ],
+                            backgroundColor: [
+                              'rgba(59, 130, 246, 0.8)',
+                              'rgba(16, 185, 129, 0.8)',
+                              'rgba(245, 158, 11, 0.8)',
+                            ],
+                            borderColor: [
+                              'rgba(59, 130, 246, 1)',
+                              'rgba(16, 185, 129, 1)',
+                              'rgba(245, 158, 11, 1)',
+                            ],
+                            borderWidth: 2
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              display: false,
+                            },
+                            title: {
+                              display: true,
+                              text: 'Project Status Distribution'
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <span className="text-gray-500">No project data available</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Team Performance Metrics Chart */}
+              <div className="bg-base-100 rounded-xl p-4 mt-6">
+                <h3 className="text-lg font-semibold mb-4">Team Performance Metrics</h3>
+                {userTaskStats ? (
+                  <div className="h-80">
+                    <Line
+                      data={{
+                        labels: ['Team Completion Rate', 'On-Time Performance', 'Active Projects Coverage'],
+                        datasets: [{
+                          label: 'Performance %',
+                          data: [
+                            userTaskStats.totalTasks > 0 
+                              ? Math.round((userTaskStats.completedTasks / userTaskStats.totalTasks) * 100)
+                              : 0,
+                            userTaskStats.totalTasks > 0 
+                              ? Math.round(((userTaskStats.totalTasks - userTaskStats.overdueTasks) / userTaskStats.totalTasks) * 100)
+                              : 0,
+                            actualProjects && employees.length > 0
+                              ? Math.round((employees.filter(emp => 
+                                  actualProjects.some((project: Project) => 
+                                    project.userProjects?.some((up: { userId: string; id: string; projectRole: string; accessLevel: number; isActive: boolean; user: { id: string; firstName: string; lastName: string; email: string; }; }) => up.userId === emp.id)
+                                  )
+                                ).length / employees.length) * 100)
+                              : 0
+                          ],
+                          borderColor: 'rgba(16, 185, 129, 1)',
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          borderWidth: 3,
+                          fill: true,
+                          tension: 0.4,
+                          pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                          pointBorderColor: 'rgba(16, 185, 129, 1)',
+                          pointRadius: 6,
+                        }]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                          title: {
+                            display: true,
+                            text: 'Overall Team Performance Indicators'
+                          }
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                              callback: function(value) {
+                                return value + '%';
+                              }
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-80">
+                    <span className="text-gray-500">Loading performance data...</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
