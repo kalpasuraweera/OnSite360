@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MdPersonAdd, MdEdit, MdDelete, MdFileDownload, MdAnalytics, MdPeople, MdSchedule, MdSave, MdNoteAdd, MdCheck } from "react-icons/md";
 import React from "react";
+import TagsInput from "../components/TagsInput";
 import {
   useCrewMembers,
   useCreateCrewMember,
@@ -18,6 +19,45 @@ import { useAuthStore } from "../stores/useAuthStore";
 
 // Add date-fns for date formatting (optional, or use native Date)
 const todayStr = new Date().toISOString().slice(0, 10);
+
+// Common construction skills for quick selection
+const COMMON_SKILLS = [
+  "Safety Protocols",
+  "Blueprint Reading", 
+  "Tool Operation",
+  "Quality Control",
+  "Time Management",
+  "Heavy Machinery",
+  "Electrical Work",
+  "Plumbing",
+  "Carpentry",
+  "Welding",
+  "Concrete Work",
+  "Roofing",
+  "HVAC",
+  "Painting",
+  "Drywall",
+  "Flooring",
+  "Project Management",
+  "Team Leadership",
+  "Equipment Maintenance",
+  "Site Safety"
+];
+
+// Role-specific skill suggestions
+const ROLE_SPECIFIC_SKILLS: Record<string, string[]> = {
+  "Carpenter": ["Carpentry", "Blueprint Reading", "Framing", "Finish Work", "Tool Operation"],
+  "Electrician": ["Electrical Work", "Wiring", "Circuit Installation", "Safety Protocols", "Code Compliance"],
+  "Plumber": ["Plumbing", "Pipe Installation", "Fixture Installation", "Blueprint Reading", "Leak Detection"],
+  "Welder": ["Welding", "Metal Fabrication", "Arc Welding", "TIG Welding", "Safety Protocols"],
+  "Mason": ["Masonry", "Bricklaying", "Stone Work", "Mortar Mixing", "Blueprint Reading"],
+  "Roofer": ["Roofing", "Shingle Installation", "Safety Protocols", "Weather Sealing", "Material Handling"],
+  "HVAC Technician": ["HVAC", "Ductwork", "Climate Systems", "Electrical Work", "Troubleshooting"],
+  "Heavy Equipment Operator": ["Heavy Machinery", "Equipment Operation", "Safety Protocols", "Site Navigation", "Equipment Maintenance"],
+  "Safety Officer": ["Site Safety", "Safety Protocols", "Risk Assessment", "Training", "Compliance"],
+  "Foreman": ["Team Leadership", "Project Management", "Safety Protocols", "Quality Control", "Scheduling"],
+  "Project Manager": ["Project Management", "Team Leadership", "Scheduling", "Budget Management", "Quality Control"]
+};
 
 type WorkforceTab = "all" | "attendance" | "analytics";
 
@@ -258,11 +298,11 @@ const WorkforceManagement = () => {
     try {
       // First, create the crew member
       const createdCrewMember = await createCrewMemberMutation.mutateAsync(newWorkerData);
-      
+
       // Then, assign the crew member to the selected project
       await assignCrewMemberToProjectMutation.mutateAsync({
         projectId: selectedProject,
-        crewMemberId: createdCrewMember.id,
+        crewMemberId: createdCrewMember.data?.id,
         notes: `Automatically assigned to project on ${new Date().toLocaleDateString()}`
       });
       
@@ -559,18 +599,64 @@ const WorkforceManagement = () => {
                 </div>
                 <div>
                   <label className="label">
-                    <span className="label-text">Skills (comma separated)</span>
+                    <span className="label-text">Skills</span>
                   </label>
-                  <textarea
-                    className="textarea textarea-bordered w-full h-20"
-                    value={(newWorkerData.skills || []).join(", ")}
-                    onChange={(e) => setNewWorkerData(prev => ({ ...prev, skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
-                    placeholder="e.g. Carpentry, Electrical Installation, Safety Protocols, Blueprint Reading, Heavy Machinery Operation, Welding, Quality Control"
+                  <TagsInput
+                    value={newWorkerData.skills || []}
+                    onChange={(skills) => setNewWorkerData(prev => ({ ...prev, skills }))}
+                    placeholder="Type skills and press Enter (e.g. Carpentry, Electrical Installation, Safety Protocols)"
+                    maxTags={20}
+                    className="w-full"
                   />
-                  <div className="label">
-                    <span className="label-text-alt text-gray-500">
-                      Common skills: Safety, Blueprint Reading, Tool Operation, Quality Control, Time Management
-                    </span>
+                  <div className="mt-2">
+                    {newWorkerData.role && ROLE_SPECIFIC_SKILLS[newWorkerData.role] ? (
+                      <>
+                        <div className="text-xs text-gray-600 mb-2">Recommended skills for {newWorkerData.role}:</div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {ROLE_SPECIFIC_SKILLS[newWorkerData.role].map((skill) => (
+                            <button
+                              key={skill}
+                              type="button"
+                              className="btn btn-xs btn-primary btn-outline"
+                              onClick={() => {
+                                const currentSkills = newWorkerData.skills || [];
+                                if (!currentSkills.includes(skill)) {
+                                  setNewWorkerData(prev => ({ 
+                                    ...prev, 
+                                    skills: [...currentSkills, skill] 
+                                  }));
+                                }
+                              }}
+                              disabled={(newWorkerData.skills || []).includes(skill)}
+                            >
+                              {skill}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="text-xs text-gray-600 mb-2">Other common skills:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {COMMON_SKILLS.slice(0, 8).map((skill) => (
+                        <button
+                          key={skill}
+                          type="button"
+                          className="btn btn-xs btn-outline"
+                          onClick={() => {
+                            const currentSkills = newWorkerData.skills || [];
+                            if (!currentSkills.includes(skill)) {
+                              setNewWorkerData(prev => ({ 
+                                ...prev, 
+                                skills: [...currentSkills, skill] 
+                              }));
+                            }
+                          }}
+                          disabled={(newWorkerData.skills || []).includes(skill)}
+                        >
+                          {skill}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="modal-action">
@@ -1216,17 +1302,63 @@ const WorkforceManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="label font-semibold">Skills (comma separated)</label>
-                  <textarea
-                    className="textarea textarea-bordered w-full h-20"
-                    value={(editWorkerData.skills || []).join(", ")}
-                    onChange={(e) => setEditWorkerData(prev => ({ ...prev, skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean) }))}
-                    placeholder="e.g. Carpentry, Electrical Installation, Safety Protocols, Blueprint Reading, Heavy Machinery Operation, Welding, Quality Control"
+                  <label className="label font-semibold">Skills</label>
+                  <TagsInput
+                    value={editWorkerData.skills || []}
+                    onChange={(skills) => setEditWorkerData(prev => ({ ...prev, skills }))}
+                    placeholder="Type skills and press Enter (e.g. Carpentry, Electrical Installation, Safety Protocols)"
+                    maxTags={20}
+                    className="w-full"
                   />
-                  <div className="label">
-                    <span className="label-text-alt text-gray-500">
-                      Common skills: Safety, Blueprint Reading, Tool Operation, Quality Control, Time Management
-                    </span>
+                  <div className="mt-2">
+                    {editWorkerData.role && ROLE_SPECIFIC_SKILLS[editWorkerData.role] ? (
+                      <>
+                        <div className="text-xs text-gray-600 mb-2">Recommended skills for {editWorkerData.role}:</div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {ROLE_SPECIFIC_SKILLS[editWorkerData.role].map((skill) => (
+                            <button
+                              key={skill}
+                              type="button"
+                              className="btn btn-xs btn-primary btn-outline"
+                              onClick={() => {
+                                const currentSkills = editWorkerData.skills || [];
+                                if (!currentSkills.includes(skill)) {
+                                  setEditWorkerData(prev => ({ 
+                                    ...prev, 
+                                    skills: [...currentSkills, skill] 
+                                  }));
+                                }
+                              }}
+                              disabled={(editWorkerData.skills || []).includes(skill)}
+                            >
+                              {skill}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="text-xs text-gray-600 mb-2">Other common skills:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {COMMON_SKILLS.slice(0, 8).map((skill) => (
+                        <button
+                          key={skill}
+                          type="button"
+                          className="btn btn-xs btn-outline"
+                          onClick={() => {
+                            const currentSkills = editWorkerData.skills || [];
+                            if (!currentSkills.includes(skill)) {
+                              setEditWorkerData(prev => ({ 
+                                ...prev, 
+                                skills: [...currentSkills, skill] 
+                              }));
+                            }
+                          }}
+                          disabled={(editWorkerData.skills || []).includes(skill)}
+                        >
+                          {skill}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="modal-action">
