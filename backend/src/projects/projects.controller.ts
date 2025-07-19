@@ -146,6 +146,137 @@ export class ProjectsController {
     }
   }
 
+  // Crew Member Management Routes (must come before :id routes)
+  @ApiOperation({ summary: 'Create a new crew member' })
+  @ApiResponse({ status: 201, description: 'Crew member created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiBearerAuth()
+  @Post('crew-members')
+  async createCrewMember(@Body() createCrewMemberDto: CreateCrewMemberDto) {
+    try {
+      const crewMember =
+        await this.projectsService.createCrewMember(createCrewMemberDto);
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Crew member created successfully',
+        data: crewMember,
+      };
+    } catch (error) {
+      console.error('Error creating crew member:', error);
+      throw new HttpException(
+        'Failed to create crew member',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get all crew members' })
+  @ApiResponse({
+    status: 200,
+    description: 'Crew members retrieved successfully',
+  })
+  @ApiBearerAuth()
+  @Get('crew-members')
+  async getCrewMembers() {
+    try {
+      const crewMembers = await this.projectsService.getCrewMembers();
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Crew members retrieved successfully',
+        data: crewMembers,
+      };
+    } catch (error) {
+      console.error('Error retrieving crew members:', error);
+      throw new HttpException(
+        'Failed to retrieve crew members',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get crew member by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Crew member retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Crew member not found' })
+  @ApiBearerAuth()
+  @Get('crew-members/:crewMemberId')
+  async getCrewMember(@Param('crewMemberId') crewMemberId: string) {
+    try {
+      const crewMember = await this.projectsService.getCrewMember(crewMemberId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Crew member retrieved successfully',
+        data: crewMember,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving crew member:', error);
+      throw new HttpException(
+        'Failed to retrieve crew member',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Update crew member' })
+  @ApiResponse({ status: 200, description: 'Crew member updated successfully' })
+  @ApiResponse({ status: 404, description: 'Crew member not found' })
+  @ApiBearerAuth()
+  @Patch('crew-members/:crewMemberId')
+  async updateCrewMember(
+    @Param('crewMemberId') crewMemberId: string,
+    @Body() updateCrewMemberDto: UpdateCrewMemberDto,
+  ) {
+    try {
+      const crewMember = await this.projectsService.updateCrewMember(
+        crewMemberId,
+        updateCrewMemberDto,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Crew member updated successfully',
+        data: crewMember,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error updating crew member:', error);
+      throw new HttpException(
+        'Failed to update crew member',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete crew member' })
+  @ApiResponse({ status: 200, description: 'Crew member deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Crew member not found' })
+  @ApiBearerAuth()
+  @Delete('crew-members/:crewMemberId')
+  async deleteCrewMember(@Param('crewMemberId') crewMemberId: string) {
+    try {
+      await this.projectsService.deleteCrewMember(crewMemberId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Crew member deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error deleting crew member:', error);
+      throw new HttpException(
+        'Failed to delete crew member',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @ApiOperation({ summary: 'Get a project by ID' })
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
@@ -379,137 +510,6 @@ export class ProjectsController {
       console.error('Error retrieving project statistics:', error);
       throw new HttpException(
         'Failed to retrieve project statistics',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  // Crew Member Management Routes
-  @ApiOperation({ summary: 'Create a new crew member' })
-  @ApiResponse({ status: 201, description: 'Crew member created successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiBearerAuth()
-  @Post('crew-members')
-  async createCrewMember(@Body() createCrewMemberDto: CreateCrewMemberDto) {
-    try {
-      const crewMember =
-        await this.projectsService.createCrewMember(createCrewMemberDto);
-      return {
-        statusCode: HttpStatus.CREATED,
-        message: 'Crew member created successfully',
-        data: crewMember,
-      };
-    } catch (error) {
-      console.error('Error creating crew member:', error);
-      throw new HttpException(
-        'Failed to create crew member',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Get all crew members' })
-  @ApiResponse({
-    status: 200,
-    description: 'Crew members retrieved successfully',
-  })
-  @ApiBearerAuth()
-  @Get('crew-members')
-  async getCrewMembers() {
-    try {
-      const crewMembers = await this.projectsService.getCrewMembers();
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Crew members retrieved successfully',
-        data: crewMembers,
-      };
-    } catch (error) {
-      console.error('Error retrieving crew members:', error);
-      throw new HttpException(
-        'Failed to retrieve crew members',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Get crew member by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Crew member retrieved successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Crew member not found' })
-  @ApiBearerAuth()
-  @Get('crew-members/:crewMemberId')
-  async getCrewMember(@Param('crewMemberId') crewMemberId: string) {
-    try {
-      const crewMember = await this.projectsService.getCrewMember(crewMemberId);
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Crew member retrieved successfully',
-        data: crewMember,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      console.error('Error retrieving crew member:', error);
-      throw new HttpException(
-        'Failed to retrieve crew member',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Update crew member' })
-  @ApiResponse({ status: 200, description: 'Crew member updated successfully' })
-  @ApiResponse({ status: 404, description: 'Crew member not found' })
-  @ApiBearerAuth()
-  @Patch('crew-members/:crewMemberId')
-  async updateCrewMember(
-    @Param('crewMemberId') crewMemberId: string,
-    @Body() updateCrewMemberDto: UpdateCrewMemberDto,
-  ) {
-    try {
-      const crewMember = await this.projectsService.updateCrewMember(
-        crewMemberId,
-        updateCrewMemberDto,
-      );
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Crew member updated successfully',
-        data: crewMember,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      console.error('Error updating crew member:', error);
-      throw new HttpException(
-        'Failed to update crew member',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Delete crew member' })
-  @ApiResponse({ status: 200, description: 'Crew member deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Crew member not found' })
-  @ApiBearerAuth()
-  @Delete('crew-members/:crewMemberId')
-  async deleteCrewMember(@Param('crewMemberId') crewMemberId: string) {
-    try {
-      await this.projectsService.deleteCrewMember(crewMemberId);
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Crew member deleted successfully',
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      console.error('Error deleting crew member:', error);
-      throw new HttpException(
-        'Failed to delete crew member',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
