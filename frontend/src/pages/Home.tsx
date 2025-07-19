@@ -139,7 +139,7 @@ const Home = () => {
     <div className="bg-white min-h-screen w-full flex flex-col">
       {/* Navbar */}
       <nav className="bg-white shadow-sm px-4 py-4 md:px-12 md:py-6 flex items-center justify-between relative">
-        <img src="/logo.png" alt="OnSite360 Logo" className="w-32" />
+        <img src="/logo.png" alt="OnSite360 Logo" className="w-42" />
         {/* Hamburger icon for mobile */}
         <button
           className="md:hidden flex items-center justify-center p-2 rounded focus:outline-none"
@@ -175,8 +175,10 @@ const Home = () => {
           {navItems.map((item, idx) => (
             <button
               key={idx}
-              className={`font-semibold px-4 py-2 rounded-lg ${
-                item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+              className={`font-semibold px-4 py-2 rounded-lg transition-colors ${
+                item.active
+                  ? "bg-[#fdc700] text-[#a35608]"
+                  : "text-[#1c1c1c] hover:bg-[#fdc700] hover:text-[#a35608]"
               }`}
               onClick={() => {
                 const section = document.getElementById(
@@ -202,12 +204,22 @@ const Home = () => {
         </div>
         {/* Mobile nav links dropdown */}
         {navOpen && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-lg z-50 flex flex-col gap-2 py-4 px-4 md:hidden animate-slide-down">
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-lg z-50 flex flex-col items-center justify-center gap-6 px-4 py-8 md:hidden animate-slide-down">
+            <button
+              className="absolute top-6 right-6 text-3xl font-bold text-[#a35608] bg-white rounded-full w-12 h-12 flex items-center justify-center shadow"
+              onClick={() => setNavOpen(false)}
+              aria-label="Close menu"
+              type="button"
+            >
+              &times;
+            </button>
             {navItems.map((item, idx) => (
               <button
                 key={idx}
-                className={`font-semibold px-4 py-2 rounded-lg text-left ${
-                  item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+                className={`font-semibold px-6 py-4 rounded-xl text-center w-full text-2xl transition-colors ${
+                  item.active
+                    ? "bg-[#fdc700] text-[#a35608]"
+                    : "text-[#1c1c1c] hover:bg-[#fdc700] hover:text-[#a35608]"
                 }`}
                 onClick={() => {
                   setNavOpen(false);
@@ -220,20 +232,7 @@ const Home = () => {
                 {item.name}
               </button>
             ))}
-            <Link to="/login">
-              <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a] w-full text-left">
-                Login
-              </button>
-            </Link>
-            <button
-              className="bg-[#fdc700] text-[#a35608] px-6 py-2 rounded-lg font-medium hover:bg-[#e5b400] w-full text-left"
-              onClick={() => {
-                setNavOpen(false);
-                handleDemoClick();
-              }}
-            >
-              Request a Demo
-            </button>
+            {/* Removed Login and Request a Demo buttons for mobile */}
           </div>
         )}
       </nav>
@@ -243,18 +242,26 @@ const Home = () => {
         <h1 className="text-4xl md:text-6xl font-bold text-[#fdc700] mb-2">
           Shaping <span className="text-[#1c1c1c]">your vision</span>
         </h1>
-        <h2 className="text-3xl md:text-5xl font-bold text-[#1c1c1c] mb-4">
-          With <span className="text-[#fdc700]">precision</span>
+        <h2 className="text-4xl md:text-6xl font-bold text-[#1c1c1c] mb-4">
+          With <span className="text-[#fdc700]">Precision</span>
         </h2>
         <div className="text-neutral-500 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
           CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
         </div>
-        <button
-          className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400] mt-4"
-          onClick={handleDemoClick}
-        >
-          Request a Demo
-        </button>
+        <div className="flex gap-1 justify-center w-full  mt-4">
+          <button
+            className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400]"
+            onClick={handleDemoClick}
+          >
+            Request a Demo
+          </button>{" "}
+          <Link to="/login" className="md:hidden">
+            <button className="bg-[#3b3b3b] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#2a2a2a] w-full">
+              Login
+            </button>
+          </Link>
+        </div>
+
         {/* Glow effects */}
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 -z-10" />
       </section>
@@ -262,27 +269,29 @@ const Home = () => {
       {/* Feature Cards */}
       <section
         ref={featureCardsRef}
-        className={`flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 px-4 md:px-0 py-8 transition-all duration-500 ${
+        className={`flex flex-row overflow-x-auto md:flex-row items-center justify-start md:justify-center gap-4 md:gap-10 px-4 md:px-0 py-8 transition-all duration-500 ${
           hideFeatureCards
             ? "opacity-0 translate-y-32 pointer-events-none"
             : "opacity-100 translate-y-0"
         }`}
+        style={{ scrollbarWidth: "none" }}
       >
         {featureCards.map((card, idx) => (
           <div
             key={idx}
-            className={`flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg p-4 cursor-pointer transition-transform duration-300 w-full md:w-72 h-24 md:h-28 ${
-              hoveredCard === idx ? "scale-105 z-10" : "scale-100"
+            className={`flex flex-col items-center justify-center min-w-xs bg-white rounded-2xl shadow-lg p-4 cursor-pointer transition-transform duration-300 w-64 md:w-72 h-24 md:h-28 ${
+              hoveredCard === idx ? "scale-110 z-10" : "scale-100"
             }`}
             onMouseEnter={() => setHoveredCard(idx)}
             onMouseLeave={() => setHoveredCard(null)}
           >
-            <div className="font-bold text-[#e8b703] text-lg md:text-xl mb-1">
-              {card.title}
-            </div>
-            {hoveredCard === idx && (
-              <div className="text-sm text-neutral-500 text-center mt-2">
+            {hoveredCard === idx ? (
+              <div className="text-sm text-neutral-500  mt-2">
                 {featureCardDescriptions[card.title]}
+              </div>
+            ) : (
+              <div className="font-bold text-[#e8b703] text-lg md:text-xl mb-1">
+                {card.title}
               </div>
             )}
           </div>
@@ -339,7 +348,7 @@ const Home = () => {
       </section>
 
       {/* Access Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+      <section className="flex flex-col-reverse md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
         <div className="flex flex-col gap-4">
           <div className="font-medium text-black text-lg tracking-widest">
             ACCESS
@@ -374,7 +383,7 @@ const Home = () => {
       </section>
 
       {/* Visibility Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+      <section className="flex flex-col-reverse md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
         <div className="flex flex-col gap-4">
           <div className="font-medium text-black text-lg tracking-widest">
             VISIBILITY
@@ -589,11 +598,10 @@ const Home = () => {
       )}
 
       {/* Footer Section */}
-      <footer className="bg-[#fdc700] text-[#a35608] py-8 px-4 md:px-0 mt-8">
+      <footer className="bg-primary/15 text-[#a35608] py-8 px-4 md:px-0 mt-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="OnSite360 Logo" className="w-10 h-10" />
-            <span className="font-bold text-lg">OnSite360</span>
+            <img src="/logo.png" alt="OnSite360 Logo" className="w-48" />
           </div>
           <div className="text-sm text-center md:text-right">
             &copy; {new Date().getFullYear()} OnSite360. All rights reserved.
