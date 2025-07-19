@@ -33,34 +33,6 @@ const Home = () => {
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
-
-  const handleInstallClick = async () => {
-    if (!showInstallButton) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const promptEvent = deferredPrompt as any;
-    if (!promptEvent) return;
-
-    promptEvent.prompt();
-    const result = await promptEvent.userChoice;
-
-    if (result.outcome === "accepted") {
-      console.log("✅ App installed");
-    } else {
-      console.log("❌ Install dismissed");
-    }
-
-    setDeferredPrompt(null);
-    setShowInstallButton(false);
-  };
-
-  // const theme = useSystemStore((state) => state.theme);
-  // const setTheme = useSystemStore((state) => state.setTheme);
-
-  // // Toggle between bumblebee and halloween themes
-  // const handleThemeToggle = () => {
-  //   setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
-  // };
-
   // Navigation menu items
   const navItems = [
     { name: "Home", active: true },
@@ -69,13 +41,16 @@ const Home = () => {
     { name: "Support", active: false },
   ];
 
+  // Hamburger menu state
+  const [navOpen, setNavOpen] = useState(false);
+
   // Feature cards data
   const featureCards = [
-    { title: "Employee Management", top: "top-[124px]", left: "left-[394px]" },
-    { title: "Schedule Management", top: "top-[113px]", left: "left-[1367px]" },
-    { title: "Project Oversight", top: "top-[279px]", left: "left-[483px]" },
-    { title: "Workforce Management", top: "top-[367px]", left: "left-[875px]" },
-    { title: "Document Management", top: "top-[279px]", left: "left-[1274px]" },
+    { title: "Employee Management" },
+    { title: "Schedule Management" },
+    { title: "Project Oversight" },
+    { title: "Workforce Management" },
+    { title: "Document Management" },
   ];
 
   // Dashboard screenshots
@@ -101,7 +76,6 @@ const Home = () => {
     const handleScroll = () => {
       if (!featureCardsRef.current) return;
       const rect = featureCardsRef.current.getBoundingClientRect();
-      // Hide cards when scrolled more than 200px from top of viewport
       setHideFeatureCards(rect.top < -100);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -116,6 +90,23 @@ const Home = () => {
     e.preventDefault();
     setShowDemoModal(false);
     setShowThankYouModal(true);
+  };
+
+  // Install PWA handler
+  const handleInstallClick = async () => {
+    if (!showInstallButton) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const promptEvent = deferredPrompt as any;
+    if (!promptEvent) return;
+    promptEvent.prompt();
+    const result = await promptEvent.userChoice;
+    if (result.outcome === "accepted") {
+      console.log("✅ App installed");
+    } else {
+      console.log("❌ Install dismissed");
+    }
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
   };
 
   return (
@@ -144,352 +135,309 @@ const Home = () => {
             
             <svg
               className="swap-on h-10 w-10 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
+  return (
+    <div className="bg-white min-h-screen w-full flex flex-col">
+      {/* Navbar */}
+      <nav className="bg-white shadow-sm px-4 py-4 md:px-12 md:py-6 flex items-center justify-between relative">
+        <img src="/logo.png" alt="OnSite360 Logo" className="w-32" />
+        {/* Hamburger icon for mobile */}
+        <button
+          className="md:hidden flex items-center justify-center p-2 rounded focus:outline-none"
+          aria-label="Toggle navigation"
+          onClick={() => setNavOpen((open) => !open)}
+        >
+          <svg
+            className="h-7 w-7 text-[#a35608]"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {navOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
+          </svg>
+        </button>
+        {/* Desktop nav links */}
+        <div className="hidden md:flex gap-4 md:gap-10 items-center">
+          {navItems.map((item, idx) => (
+            <button
+              key={idx}
+              className={`font-semibold px-4 py-2 rounded-lg ${
+                item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+              }`}
+              onClick={() => {
+                const section = document.getElementById(
+                  item.name.toLowerCase()
+                );
+                if (section) section.scrollIntoView({ behavior: "smooth" });
+              }}
             >
-              <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-            </svg>
-          </label>
-        </div> */}
-
-      <div className="bg-white flex flex-row justify-center w-full">
-        <div className="bg-white overflow-hidden w-full flex flex-col justify-center h-[4560px] relative">
-          {/* Header Navigation */}
-
-          <button className="w-[126px] h-[47px] absolute top-[45px] left-[1280px] bg-[#3b3b3b] rounded-[10px] hover:bg-[#2a2a2a]">
-            <Link
-              to={"/login"}
-              className="[font-family:'Figtree',Helvetica] font-medium text-white "
-            >
+              {item.name}
+            </button>
+          ))}
+          <Link to="/login">
+            <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a]">
               Login
-            </Link>
-          </button>
-
+            </button>
+          </Link>
           <button
-            className="w-[177px] h-[47px] absolute top-[45px] left-[1096px] bg-[#fdc700] rounded-[10px] hover:bg-[#e5b400]"
+            className="bg-[#fdc700] text-[#a35608] px-6 py-2 rounded-lg font-medium hover:bg-[#e5b400]"
             onClick={handleDemoClick}
           >
-            <span className="[font-family:'Figtree',Helvetica] font-medium text-[#a35608] ">
-              Request a Demo
-            </span>
+            Request a Demo
           </button>
-
-          {/* Navigation bar */}
-          <div className="flex w-1/3 h-[74px] items-center justify-center p-3 absolute top-8 left-[438px] bg-[#ebebeb] rounded-[20px]">
-            <div className="flex gap-10 justify-evenly">
-              {navItems.map((item, index) => (
-                <div
-                  key={index}
-                  className={
-                    item.active
-                      ? "py-4 px-12 bg-white rounded-[20px]"
-                      : "flex items-center justify-center"
-                  }
-                  onClick={() => {
-                    const section = document.getElementById(
-                      item.name.toLowerCase()
-                    );
-                    if (section) {
-                      section.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }}
-                >
-                  <span
-                    className={`[font-family:'Figtree',Helvetica] font-semibold ${
-                      item.active ? "text-[#e5b400]" : "text-[#1c1c1c]"
-                    }`}
-                  >
-                    {item.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <img
-            className="w-64 top-9 left-[39px] absolute"
-            alt="OnSite360 Logo"
-            src="/logo.png"
-          />
-
-          <div className="absolute w-[2023px] h-[2377px] top-[215px] left-[-313px]">
-            <div className="absolute w-[2023px] h-[1573px] top-0 left-0">
-              {/* Hero Section */}
-              <div className="absolute w-[644px] h-[166px] top-0 left-[727px]">
-                <div className="relative w-[640px] h-[166px]">
-                  <h1 className="absolute top-0 left-0 [font-family:'Figtree',Helvetica] font-normal text-transparent text-[71px] tracking-[0] leading-[normal] whitespace-nowrap">
-                    <span className="font-bold text-[#fdc700]">Shaping</span>
-                    <span className="font-bold text-[#1c1c1c]">
-                      {" "}
-                      your vision{" "}
-                    </span>
-                  </h1>
-
-                  <h1 className="absolute top-[78px] left-[49px] [font-family:'Figtree',Helvetica] font-normal text-transparent text-[73px] tracking-[0] leading-[normal]">
-                    <span className="font-bold text-[#1c1c1c]">With </span>
-                    <span className="font-bold text-[#fdc700]">precision</span>
-                    <span className="font-bold text-[#1c1c1c]">
-                      &nbsp;&nbsp;
-                    </span>
-                  </h1>
-                </div>
-              </div>
-
-              {/* Yellow glow effects */}
-              <div className="top-[339px] left-[824px] bg-[#fdc700bf] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
-              <div className="top-[30px] left-0 bg-[#fdc70094] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
-              <div className="top-[50px] left-[1564px] bg-[#fdc70085] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
-              <div className="top-[1115px] left-[266px] bg-[#fdc70085] absolute w-[458px] h-[458px] rounded-[229.23px] blur-[250px]" />
-
-              {/* Dashboard Screenshots */}
-              {/* {screenshots.map((screenshot, index) => (
-                <img
-                  key={index}
-                  className={screenshot.className}
-                  alt={screenshot.alt}
-                  src={screenshot.src}
-                />
-              ))} */}
-
-              {/* Feature Cards */}
-              <div
-                ref={featureCardsRef}
-                className={`transition-all duration-500
-                  ${
-                    hideFeatureCards
-                      ? "opacity-0 translate-y-32 pointer-events-none"
-                      : "opacity-100 translate-y-0"
-                  }
-                `}
-                style={{ position: "relative", zIndex: 20 }}
+        </div>
+        {/* Mobile nav links dropdown */}
+        {navOpen && (
+          <div className="absolute top-full left-0 w-full bg-white shadow-lg z-50 flex flex-col gap-2 py-4 px-4 md:hidden animate-slide-down">
+            {navItems.map((item, idx) => (
+              <button
+                key={idx}
+                className={`font-semibold px-4 py-2 rounded-lg text-left ${
+                  item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+                }`}
+                onClick={() => {
+                  setNavOpen(false);
+                  const section = document.getElementById(
+                    item.name.toLowerCase()
+                  );
+                  if (section) section.scrollIntoView({ behavior: "smooth" });
+                }}
               >
-                {featureCards.map((card, index) => (
-                  <div
-                    key={index}
-                    className={`flex flex-col items-center justify-center gap-2.5  absolute ${
-                      card.top
-                    } ${
-                      card.left
-                    } bg-white rounded-[20px] shadow-[0px_4px_100px_#a9a9a969] p-5 transition-transform duration-300 cursor-pointer
-                    ${hoveredCard === index ? "scale-110 z-10" : "scale-100"}
-                  `}
-                    style={{
-                      width: hoveredCard === index ? 350 : 316,
-                      height: hoveredCard === index ? 120 : 85,
-                      overflow: "hidden",
-                    }}
-                    onMouseEnter={() => setHoveredCard(index)}
-                    onMouseLeave={() => setHoveredCard(null)}
-                  >
-                    {/* Animated background square */}
-                    <div
-                      className={`absolute transition-all duration-300 ease-in-out pointer-events-none`}
-                      style={{
-                        zIndex: 0,
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
-                        width: hoveredCard === index ? 340 : 80,
-                        height: hoveredCard === index ? 110 : 30,
-                        background: "#fde68a", // yellow-200 tailwind
-                        opacity: hoveredCard === index ? 0.5 : 0.15,
-                        borderRadius: 16,
-                        boxShadow:
-                          hoveredCard === index
-                            ? "0 0 40px 10px #fde68a"
-                            : "0 0 10px 2px #fde68a",
-                        transition: "all 0.3s cubic-bezier(.4,0,.2,1)",
-                      }}
-                    />
-                    {/* Card content */}
-                    <div className="flex items-center justify-center h-full relative z-10">
-                      <div className="[font-family:'Figtree',Helvetica] text-[#e8b703] w-full text-lg tracking-[0] leading-[normal] whitespace-nowrap font-bold">
-                        {card.title}
-                      </div>
-                    </div>
-                    {hoveredCard === index && (
-                      <div className="mt-2 text-sm text-neutral-500 text-center   transition-opacity duration-200 opacity-100 relative z-10">
-                        {featureCardDescriptions[card.title]}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CTA button */}
+                {item.name}
+              </button>
+            ))}
+            <Link to="/login">
+              <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a] w-full text-left">
+                Login
+              </button>
+            </Link>
             <button
-              className="w-[214px] h-[68px] absolute top-[219px] left-[920px] bg-[#fdc700] rounded-[15px] shadow-[0px_4px_30px_#d1a500] hover:bg-[#e5b400]"
+              className="bg-[#fdc700] text-[#a35608] px-6 py-2 rounded-lg font-medium hover:bg-[#e5b400] w-full text-left"
+              onClick={() => {
+                setNavOpen(false);
+                handleDemoClick();
+              }}
+            >
+              Request a Demo
+            </button>
+          </div>
+        )}
+      </nav>
+
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative">
+        <h1 className="text-4xl md:text-6xl font-bold text-[#fdc700] mb-2">
+          Shaping <span className="text-[#1c1c1c]">your vision</span>
+        </h1>
+        <h2 className="text-3xl md:text-5xl font-bold text-[#1c1c1c] mb-4">
+          With <span className="text-[#fdc700]">precision</span>
+        </h2>
+        <div className="text-neutral-500 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
+          CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
+        </div>
+        <button
+          className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400] mt-4"
+          onClick={handleDemoClick}
+        >
+          Request a Demo
+        </button>
+        {/* Glow effects */}
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 -z-10" />
+      </section>
+
+      {/* Feature Cards */}
+      <section
+        ref={featureCardsRef}
+        className={`flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 px-4 md:px-0 py-8 transition-all duration-500 ${
+          hideFeatureCards
+            ? "opacity-0 translate-y-32 pointer-events-none"
+            : "opacity-100 translate-y-0"
+        }`}
+      >
+        {featureCards.map((card, idx) => (
+          <div
+            key={idx}
+            className={`flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg p-4 cursor-pointer transition-transform duration-300 w-full md:w-72 h-24 md:h-28 ${
+              hoveredCard === idx ? "scale-105 z-10" : "scale-100"
+            }`}
+            onMouseEnter={() => setHoveredCard(idx)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="font-bold text-[#e8b703] text-lg md:text-xl mb-1">
+              {card.title}
+            </div>
+            {hoveredCard === idx && (
+              <div className="text-sm text-neutral-500 text-center mt-2">
+                {featureCardDescriptions[card.title]}
+              </div>
+            )}
+          </div>
+        ))}
+      </section>
+
+      {/* Dashboard Screenshot */}
+      <section className="flex flex-col items-center justify-center py-8 md:py-16 px-4 md:px-0">
+        <img
+          src={screenshots[0].src}
+          alt={screenshots[0].alt}
+          className="object-contain w-full md:w-2/3 h-auto rounded-xl shadow"
+        />
+      </section>
+
+      {/* Companies Section */}
+      <section className="flex flex-col items-center justify-center gap-6 py-8 md:py-16 px-4 md:px-0">
+        <h1 className="text-2xl md:text-4xl text-[#a45505] font-normal text-center">
+          The best in building own their success with OnSite360
+        </h1>
+        <img
+          src="/company_scroll.png"
+          alt="companies"
+          className="w-full md:w-1/2"
+        />
+      </section>
+
+      {/* Communication Section */}
+      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+        <img
+          src="main-m.png"
+          alt=""
+          className="w-full md:w-1/2 h-auto rounded-xl"
+        />
+        <div className="flex flex-col gap-4">
+          <div className="font-medium text-black text-lg tracking-widest">
+            COMMUNICATION
+          </div>
+          <h2 className="font-bold text-[#1c1c1c] text-2xl md:text-4xl">
+            Close the communication loop.
+          </h2>
+          <p className="text-[#434343] text-base md:text-lg">
+            Mobile collaboration tools are built for the site, making it easy
+            for everyone to have a clear understanding of what needs to get done
+            every day to stay on schedule and prevent rework.
+          </p>
+          <button
+            className="btn btn-primary w-full md:w-auto"
+            onClick={handleDemoClick}
+          >
+            Request a Demo
+          </button>
+        </div>
+      </section>
+
+      {/* Access Section */}
+      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+        <div className="flex flex-col gap-4">
+          <div className="font-medium text-black text-lg tracking-widest">
+            ACCESS
+          </div>
+          <h2 className="font-bold text-[#1c1c1c] text-2xl md:text-4xl">
+            Keep information accurate.
+          </h2>
+          <div className="text-[#434343] text-base md:text-lg">
+            Trust that all stakeholders have access to the latest information in
+            a centralised location, and in a format that everyone can
+            understand.
+            <br />
+            <br />
+            Information is updated instantly so all stakeholders have ultimate
+            visability
+            <br />
+            <br />
+            Mitigate risks with accurate data logs
+          </div>
+          <button
+            className="btn btn-primary w-full md:w-auto mt-2"
+            onClick={handleDemoClick}
+          >
+            Request a Demo
+          </button>
+        </div>
+        <img
+          src="main-m.png"
+          alt=""
+          className="w-full md:w-1/2 h-auto rounded-xl"
+        />
+      </section>
+
+      {/* Visibility Section */}
+      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+        <div className="flex flex-col gap-4">
+          <div className="font-medium text-black text-lg tracking-widest">
+            VISIBILITY
+          </div>
+          <h2 className="font-bold text-[#1c1c1c] text-2xl md:text-4xl">
+            Stay ahead of your projects.
+          </h2>
+          <div className="text-[#434343] text-base md:text-lg">
+            Quickly identify potential issues and their impact to schedule and
+            budgets. Avoid unwanted surprises with better project visibility.
+            <br />
+            <br />
+            Project overview gives a complete picture of any outstanding items.
+            <br />
+            <br />
+            Track all steps and speed up the approval process.
+          </div>
+          <div className="flex flex-col md:flex-row gap-2 mt-2 w-full">
+            <button
+              className="btn btn-primary w-full md:w-auto"
               onClick={handleDemoClick}
             >
-              <span className="[font-family:'Figtree',Helvetica] font-semibold text-[#a45505] text-[19px]">
-                Request a Demo
-              </span>
+              Request a Demo
             </button>
-
-            {/* Charts Section under CTA */}
-            <div className="absolute flex justify-center top-[450px] left-[50px] w-full z-10">
-              {/* Chart 1 */}
-              <img
-                src={screenshots[0].src}
-                alt={screenshots[0].alt}
-                className="object-contain w-2/3 h-full"
-              />
-            </div>
-
-            <div className="flex flex-col w-full justify-center items-center top-[1400px] absolute gap-10  left-[50px]">
-              <h1 className="[font-family:'Figtree',Helvetica] text-4xl text-[#a45505] font-normal">
-                The best in building own their success with OnSite360
-              </h1>
-              <img
-                src="/company_scroll.png"
-                alt="companies"
-                className="w-1/2 "
-              />
-            </div>
-
-            {/* Communication Section */}
-            <div className="absolute top-[2232px] left-[350px] flex items-center  gap-2">
-              <img src="main-m.png" alt="" className="w-1/2 h-full" />
-              <div className="relative h-[265px]">
-                <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
-                  COMMUNICATION
-                </div>
-
-                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-[#1c1c1c] text-[52px] tracking-[0] leading-[normal]">
-                  Close the communication loop.
-                </h2>
-
-                <p className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] font-normal text-[#434343] tracking-[0] leading-[normal]">
-                  Mobile collaboration tools are built for the site, making it
-                  easy for everyone to have a clear understanding of what needs
-                  to get done every day to stay on schedule and prevent rework.
-                </p>
-                <br />
-                <button
-                  className="btn btn-primary mt-60"
-                  onClick={handleDemoClick}
-                >
-                  Request a Demo
-                </button>
-              </div>
-            </div>
-
-            {/* Access Section */}
-            <div className="absolute top-[1577px] mt-36 left-[444px] flex items-center">
-              <div className="relative h-[265px]">
-                <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
-                  ACCESS
-                </div>
-
-                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-[#1c1c1c] text-[52px] tracking-[0] leading-[normal]">
-                  Keep information accurate.
-                </h2>
-
-                <div className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica]  text-[#434343]  tracking-[0] leading-[normal]">
-                  Trust that all stakeholders have access to the latest
-                  information in a centralised location, and in a format that
-                  everyone can understand.
-                  <br />
-                  <br />
-                  Information is updated instantly so all stakeholders have
-                  ultimate visability
-                  <br />
-                  <br />
-                  Mitigate risks with accurate data logs
-                  <br />
-                  <button
-                    className="btn btn-primary mt-5"
-                    onClick={handleDemoClick}
-                  >
-                    Request a Demo
-                  </button>
-                </div>
-              </div>
-              <img
-                src="main-m.png"
-                alt=""
-                className="relative left-[570px] w-1/2 h-full"
-              />
-            </div>
-
-            {/* Visibility Section */}
-            <div className="absolute top-[2700px] mt-36 left-[444px] flex items-center">
-              <div className="relative h-[265px]">
-                <div className="absolute -top-px left-0 [font-family:'Figtree',Helvetica] font-normal text-black text-[19px] tracking-[5.32px] leading-[normal]">
-                  VISIBILITY
-                </div>
-
-                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-[#1c1c1c] text-[52px] tracking-[0] leading-[normal]">
-                  Stay ahead of your projects.
-                </h2>
-
-                <div className="absolute w-[578px] top-48 left-[5px] [font-family:'Figtree',Helvetica] text-[#434343] tracking-[0] leading-[normal]">
-                  Quickly identify potential issues and their impact to schedule
-                  and budgets. Avoid unwanted surprises with better project
-                  visibility.
-                  <br />
-                  <br />
-                  Project overview gives a complete picture of any outstanding
-                  items.
-                  <br />
-                  <br />
-                  Track all steps and speed up the approval process.
-                </div>
-                <div className="flex absolute w-[570px] top-80 gap-3 left-[5px]">
-                  <button className="btn btn-primary" onClick={handleDemoClick}>
-                    Request a Demo
-                  </button>
-                  <button
-                    onClick={handleInstallClick}
-                    className="btn btn-neutral"
-                  >
-                    Get Mobile App
-                  </button>
-                </div>
-              </div>
-              <img
-                src="mobile.jpeg"
-                alt=""
-                className="relative left-[670px] w-1/3 h-full"
-              />
-            </div>
-
-            {/* Visibility Section */}
-            <div className="absolute top-[3500px] w-[1600px] mt-36 left-[312px] px-20 flex items-center bg-accent">
-              <div className="relative h-[270px]">
-                <h2 className="absolute w-[581px] top-[42px] left-0.5 [font-family:'Figtree',Helvetica] font-bold text-white text-[52px] tracking-[0] leading-[normal]">
-                  See how Project Management can work for your team.
-                </h2>
-                <div className="flex absolute w-[570px] top-64 gap-3 left-[5px]">
-                  <button className="btn btn-primary" onClick={handleDemoClick}>
-                    Request a Demo
-                  </button>
-                </div>
-              </div>
-              <img
-                src="footer_img.webp"
-                alt=""
-                className="relative left-[670px] w-1/2 h-full"
-              />
-            </div>
-
-            {/* Stats Section */}
-          </div>
-
-          {/* Subtitle */}
-          <div className="flex text-center justify-center">
-            <div className="absolute top-[188px] [font-family:'Figtree',Helvetica] font-medium text-neutral-500 text-lg tracking-[4.84px] leading-[normal] whitespace-nowrap">
-              CONSTRUCTION&nbsp;&nbsp;PROJECT&nbsp;&nbsp;MANAGEMENT&nbsp;&nbsp;SOFTWARE
-            </div>
+            <button
+              onClick={handleInstallClick}
+              className="btn btn-neutral w-full md:w-auto"
+            >
+              Get Mobile App
+            </button>
           </div>
         </div>
-      </div>
+        <img
+          src="mobile.jpeg"
+          alt=""
+          className="w-full md:w-1/3 h-auto rounded-xl"
+        />
+      </section>
+
+      {/* Project Management CTA Section */}
+      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0 bg-accent">
+        <div className="flex flex-col gap-4">
+          <h2 className="font-bold text-white text-2xl md:text-4xl">
+            See how Project Management can work for your team.
+          </h2>
+          <button
+            className="btn btn-primary w-full md:w-auto mt-2"
+            onClick={handleDemoClick}
+          >
+            Request a Demo
+          </button>
+        </div>
+        <img
+          src="footer_img.webp"
+          alt=""
+          className="w-full md:w-1/2 h-auto rounded-xl"
+        />
+      </section>
 
       {/* DaisyUI Modal using modal/modal-open classes */}
       {showDemoModal && (
         <div className="modal modal-open backdrop-blur-md">
-          <div className="modal-box max-w-2xl py-5 px-10 relative">
+          <div className="modal-box max-w-md md:max-w-2xl py-5 px-4 md:px-10 relative">
             {/* Close icon at top right */}
             <button
               className="btn btn-sm btn-circle absolute right-4 top-4"
@@ -499,11 +447,14 @@ const Home = () => {
             >
               ✕
             </button>
-            <h2 className="text-3xl font-bold text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
               Unlock our product demo
             </h2>
-            <form className="space-y-6" onSubmit={handleDemoFormSubmit}>
-              <div className="flex gap-6">
+            <form
+              className="space-y-4 md:space-y-6"
+              onSubmit={handleDemoFormSubmit}
+            >
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                 <div className="flex-1">
                   <label className="block font-medium mb-2">
                     First Name <span className="text-red-500">*</span>
@@ -525,7 +476,7 @@ const Home = () => {
                   />
                 </div>
               </div>
-              <div className="flex gap-6">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                 <div className="flex-1">
                   <input
                     className="input input-bordered w-full bg-[#f6f8fa]"
@@ -597,7 +548,7 @@ const Home = () => {
                   <option value="over20m">Over $20M</option>
                 </select>
               </div>
-              <div className="pt-4">
+              <div className="pt-2 md:pt-4">
                 <button
                   type="submit"
                   className="btn btn-primary w-full font-bold text-black"
@@ -612,7 +563,7 @@ const Home = () => {
       {/* Thank You Modal */}
       {showThankYouModal && (
         <div className="modal modal-open backdrop-blur-md">
-          <div className="modal-box max-w-3xl py-8 px-8 relative">
+          <div className="modal-box max-w-md md:max-w-3xl py-8 px-4 md:px-8 relative">
             <button
               className="btn btn-sm btn-circle absolute right-4 top-4"
               onClick={() => setShowThankYouModal(false)}
@@ -621,7 +572,7 @@ const Home = () => {
             >
               ✕
             </button>
-            <h3 className="font-bold text-6xl mb-4">Thank you!</h3>
+            <h3 className="font-bold text-3xl md:text-6xl mb-4">Thank you!</h3>
             <p className="mb-6 text-neutral-500">
               An OnSite360 member will contact you to schedule the product demo.
             </p>
@@ -636,6 +587,30 @@ const Home = () => {
           </div>
         </div>
       )}
+
+      {/* Footer Section */}
+      <footer className="bg-[#fdc700] text-[#a35608] py-8 px-4 md:px-0 mt-8">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="OnSite360 Logo" className="w-10 h-10" />
+            <span className="font-bold text-lg">OnSite360</span>
+          </div>
+          <div className="text-sm text-center md:text-right">
+            &copy; {new Date().getFullYear()} OnSite360. All rights reserved.
+          </div>
+          <div className="flex gap-4">
+            <a href="mailto:support@onsite360.com" className="hover:underline">
+              Contact
+            </a>
+            <a href="#" className="hover:underline">
+              Privacy Policy
+            </a>
+            <a href="#" className="hover:underline">
+              Terms of Service
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
