@@ -417,68 +417,71 @@ const WorkforceManagement = () => {
 
         {/* Add Worker Modal */}
         {showAddWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            {/* ...existing code... */}
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
+              <button
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                onClick={() => setShowAddWorker(false)}
+              >
+                ✕
+              </button>
+              <h3 className="font-bold text-lg mb-4">Add New Worker</h3>
+              {/* Add worker form content would go here */}
+              <p className="text-gray-500">Add worker form implementation needed</p>
+            </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => setShowAddWorker(false)}>close</button>
+            </form>
           </div>
         )}
 
         {/* Delete Worker Confirmation Modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
-              <p className="mb-6">Are you sure you want to delete this worker?</p>
-              <div className="flex gap-4">
-                <button className="btn btn-error flex-1" onClick={confirmDeleteWorker}>
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg">Confirm Delete</h3>
+              <p className="py-4">Are you sure you want to delete this worker?</p>
+              <div className="modal-action">
+                <button className="btn btn-error" onClick={confirmDeleteWorker}>
                   Delete
                 </button>
-                <button className="btn btn-ghost flex-1" onClick={() => setShowDeleteConfirm(false)}>
+                <button className="btn" onClick={() => setShowDeleteConfirm(false)}>
                   Cancel
                 </button>
               </div>
             </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => setShowDeleteConfirm(false)}>close</button>
+            </form>
           </div>
         )}
 
         {/* Save Attendance Confirmation Modal */}
         {showSaveConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
-              <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                type="button"
-                onClick={() => setShowSaveConfirm(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg flex items-center gap-2">
                 <MdSave />
                 Save Attendance Changes
-              </h2>
-              <p className="mb-6">
+              </h3>
+              <p className="py-4">
                 Are you sure you want to save attendance changes for{" "}
                 <span className="font-bold">{Object.keys(attendanceState).length}</span>{" "}
                 workers for <span className="font-bold">{attendanceDate}</span>?
               </p>
-              <div className="flex gap-4">
-                <button className="btn btn-success flex-1" onClick={confirmSaveAttendance}>
+              <div className="modal-action">
+                <button className="btn btn-success" onClick={confirmSaveAttendance}>
                   <MdSave />
                   Save Changes
                 </button>
-                <button className="btn btn-ghost flex-1" onClick={() => setShowSaveConfirm(false)}>
+                <button className="btn" onClick={() => setShowSaveConfirm(false)}>
                   Cancel
                 </button>
               </div>
             </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => setShowSaveConfirm(false)}>close</button>
+            </form>
           </div>
         )}
 
@@ -946,14 +949,10 @@ const WorkforceManagement = () => {
 
         {/* Edit Worker Modal */}
         {editWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <form
-              className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-lg relative"
-              onSubmit={handleUpdateWorker}
-            >
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
               <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
-                type="button"
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
                 onClick={() => {
                   setEditWorker(null);
                   setEditWorkerData({
@@ -971,128 +970,172 @@ const WorkforceManagement = () => {
                     profilePic: "",
                   });
                 }}
-                aria-label="Close"
               >
                 ✕
               </button>
-              <h2 className="text-xl font-bold mb-4">Edit Worker</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label font-semibold">Name</label>
-                  <input
-                    className="input input-bordered w-full"
-                    name="name"
-                    value={editWorkerData.name}
-                    onChange={handleEditWorkerChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label font-semibold">Role</label>
-                  <input
-                    className="input input-bordered w-full"
-                    name="role"
-                    value={editWorkerData.role}
-                    onChange={handleEditWorkerChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label font-semibold">Skills (comma separated)</label>
-                  <input
-                    className="input input-bordered w-full"
-                    value={editWorkerData.skills.join(", ")}
-                    onChange={handleEditWorkerSkillsChange}
-                  />
-                </div>
-                <div>
-                  <label className="label font-semibold">Project</label>
-                  <select
-                    className="select select-bordered w-full"
-                    name="projectId"
-                    value={editWorkerData.projectId}
-                    onChange={handleEditWorkerChange}
-                  >
-                    {mockProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="label font-semibold">Age</label>
-                  <input
-                    className="input input-bordered w-full"
-                    name="age"
-                    type="number"
-                    min={16}
-                    value={editWorkerData.age ?? ""}
-                    onChange={handleEditWorkerChange}
-                  />
-                </div>
-                <div>
-                  <label className="label font-semibold">Phone</label>
-                  <input
-                    className="input input-bordered w-full"
-                    name="phone"
-                    value={editWorkerData.phone}
-                    onChange={handleEditWorkerChange}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="label font-semibold">Address</label>
-                  <input
-                    className="input input-bordered w-full"
-                    name="address"
-                    value={editWorkerData.address}
-                    onChange={handleEditWorkerChange}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="label font-semibold">Profile Picture</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="file-input file-input-bordered w-full"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          setEditWorkerData(prev => ({
-                            ...prev,
-                            profilePic: ev.target?.result as string,
-                          }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                  {editWorkerData.profilePic && (
-                    <img
-                      src={editWorkerData.profilePic}
-                      alt="Profile Preview"
-                      className="mt-2 w-16 h-16 rounded-full object-cover border"
+              <h3 className="font-bold text-lg mb-4">Edit Worker</h3>
+              <form onSubmit={handleUpdateWorker}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label font-semibold">Name</label>
+                    <input
+                      className="input input-bordered w-full"
+                      name="name"
+                      value={editWorkerData.name}
+                      onChange={handleEditWorkerChange}
+                      required
                     />
-                  )}
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Role</label>
+                    <input
+                      className="input input-bordered w-full"
+                      name="role"
+                      value={editWorkerData.role}
+                      onChange={handleEditWorkerChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Skills (comma separated)</label>
+                    <input
+                      className="input input-bordered w-full"
+                      value={editWorkerData.skills.join(", ")}
+                      onChange={handleEditWorkerSkillsChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Project</label>
+                    <select
+                      className="select select-bordered w-full"
+                      name="projectId"
+                      value={editWorkerData.projectId}
+                      onChange={handleEditWorkerChange}
+                    >
+                      {mockProjects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Age</label>
+                    <input
+                      className="input input-bordered w-full"
+                      name="age"
+                      type="number"
+                      min={16}
+                      value={editWorkerData.age ?? ""}
+                      onChange={handleEditWorkerChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="label font-semibold">Phone</label>
+                    <input
+                      className="input input-bordered w-full"
+                      name="phone"
+                      value={editWorkerData.phone}
+                      onChange={handleEditWorkerChange}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label font-semibold">Address</label>
+                    <input
+                      className="input input-bordered w-full"
+                      name="address"
+                      value={editWorkerData.address}
+                      onChange={handleEditWorkerChange}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label font-semibold">Profile Picture</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="file-input file-input-bordered w-full"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setEditWorkerData(prev => ({
+                              ...prev,
+                              profilePic: ev.target?.result as string,
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    {editWorkerData.profilePic && (
+                      <img
+                        src={editWorkerData.profilePic}
+                        alt="Profile Preview"
+                        className="mt-2 w-16 h-16 rounded-full object-cover border"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-              <button className="btn btn-primary mt-6 w-full" type="submit">
-                Update Worker
-              </button>
+                <div className="modal-action">
+                  <button className="btn btn-primary" type="submit">
+                    Update Worker
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn" 
+                    onClick={() => {
+                      setEditWorker(null);
+                      setEditWorkerData({
+                        id: "",
+                        name: "",
+                        role: "",
+                        assignedTask: "",
+                        attendance: "Present",
+                        skills: [],
+                        safetyStatus: "Cleared",
+                        projectId: mockProjects[0].id,
+                        age: undefined,
+                        phone: "",
+                        address: "",
+                        profilePic: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => {
+                setEditWorker(null);
+                setEditWorkerData({
+                  id: "",
+                  name: "",
+                  role: "",
+                  assignedTask: "",
+                  attendance: "Present",
+                  skills: [],
+                  safetyStatus: "Cleared",
+                  projectId: mockProjects[0].id,
+                  age: undefined,
+                  phone: "",
+                  address: "",
+                  profilePic: "",
+                });
+              }}>close</button>
             </form>
           </div>
         )}
 
         {/* Worker Personal Data Modal */}
         {selectedWorker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-base-100 rounded-xl shadow-lg p-8 w-full max-w-md relative">
+          <div className="modal modal-open">
+            <div className="modal-box">
               <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle"
+                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
                 onClick={() => setSelectedWorker(null)}
-                aria-label="Close"
               >
                 ✕
               </button>
@@ -1102,7 +1145,7 @@ const WorkforceManagement = () => {
                   alt={selectedWorker.name}
                   className="w-24 h-24 rounded-full object-cover border-2 border-primary"
                 />
-                <h2 className="text-2xl font-bold">{selectedWorker.name}</h2>
+                <h3 className="text-2xl font-bold">{selectedWorker.name}</h3>
                 <div className="w-full">
                   <div className="mb-2">
                     <span className="font-semibold">Role:</span> {selectedWorker.role}
@@ -1117,7 +1160,7 @@ const WorkforceManagement = () => {
                     <span className="font-semibold">Address:</span> {selectedWorker.address ?? "-"}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="modal-action w-full">
                   <button className="btn btn-primary flex-1">
                     Edit
                   </button>
@@ -1127,6 +1170,9 @@ const WorkforceManagement = () => {
                 </div>
               </div>
             </div>
+            <form method="dialog" className="modal-backdrop">
+              <button onClick={() => setSelectedWorker(null)}>close</button>
+            </form>
           </div>
         )}
       </div>
