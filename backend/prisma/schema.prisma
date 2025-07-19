@@ -32,7 +32,7 @@ model User {
   updatedAt        DateTime            @updatedAt
   dailyLogs        DailyLog[]
   reportedIssues   Issue[] // Issues reported by the user
-  assignedIssues   Issue[]             @relation("IssueAssignee") // Issues assigned to the user
+  taggedInIssues   Issue[]             @relation("IssueTaggedUsers") // Issues where the user is tagged
   documents        Document[]
   requestedRFIs    RFI[]               @relation("RFIRequester") // RFIs requested by this user
   assignedRFIs     RFI[]               @relation("RFIAssignee") // RFIs assigned to this user
@@ -379,9 +379,7 @@ model Issue {
   reportedBy   String // Name of person who reported
   reportedById String?
   reporter     User?      @relation(fields: [reportedById], references: [id])
-  assignedTo   String? // Who is responsible for fixing
-  assignedToId String?
-  assignee     User?      @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  taggedUsers  User[]     @relation("IssueTaggedUsers") // Users tagged to this issue for notifications
   dueDate      DateTime?
   resolvedAt   DateTime?
   resolution   String? // How the issue was resolved
