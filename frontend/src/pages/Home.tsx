@@ -355,7 +355,7 @@ const Home = () => {
         {featureCards.map((card, idx) => (
           <div
             key={idx}
-            className={`flex flex-col items-center justify-center min-w-xs bg-white rounded-2xl shadow-lg p-4 cursor-pointer transition-transform duration-300 w-64 md:w-72 h-24 md:h-28 ${
+            className={`flex flex-col items-center justify-center min-w-xs bg-base-200 rounded-2xl shadow-xl p-4 cursor-pointer transition-transform duration-300 w-64 md:w-72 h-24 md:h-28 ${
               hoveredCard === idx ? "scale-110 z-10" : "scale-100"
             }`}
             onMouseEnter={() => setHoveredCard(idx)}
