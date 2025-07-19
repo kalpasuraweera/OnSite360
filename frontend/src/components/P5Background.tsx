@@ -23,7 +23,7 @@ const P5Background: React.FC<P5BackgroundProps> = ({ className = "" }) => {
 
       p.draw = () => {
         // Light yellow/cream background that matches the theme
-        p.background(255, 250, 205); // Soft cream/light yellow
+        p.background(255, 255, 255);
 
         for (let x = spacing / 2; x < p.width; x += spacing) {
           for (let y = spacing / 2; y < p.height; y += spacing) {
