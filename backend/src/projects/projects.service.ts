@@ -3,12 +3,22 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Project, UserProject } from '@prisma/client';
+import {
+  Project,
+  UserProject,
+  CrewMember,
+  ProjectAttendance,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AssignUserToProjectDto } from './dto/assign-user-to-project.dto';
 import { UpdateUserProjectDto } from './dto/update-user-project.dto';
+import { CreateCrewMemberDto } from './dto/create-crew-member.dto';
+import { UpdateCrewMemberDto } from './dto/update-crew-member.dto';
+import { CreateProjectAttendanceDto } from './dto/create-project-attendance.dto';
+import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto';
+import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -585,5 +595,542 @@ export class ProjectsService {
         inactive: totalUsers - activeUsers,
       },
     };
+  }
+
+  // Crew Member Management
+  async createCrewMember(
+    createCrewMemberDto: CreateCrewMemberDto,
+  ): Promise<CrewMember> {
+    return this.prisma.crewMember.create({
+      data: {
+        ...createCrewMemberDto,
+        hireDate: createCrewMemberDto.hireDate
+          ? new Date(createCrewMemberDto.hireDate)
+          : undefined,
+      },
+    });
+  }
+
+  async getCrewMembers(): Promise<CrewMember[]> {
+    return this.prisma.crewMember.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async getCrewMember(id: string): Promise<CrewMember> {
+    const crewMember = await this.prisma.crewMember.findUnique({
+      where: { id },
+    });
+
+    if (!crewMember) {
+      throw new NotFoundException(`Crew member with ID ${id} not found`);
+    }
+
+    return crewMember;
+  }
+
+  async updateCrewMember(
+    id: string,
+    updateCrewMemberDto: UpdateCrewMemberDto,
+  ): Promise<CrewMember> {
+    const existingCrewMember = await this.prisma.crewMember.findUnique({
+      where: { id },
+    });
+
+    if (!existingCrewMember) {
+      throw new NotFoundException(`Crew member with ID ${id} not found`);
+    }
+
+    return this.prisma.crewMember.update({
+      where: { id },
+      data: {
+        ...updateCrewMemberDto,
+        hireDate: updateCrewMemberDto.hireDate
+          ? new Date(updateCrewMemberDto.hireDate)
+          : undefined,
+      },
+    });
+  }
+
+  async deleteCrewMember(id: string): Promise<CrewMember> {
+    const existingCrewMember = await this.prisma.crewMember.findUnique({
+      where: { id },
+    });
+
+    if (!existingCrewMember) {
+      throw new NotFoundException(`Crew member with ID ${id} not found`);
+    }
+
+    // Soft delete by setting isActive to false
+    return this.prisma.crewMember.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  // Project Crew Assignment
+  async assignCrewMemberToProject(
+    projectId: string,
+    crewMemberId: string,
+    notes?: string,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Check if crew member exists
+    const crewMember = await this.prisma.crewMember.findUnique({
+      where: { id: crewMemberId },
+    });
+
+    if (!crewMember) {
+      throw new NotFoundException(
+        `Crew member with ID ${crewMemberId} not found`,
+      );
+    }
+
+    // Check if already assigned
+    const existingAssignment = await this.prisma.crewAssignment.findUnique({
+      where: {
+        projectId_crewMemberId: {
+          projectId,
+          crewMemberId,
+        },
+      },
+    });
+
+    if (existingAssignment && existingAssignment.isActive) {
+      throw new BadRequestException(
+        `Crew member ${crewMemberId} is already assigned to project ${projectId}`,
+      );
+    }
+
+    return this.prisma.crewAssignment.create({
+      data: {
+        projectId,
+        crewMemberId,
+        notes,
+        isActive: true,
+      },
+      include: {
+        crewMember: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async removeCrewMemberFromProject(projectId: string, crewMemberId: string) {
+    const existingAssignment = await this.prisma.crewAssignment.findUnique({
+      where: {
+        projectId_crewMemberId: {
+          projectId,
+          crewMemberId,
+        },
+      },
+    });
+
+    if (!existingAssignment || !existingAssignment.isActive) {
+      throw new NotFoundException(
+        `Crew member ${crewMemberId} is not assigned to project ${projectId}`,
+      );
+    }
+
+    return this.prisma.crewAssignment.update({
+      where: {
+        projectId_crewMemberId: {
+          projectId,
+          crewMemberId,
+        },
+      },
+      data: {
+        isActive: false,
+        endDate: new Date(),
+      },
+    });
+  }
+
+  async getProjectCrewMembers(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return this.prisma.crewAssignment.findMany({
+      where: { projectId, isActive: true },
+      include: {
+        crewMember: true,
+      },
+      orderBy: {
+        crewMember: {
+          name: 'asc',
+        },
+      },
+    });
+  }
+
+  // Project Attendance Management
+  async createProjectAttendance(
+    projectId: string,
+    userId: string,
+    createAttendanceDto: CreateProjectAttendanceDto,
+  ): Promise<ProjectAttendance> {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Check if attendance for this date already exists
+    const existingAttendance = await this.prisma.projectAttendance.findUnique({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(createAttendanceDto.date),
+        },
+      },
+    });
+
+    if (existingAttendance) {
+      throw new BadRequestException(
+        `Attendance for ${createAttendanceDto.date} already exists for this project`,
+      );
+    }
+
+    return this.prisma.projectAttendance.create({
+      data: {
+        projectId,
+        date: new Date(createAttendanceDto.date),
+        actualStartTime: createAttendanceDto.actualStartTime
+          ? new Date(createAttendanceDto.actualStartTime)
+          : undefined,
+        workDelayed: createAttendanceDto.workDelayed ?? false,
+        delayReason: createAttendanceDto.delayReason,
+        delayDuration: createAttendanceDto.delayDuration,
+        dayType: createAttendanceDto.dayType ?? 'WORKDAY',
+        dayTypeReason: createAttendanceDto.dayTypeReason,
+        isWorkDay: createAttendanceDto.isWorkDay ?? true,
+        notes: createAttendanceDto.notes,
+        markedById: userId,
+      },
+      include: {
+        markedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        crewAttendance: {
+          include: {
+            crewMember: true,
+          },
+        },
+      },
+    });
+  }
+
+  async markAttendance(
+    projectId: string,
+    date: string,
+    userId: string,
+    markAttendanceDto: MarkAttendanceDto,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Check if project attendance exists for this date
+    let projectAttendance = await this.prisma.projectAttendance.findUnique({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+    });
+
+    // Create project attendance if it doesn't exist
+    if (!projectAttendance) {
+      projectAttendance = await this.prisma.projectAttendance.create({
+        data: {
+          projectId,
+          date: new Date(date),
+          markedById: userId,
+        },
+      });
+    }
+
+    // Validate all crew members exist and are assigned to the project
+    const crewMemberIds = markAttendanceDto.crewAttendance.map(
+      (record) => record.crewMemberId,
+    );
+
+    const assignedCrewMembers = await this.prisma.crewAssignment.findMany({
+      where: {
+        projectId,
+        crewMemberId: { in: crewMemberIds },
+        isActive: true,
+      },
+      include: {
+        crewMember: true,
+      },
+    });
+
+    const assignedCrewMemberIds = assignedCrewMembers.map(
+      (assignment) => assignment.crewMemberId,
+    );
+
+    const unassignedCrewMembers = crewMemberIds.filter(
+      (id) => !assignedCrewMemberIds.includes(id),
+    );
+
+    if (unassignedCrewMembers.length > 0) {
+      throw new BadRequestException(
+        `Crew members ${unassignedCrewMembers.join(', ')} are not assigned to this project`,
+      );
+    }
+
+    // Delete existing attendance records for this date to allow updates
+    await this.prisma.attendanceRecord.deleteMany({
+      where: { projectAttendanceId: projectAttendance.id },
+    });
+
+    // Create new attendance records
+    const attendanceRecords = await Promise.all(
+      markAttendanceDto.crewAttendance.map((record) =>
+        this.prisma.attendanceRecord.create({
+          data: {
+            projectAttendanceId: projectAttendance.id,
+            crewMemberId: record.crewMemberId,
+            status: record.status,
+            checkInTime: record.checkInTime
+              ? new Date(record.checkInTime)
+              : undefined,
+            checkOutTime: record.checkOutTime
+              ? new Date(record.checkOutTime)
+              : undefined,
+            breakDuration: record.breakDuration,
+            totalHours: record.totalHours,
+            scheduledHours: record.scheduledHours,
+            leaveType: record.leaveType,
+            isApproved: record.isApproved,
+            workLocation: record.workLocation,
+            tasks: record.tasks,
+            notes: record.notes,
+          },
+          include: {
+            crewMember: true,
+          },
+        }),
+      ),
+    );
+
+    return {
+      projectAttendance,
+      attendanceRecords,
+    };
+  }
+
+  async getProjectAttendanceByDate(projectId: string, date: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const attendance = await this.prisma.projectAttendance.findUnique({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+      include: {
+        markedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        crewAttendance: {
+          include: {
+            crewMember: true,
+          },
+        },
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException(
+        `Attendance for ${date} not found for project ${projectId}`,
+      );
+    }
+
+    return attendance;
+  }
+
+  async getProjectAttendanceHistory(
+    projectId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const whereClause: {
+      projectId: string;
+      date?: {
+        gte?: Date;
+        lte?: Date;
+      };
+    } = { projectId };
+
+    if (startDate || endDate) {
+      whereClause.date = {};
+      if (startDate) {
+        whereClause.date.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereClause.date.lte = new Date(endDate);
+      }
+    }
+
+    return this.prisma.projectAttendance.findMany({
+      where: whereClause,
+      include: {
+        markedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        crewAttendance: {
+          include: {
+            crewMember: true,
+          },
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+  }
+
+  async updateProjectAttendance(
+    projectId: string,
+    date: string,
+    updateAttendanceDto: UpdateProjectAttendanceDto,
+  ) {
+    const existingAttendance = await this.prisma.projectAttendance.findUnique({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+    });
+
+    if (!existingAttendance) {
+      throw new NotFoundException(
+        `Attendance for ${date} not found for project ${projectId}`,
+      );
+    }
+
+    return this.prisma.projectAttendance.update({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+      data: {
+        actualStartTime: updateAttendanceDto.actualStartTime
+          ? new Date(updateAttendanceDto.actualStartTime)
+          : undefined,
+        workDelayed: updateAttendanceDto.workDelayed,
+        delayReason: updateAttendanceDto.delayReason,
+        delayDuration: updateAttendanceDto.delayDuration,
+        dayType: updateAttendanceDto.dayType,
+        dayTypeReason: updateAttendanceDto.dayTypeReason,
+        isWorkDay: updateAttendanceDto.isWorkDay,
+        notes: updateAttendanceDto.notes,
+      },
+      include: {
+        markedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        crewAttendance: {
+          include: {
+            crewMember: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteProjectAttendance(projectId: string, date: string) {
+    const existingAttendance = await this.prisma.projectAttendance.findUnique({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+    });
+
+    if (!existingAttendance) {
+      throw new NotFoundException(
+        `Attendance for ${date} not found for project ${projectId}`,
+      );
+    }
+
+    return this.prisma.projectAttendance.delete({
+      where: {
+        projectId_date: {
+          projectId,
+          date: new Date(date),
+        },
+      },
+    });
   }
 }
