@@ -17,6 +17,7 @@ const Home = () => {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hideFeatureCards, setHideFeatureCards] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showThankYouModal, setShowThankYouModal] = useState(false);
   const featureCardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -109,6 +110,13 @@ const Home = () => {
 
   // Helper for all "Request a Demo" buttons
   const handleDemoClick = () => setShowDemoModal(true);
+
+  // Handle demo form submit
+  const handleDemoFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowDemoModal(false);
+    setShowThankYouModal(true);
+  };
 
   return (
     <div className="">
@@ -481,7 +489,7 @@ const Home = () => {
       {/* DaisyUI Modal using modal/modal-open classes */}
       {showDemoModal && (
         <div className="modal modal-open backdrop-blur-md">
-          <div className="modal-box max-w-2xl  py-5 px-10 relative">
+          <div className="modal-box max-w-2xl py-5 px-10 relative">
             {/* Close icon at top right */}
             <button
               className="btn btn-sm btn-circle absolute right-4 top-4"
@@ -494,7 +502,7 @@ const Home = () => {
             <h2 className="text-3xl font-bold text-center mb-10">
               Unlock our product demo
             </h2>
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleDemoFormSubmit}>
               <div className="flex gap-6">
                 <div className="flex-1">
                   <label className="block font-medium mb-2">
@@ -598,6 +606,33 @@ const Home = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Thank You Modal */}
+      {showThankYouModal && (
+        <div className="modal modal-open backdrop-blur-md">
+          <div className="modal-box max-w-3xl py-8 px-8 relative">
+            <button
+              className="btn btn-sm btn-circle absolute right-4 top-4"
+              onClick={() => setShowThankYouModal(false)}
+              aria-label="Close"
+              type="button"
+            >
+              ✕
+            </button>
+            <h3 className="font-bold text-6xl mb-4">Thank you!</h3>
+            <p className="mb-6 text-neutral-500">
+              An OnSite360 member will contact you to schedule the product demo.
+            </p>
+            <div className="flex justify-end">
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowThankYouModal(false)}
+              >
+                Go to Home
+              </button>
+            </div>
           </div>
         </div>
       )}
