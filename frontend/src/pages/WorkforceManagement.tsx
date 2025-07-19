@@ -352,20 +352,6 @@ const WorkforceManagement = () => {
   // Helper: is selected date today?
   const isToday = attendanceDate === todayStr;
 
-  // Early return for loading states to prevent render errors
-  if (projectsLoading || crewMembersLoading || attendanceLoading) {
-    return (
-      <div className="p-8">
-        <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-          <div className="text-center py-8">
-            <div className="loading loading-spinner loading-lg"></div>
-            <p className="mt-2">Loading workforce data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Handler for attendance change
   const handleAttendanceChange = (workerId: string, status: string) => {
     setAttendanceState((prev) => ({
@@ -663,6 +649,25 @@ const WorkforceManagement = () => {
           </div>
         </div>
 
+        {/* Main content area - show loading contextually */}
+        {(projectsLoading || crewMembersLoading || attendanceLoading) ? (
+          <div className="bg-base-100 rounded-lg p-8">
+            <div className="flex items-center justify-center min-h-[300px]">
+              <div className="text-center">
+                <span className="loading loading-spinner loading-lg text-primary"></span>
+                <p className="mt-4 text-gray-500">
+                  {projectsLoading ? "Loading projects..." :
+                   crewMembersLoading ? "Loading crew members..." :
+                   attendanceLoading ? "Loading attendance data..." :
+                   "Loading workforce data..."}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Workforce content */}
+        
         {/* Add Worker Modal */}
         {showAddWorker && (
           <div className="modal modal-open">
@@ -1674,6 +1679,8 @@ const WorkforceManagement = () => {
           <div className="text-center py-8">
             <p className="text-gray-500">No workers match your current search criteria.</p>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
