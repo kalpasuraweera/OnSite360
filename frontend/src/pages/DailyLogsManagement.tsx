@@ -32,7 +32,7 @@ import {
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
 
-type DailyLogTab = "view_all" | "view_specific" | "add_log";
+type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
 export default function DailyLogsManagement() {
   // Tab state
@@ -41,6 +41,9 @@ export default function DailyLogsManagement() {
   // Project selection
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
+  
+  // Selected log for details view
+  const [selectedLogForDetails, setSelectedLogForDetails] = useState<DailyLog | null>(null);
   
   // Modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -293,6 +296,12 @@ export default function DailyLogsManagement() {
     }
   };
 
+  // Handle viewing log details
+  const handleViewLogDetails = (log: DailyLog) => {
+    setSelectedLogForDetails(log);
+    setActiveTab("view_details");
+  };
+
   // Check if projects is available and is an array
   const hasProjects = Array.isArray(projects) && projects.length > 0;
 
@@ -353,21 +362,21 @@ export default function DailyLogsManagement() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
         <div className="tabs tabs-boxed bg-transparent p-2">
           <button
-            className={`tab tab-lg gap-2 ${activeTab === "view_all" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
+            className={`tab gap-2 ${activeTab === "view_all" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             onClick={() => setActiveTab("view_all")}
           >
             <MdVisibility />
-            View All Logs
+            All Logs
           </button>
           <button
-            className={`tab tab-lg gap-2 ${activeTab === "view_specific" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
+            className={`tab gap-2 ${activeTab === "view_specific" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             onClick={() => setActiveTab("view_specific")}
           >
             <MdSearch />
-            View Specific Date
+            By Date
           </button>
           <button
-            className={`tab tab-lg gap-2 ${activeTab === "add_log" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
+            className={`tab gap-2 ${activeTab === "add_log" ? "tab-active bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             onClick={() => {
               setActiveTab("add_log");
               setEditingLog(null);
@@ -382,8 +391,17 @@ export default function DailyLogsManagement() {
             }}
           >
             <MdAdd />
-            Add Daily Log
+            Add Log
           </button>
+          {selectedLogForDetails && (
+            <button
+              className={`tab gap-2 ${activeTab === "view_details" ? "tab-active bg-indigo-500 text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("view_details")}
+            >
+              <MdVisibility />
+              Log Details
+            </button>
+          )}
         </div>
       </div>
 
@@ -480,126 +498,21 @@ export default function DailyLogsManagement() {
                         Logged by {log.logger.firstName} {log.logger.lastName} • {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
                       </div>
 
-                      {/* Activities Section */}
-                      <div className="border-t border-base-300 pt-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex items-center gap-2">
-                            <MdWork className="text-blue-600" />
-                            <h4 className="font-semibold text-gray-700">Activities</h4>
-                            {log.activities && log.activities.length > 0 && (
-                              <span className="badge badge-neutral badge-sm">{log.activities.length}</span>
-                            )}
-                          </div>
-                          {user && user.id === log.loggedById && (
-                            <button
-                              className="btn btn-xs btn-primary"
-                              onClick={() => handleAddActivity(log)}
-                            >
-                              <MdAdd className="mr-1" />
-                              Add Activity
-                            </button>
-                          )}
-                        </div>
-                        {log.activities && log.activities.length > 0 ? (
-                          <div className="space-y-3">
-                            {log.activities.map((activity) => (
-                              <div
-                                key={activity.id}
-                                className="flex items-start justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="font-medium text-gray-800">
-                                      {activity.activity}
-                                    </span>
-                                    {activity.status && (
-                                      <span
-                                        className={`badge badge-sm ${
-                                          activity.status === "COMPLETED"
-                                            ? "badge-success"
-                                            : activity.status === "IN_PROGRESS"
-                                            ? "badge-warning"
-                                            : activity.status === "ON_HOLD"
-                                            ? "badge-error"
-                                            : "badge-ghost"
-                                        }`}
-                                      >
-                                        {activity.status.replace("_", " ")}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-4 text-xs text-gray-500 mb-2">
-                                    {activity.startTime && activity.endTime && (
-                                      <div className="flex items-center gap-1">
-                                        <MdAccessTime className="text-gray-400" />
-                                        <span>
-                                          {moment(activity.startTime).format('HH:mm')} -{" "}
-                                          {moment(activity.endTime).format('HH:mm')}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {activity.progress !== undefined && activity.progress !== null && (
-                                      <span className="font-medium">{activity.progress}% complete</span>
-                                    )}
-                                  </div>
-                                  {activity.progress !== undefined && activity.progress !== null && (
-                                    <div className="mb-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                          <div 
-                                            className={`h-2 rounded-full transition-all duration-300 ${
-                                              activity.status === 'COMPLETED' ? 'bg-green-500' :
-                                              activity.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                                              'bg-gray-400'
-                                            }`}
-                                            style={{ width: `${activity.progress}%` }}
-                                          ></div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {activity.notes && (
-                                    <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded mt-2">
-                                      {activity.notes}
-                                    </p>
-                                  )}
-                                </div>
-                                {user && user.id === log.loggedById && (
-                                  <div className="flex gap-1 ml-4">
-                                    <button
-                                      className="btn btn-xs btn-ghost hover:btn-info"
-                                      onClick={() => handleEditActivity(activity)}
-                                      title="Edit Activity"
-                                    >
-                                      <MdEdit />
-                                    </button>
-                                    <button
-                                      className="btn btn-xs btn-ghost hover:btn-error text-error"
-                                      onClick={() => handleDeleteActivity(activity.id)}
-                                      title="Delete Activity"
-                                    >
-                                      <MdDelete />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                            <MdWork className="mx-auto text-3xl text-gray-300 mb-2" />
-                            <p className="text-sm">No activities recorded for this log.</p>
-                            {user && user.id === log.loggedById && (
-                              <button
-                                className="btn btn-sm btn-ghost btn-outline mt-2"
-                                onClick={() => handleAddActivity(log)}
-                              >
-                                <MdAdd className="mr-1" />
-                                Add First Activity
-                              </button>
-                            )}
+                      {/* Quick Summary */}
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        {log.activities && log.activities.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <MdWork className="text-blue-500" />
+                            <span>{log.activities.length} activities</span>
                           </div>
                         )}
+                        <button
+                          className="btn btn-sm btn-outline btn-primary"
+                          onClick={() => handleViewLogDetails(log)}
+                        >
+                          <MdVisibility className="mr-1" />
+                          View Details
+                        </button>
                       </div>
                     </div>
                     
@@ -607,12 +520,14 @@ export default function DailyLogsManagement() {
                       <button
                         className="btn btn-sm btn-outline"
                         onClick={() => handleEditLog(log)}
+                        title="Edit Log"
                       >
                         <MdEdit />
                       </button>
                       <button
                         className="btn btn-sm btn-error btn-outline"
                         onClick={() => handleDeleteLog(log)}
+                        title="Delete Log"
                       >
                         <MdDelete />
                       </button>
@@ -717,126 +632,21 @@ export default function DailyLogsManagement() {
                             Logged by {log.logger.firstName} {log.logger.lastName} • {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
                           </div>
 
-                          {/* Activities Section */}
-                          <div className="border-t border-base-300 pt-4">
-                            <div className="flex justify-between items-center mb-3">
-                              <div className="flex items-center gap-2">
-                                <MdWork className="text-blue-600" />
-                                <h4 className="font-semibold text-gray-700">Activities</h4>
-                                {log.activities && log.activities.length > 0 && (
-                                  <span className="badge badge-neutral badge-sm">{log.activities.length}</span>
-                                )}
-                              </div>
-                              {user && user.id === log.loggedById && (
-                                <button
-                                  className="btn btn-xs btn-primary"
-                                  onClick={() => handleAddActivity(log)}
-                                >
-                                  <MdAdd className="mr-1" />
-                                  Add Activity
-                                </button>
-                              )}
-                            </div>
-                            {log.activities && log.activities.length > 0 ? (
-                              <div className="space-y-3">
-                                {log.activities.map((activity) => (
-                                  <div
-                                    key={activity.id}
-                                    className="flex items-start justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                                  >
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-medium text-gray-800">
-                                          {activity.activity}
-                                        </span>
-                                        {activity.status && (
-                                          <span
-                                            className={`badge badge-sm ${
-                                              activity.status === "COMPLETED"
-                                                ? "badge-success"
-                                                : activity.status === "IN_PROGRESS"
-                                                ? "badge-warning"
-                                                : activity.status === "ON_HOLD"
-                                                ? "badge-error"
-                                                : "badge-ghost"
-                                            }`}
-                                          >
-                                            {activity.status.replace("_", " ")}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="flex gap-4 text-xs text-gray-500 mb-2">
-                                        {activity.startTime && activity.endTime && (
-                                          <div className="flex items-center gap-1">
-                                            <MdAccessTime className="text-gray-400" />
-                                            <span>
-                                              {moment(activity.startTime).format('HH:mm')} -{" "}
-                                              {moment(activity.endTime).format('HH:mm')}
-                                            </span>
-                                          </div>
-                                        )}
-                                        {activity.progress !== undefined && activity.progress !== null && (
-                                          <span className="font-medium">{activity.progress}% complete</span>
-                                        )}
-                                      </div>
-                                      {activity.progress !== undefined && activity.progress !== null && (
-                                        <div className="mb-2">
-                                          <div className="flex items-center gap-2">
-                                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                              <div 
-                                                className={`h-2 rounded-full transition-all duration-300 ${
-                                                  activity.status === 'COMPLETED' ? 'bg-green-500' :
-                                                  activity.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                                                  'bg-gray-400'
-                                                }`}
-                                                style={{ width: `${activity.progress}%` }}
-                                              ></div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {activity.notes && (
-                                        <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded mt-2">
-                                          {activity.notes}
-                                        </p>
-                                      )}
-                                    </div>
-                                    {user && user.id === log.loggedById && (
-                                      <div className="flex gap-1 ml-4">
-                                        <button
-                                          className="btn btn-xs btn-ghost hover:btn-info"
-                                          onClick={() => handleEditActivity(activity)}
-                                          title="Edit Activity"
-                                        >
-                                          <MdEdit />
-                                        </button>
-                                        <button
-                                          className="btn btn-xs btn-ghost hover:btn-error text-error"
-                                          onClick={() => handleDeleteActivity(activity.id)}
-                                          title="Delete Activity"
-                                        >
-                                          <MdDelete />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                                <MdWork className="mx-auto text-3xl text-gray-300 mb-2" />
-                                <p className="text-sm">No activities recorded for this log.</p>
-                                {user && user.id === log.loggedById && (
-                                  <button
-                                    className="btn btn-sm btn-ghost btn-outline mt-2"
-                                    onClick={() => handleAddActivity(log)}
-                                  >
-                                    <MdAdd className="mr-1" />
-                                    Add First Activity
-                                  </button>
-                                )}
+                          {/* Quick Summary */}
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            {log.activities && log.activities.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <MdWork className="text-blue-500" />
+                                <span>{log.activities.length} activities</span>
                               </div>
                             )}
+                            <button
+                              className="btn btn-sm btn-outline btn-primary"
+                              onClick={() => handleViewLogDetails(log)}
+                            >
+                              <MdVisibility className="mr-1" />
+                              View Details
+                            </button>
                           </div>
                         </div>
                         
@@ -844,12 +654,14 @@ export default function DailyLogsManagement() {
                           <button
                             className="btn btn-sm btn-outline"
                             onClick={() => handleEditLog(log)}
+                            title="Edit Log"
                           >
                             <MdEdit />
                           </button>
                           <button
                             className="btn btn-sm btn-error btn-outline"
                             onClick={() => handleDeleteLog(log)}
+                            title="Delete Log"
                           >
                             <MdDelete />
                           </button>
@@ -996,6 +808,247 @@ export default function DailyLogsManagement() {
               )}
             </div>
           </form>
+        </div>
+      )}
+
+      {activeTab === "view_details" && selectedLogForDetails && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          {/* Header with back button */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setActiveTab("view_all")}
+              >
+                ← Back to All Logs
+              </button>
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="bg-indigo-100 p-2 rounded-lg">
+                  <MdVisibility className="text-indigo-600" />
+                </div>
+                Log Details - {moment(selectedLogForDetails.date).format("MMMM D, YYYY")}
+              </h2>
+            </div>
+            
+            {/* Edit/Delete buttons for the log */}
+            {user && user.id === selectedLogForDetails.loggedById && (
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline"
+                  onClick={() => handleEditLog(selectedLogForDetails)}
+                >
+                  <MdEdit className="mr-1" />
+                  Edit Log
+                </button>
+                <button
+                  className="btn btn-sm btn-error btn-outline"
+                  onClick={() => handleDeleteLog(selectedLogForDetails)}
+                >
+                  <MdDelete className="mr-1" />
+                  Delete Log
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Log Information */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-blue-100 p-3 rounded-xl">
+                <MdCalendarToday className="text-blue-600 text-lg" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  {moment(selectedLogForDetails.date).format("MMMM D, YYYY")}
+                </h3>
+                <span className="badge badge-outline badge-lg">
+                  {moment(selectedLogForDetails.date).format("dddd")}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {selectedLogForDetails.weather && (
+                <div className="flex items-center gap-2">
+                  <MdWbSunny className="text-orange-500" />
+                  <span className="text-sm font-medium text-gray-600">Weather:</span>
+                  <span className="text-sm">{selectedLogForDetails.weather}</span>
+                </div>
+              )}
+              {selectedLogForDetails.workersPresent !== null && selectedLogForDetails.workersPresent !== undefined && (
+                <div className="flex items-center gap-2">
+                  <MdPeople className="text-blue-500" />
+                  <span className="text-sm font-medium text-gray-600">Workers:</span>
+                  <span className="text-sm">{selectedLogForDetails.workersPresent}</span>
+                </div>
+              )}
+              {selectedLogForDetails.workHours !== null && selectedLogForDetails.workHours !== undefined && (
+                <div className="flex items-center gap-2">
+                  <MdAccessTime className="text-green-500" />
+                  <span className="text-sm font-medium text-gray-600">Work Hours:</span>
+                  <span className="text-sm">{selectedLogForDetails.workHours}h</span>
+                </div>
+              )}
+            </div>
+
+            {selectedLogForDetails.notes && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MdNotes className="text-purple-500" />
+                  <span className="text-sm font-medium text-gray-600">Notes:</span>
+                </div>
+                <p className="text-sm text-gray-700 bg-white p-3 rounded">{selectedLogForDetails.notes}</p>
+              </div>
+            )}
+
+            <div className="text-xs text-gray-500">
+              Logged by {selectedLogForDetails.logger.firstName} {selectedLogForDetails.logger.lastName} • {moment(selectedLogForDetails.createdAt).format("MMM D, YYYY [at] h:mm A")}
+            </div>
+          </div>
+
+          {/* Activities Section */}
+          <div className="bg-gray-50 rounded-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <MdWork className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Activities</h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedLogForDetails.activities && selectedLogForDetails.activities.length > 0 
+                      ? `${selectedLogForDetails.activities.length} activities recorded`
+                      : "No activities recorded yet"
+                    }
+                  </p>
+                </div>
+              </div>
+              {user && user.id === selectedLogForDetails.loggedById && (
+                <button
+                  className="btn btn-primary gap-2"
+                  onClick={() => handleAddActivity(selectedLogForDetails)}
+                >
+                  <MdAdd />
+                  Add Activity
+                </button>
+              )}
+            </div>
+            
+            {selectedLogForDetails.activities && selectedLogForDetails.activities.length > 0 ? (
+              <div className="space-y-4">
+                {selectedLogForDetails.activities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <h4 className="text-lg font-semibold text-gray-800">
+                            {activity.activity}
+                          </h4>
+                          {activity.status && (
+                            <span
+                              className={`badge ${
+                                activity.status === "COMPLETED"
+                                  ? "badge-success"
+                                  : activity.status === "IN_PROGRESS"
+                                  ? "badge-warning"
+                                  : activity.status === "ON_HOLD"
+                                  ? "badge-error"
+                                  : "badge-ghost"
+                              }`}
+                            >
+                              {activity.status.replace("_", " ")}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          {activity.startTime && activity.endTime && (
+                            <div className="flex items-center gap-2">
+                              <MdAccessTime className="text-gray-400" />
+                              <span className="text-sm text-gray-600">
+                                {moment(activity.startTime).format('HH:mm')} - {moment(activity.endTime).format('HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                          {activity.progress !== undefined && activity.progress !== null && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600 font-medium">
+                                Progress: {activity.progress}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {activity.progress !== undefined && activity.progress !== null && (
+                          <div className="mb-4">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                <div 
+                                  className={`h-3 rounded-full transition-all duration-300 ${
+                                    activity.status === 'COMPLETED' ? 'bg-green-500' :
+                                    activity.status === 'IN_PROGRESS' ? 'bg-blue-500' :
+                                    'bg-gray-400'
+                                  }`}
+                                  style={{ width: `${activity.progress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {activity.notes && (
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <MdNotes className="text-gray-400" />
+                              <span className="text-sm font-medium text-gray-600">Notes:</span>
+                            </div>
+                            <p className="text-sm text-gray-700">{activity.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {user && user.id === selectedLogForDetails.loggedById && (
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            className="btn btn-sm btn-outline hover:btn-info"
+                            onClick={() => handleEditActivity(activity)}
+                            title="Edit Activity"
+                          >
+                            <MdEdit />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline btn-error hover:btn-error"
+                            onClick={() => handleDeleteActivity(activity.id)}
+                            title="Delete Activity"
+                          >
+                            <MdDelete />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <MdWork className="mx-auto text-5xl text-gray-300 mb-4" />
+                <h4 className="text-lg font-semibold text-gray-600 mb-2">No Activities Yet</h4>
+                <p className="text-gray-500 mb-6">Start by adding the first activity for this daily log.</p>
+                {user && user.id === selectedLogForDetails.loggedById && (
+                  <button
+                    className="btn btn-primary gap-2"
+                    onClick={() => handleAddActivity(selectedLogForDetails)}
+                  >
+                    <MdAdd />
+                    Add First Activity
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
