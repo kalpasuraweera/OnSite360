@@ -1,5 +1,13 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import {
+  FaUsers,
+  FaCalendarAlt,
+  FaClipboardList,
+  FaHardHat,
+  FaFileAlt,
+} from "react-icons/fa";
+
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
     "Manage your workforce efficiently and track employee progress.",
@@ -109,11 +117,31 @@ const Home = () => {
 
   // Feature cards data
   const featureCards = [
-    { title: "Employee Management" },
-    { title: "Schedule Management" },
-    { title: "Project Oversight" },
-    { title: "Workforce Management" },
-    { title: "Document Management" },
+    {
+      title: "Employee Management",
+      icon: <FaUsers size={48} color="#eab308" />, // blue
+      color: "#eab308",
+    },
+    {
+      title: "Schedule Management",
+      icon: <FaCalendarAlt size={48} color="#f59e42" />, // green
+      color: "#f59e42",
+    },
+    {
+      title: "Project Oversight",
+      icon: <FaClipboardList size={48} color="#eab308" />, // purple
+      color: "#eab308",
+    },
+    {
+      title: "Workforce Management",
+      icon: <FaHardHat size={48} color="#f59e42" />, // orange
+      color: "#f59e42",
+    },
+    {
+      title: "Document Management",
+      icon: <FaFileAlt size={48} color="#eab308" />, // yellow
+      color: "#eab308",
+    },
   ];
 
   // Dashboard screenshots
@@ -333,12 +361,16 @@ const Home = () => {
             onMouseEnter={() => setHoveredCard(idx)}
             onMouseLeave={() => setHoveredCard(null)}
           >
+            <div className="mb-2">{card.icon}</div>
             {hoveredCard === idx ? (
               <div className="text-sm text-neutral-500 text-center mt-2">
                 {featureCardDescriptions[card.title]}
               </div>
             ) : (
-              <div className="font-bold text-[#e8b703] text-lg md:text-xl mb-1">
+              <div
+                className="font-bold text-lg md:text-xl mb-1"
+                style={{ color: card.color }}
+              >
                 {card.title}
               </div>
             )}
