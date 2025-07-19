@@ -264,7 +264,6 @@ export interface UpdateIssueDto {
   severity?: string;
   status?: string;
   location?: string;
-  reportedBy?: string;
   taggedUserIds?: string[];
   dueDate?: string;
   resolution?: string;

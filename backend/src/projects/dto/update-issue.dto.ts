@@ -59,13 +59,6 @@ export class UpdateIssueDto extends PartialType(CreateIssueDto) {
   @IsOptional()
   location?: string;
 
-  @ApiPropertyOptional({
-    description: 'Name of the person who reported the issue',
-  })
-  @IsString()
-  @IsOptional()
-  reportedBy?: string;
-
   @ApiPropertyOptional({ description: 'User IDs to tag for notifications' })
   @IsArray()
   @IsOptional()

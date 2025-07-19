@@ -1333,6 +1333,7 @@ export class ProjectsService {
       );
     }
 
+    // Extract fields that shouldn't be updated and the rest of the data
     const { taggedUserIds, attachmentIds, ...issueData } = updateIssueDto;
 
     // Prepare update data
@@ -1342,6 +1343,7 @@ export class ProjectsService {
       category?: string;
       severity?: string;
       status?: string;
+      location?: string;
       resolution?: string;
       dueDate?: Date;
       resolvedAt?: Date;

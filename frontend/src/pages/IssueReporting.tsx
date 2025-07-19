@@ -264,7 +264,6 @@ const IssueReporting = () => {
         severity: formData.get("severity") as string,
         status: formData.get("status") as string,
         location: formData.get("location") as string || undefined,
-        reportedBy: formData.get("reportedBy") as string,
         taggedUserIds: editSelectedTaggedUsers.map(id => id.toString()),
         dueDate: formData.get("dueDate") as string || undefined,
         resolution: formData.get("resolution") as string || undefined,
