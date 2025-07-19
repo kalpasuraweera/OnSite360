@@ -1,1274 +1,672 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdCalendarToday, MdVisibility } from "react-icons/md";
+import moment from "moment";
+import { useAuthStore } from "../stores/useAuthStore";
+import { useUserProjects } from "../hooks/useUsers";
+import {
+  useDailyLogs,
+  useDailyLogsByDate,
+  useCreateDailyLog,
+  useUpdateDailyLog,
+  useDeleteDailyLog,
+  type DailyLog,
+  type CreateDailyLogDto,
+  type UpdateDailyLogDto,
+} from "../hooks/useSchedule";
 
-const dummyLogs = [
-	{
-		id: "2024-01-14",
-		date: "2024-01-14",
-		weather: "Cloudy, 42°F",
-		crewCount: 24,
-		work: "Light rain, minor electrical work on Floor 2.",
-		issues: "None",
-		status: "Submitted",
-	},
-	{
-		id: "2024-01-13",
-		date: "2024-01-13",
-		weather: "Light rain, 38°F",
-		crewCount: 20,
-		work: "Material delivery and site prep.",
-		issues: "Short delay due to rain.",
-		status: "Submitted",
-	},
-	{
-		id: "2024-01-12",
-		date: "2024-01-12",
-		weather: "Clear, 48°F",
-		crewCount: 22,
-		work: "Foundation work completed.",
-		issues: "None",
-		status: "Submitted",
-	},
-];
-
-const dummyTasks = [
-	{
-		id: "t1",
-		title: "Foundation Pour - Building A",
-		team: "Team Alpha",
-		progress: 85,
-		status: "In Progress",
-		priority: "High",
-	},
-	{
-		id: "t2",
-		title: "Electrical Rough-in - Floor 2",
-		team: "ElectriCorp",
-		progress: 60,
-		status: "In Progress",
-		priority: "Medium",
-	},
-	{
-		id: "t3",
-		title: "Material Delivery Coordination",
-		team: "Team Beta",
-		progress: 0,
-		status: "Pending",
-		priority: "High",
-	},
-	{
-		id: "t4",
-		title: "Site Cleanup - Area C",
-		team: "Team Gamma",
-		progress: 100,
-		status: "Completed",
-		priority: "Low",
-	},
-];
-
-const dummyCrews = [
-	{
-		id: "c1",
-		name: "Team Alpha",
-		members: ["John Smith", "Mike Wilson", "Dave Brown"],
-		task: "Foundation Work",
-		active: true,
-	},
-	{
-		id: "c2",
-		name: "Team Beta",
-		members: ["Sarah Connor", "Lisa Anderson", "Mary Johnson"],
-		task: "Material Handling",
-		active: true,
-	},
-	{
-		id: "c3",
-		name: "ElectriCorp",
-		members: ["Bob Electric", "Jim Sparks", "Ray Current"],
-		task: "Electrical Work",
-		active: true,
-	},
-];
-
-const attendance = {
-	present: 22,
-	total: 24,
-	hours: 176,
-	absent: [
-		{ name: "Mike Wilson", reason: "Sick Leave" },
-		{ name: "Dave Brown", reason: "Personal" },
-	],
-};
-
-const today = {
-	date: "2024-01-15",
-	day: "Monday",
-	crewCount: 0,
-};
+type DailyLogTab = "view_all" | "view_specific" | "add_log";
 
 export default function DailyLogsManagement() {
-	const [activeTab, setActiveTab] = useState("daily_log");
-	const [work, setWork] = useState("");
-	const [issues, setIssues] = useState("");
-	const [photos, setPhotos] = useState<(string | null)[]>([null, null]);
-	const [recentLogs] = useState(dummyLogs);
-	const [weather, setWeather] = useState(""); // Start as empty string
-	const [crewCount, setCrewCount] = useState(today.crewCount);
+  // Tab state
+  const [activeTab, setActiveTab] = useState<DailyLogTab>("view_all");
+  
+  // Project selection
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  
+  // Modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<DailyLog | null>(null);
+  const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
+  
+  // Form state for adding/editing logs
+  const [logForm, setLogForm] = useState<CreateDailyLogDto>({
+    date: moment().format("YYYY-MM-DD"),
+    projectId: "",
+    weather: "",
+    notes: "",
+    workHours: 0,
+    workersPresent: 0,
+  });
 
-	// New: Track which log's details are open
-	const [openLogId, setOpenLogId] = useState<string | null>(null);
-	const [editLogId, setEditLogId] = useState<string | null>(null);
-	const [editForm, setEditForm] = useState({
-		weather: "",
-		crewCount: 0,
-		work: "",
-		issues: "",
-	});
+  // Get auth user
+  const { user } = useAuthStore();
 
-	// New state for adding photos to tasks
-	const [addPhotoTaskId, setAddPhotoTaskId] = useState<string | null>(null);
-	const [taskPhoto, setTaskPhoto] = useState<string | null>(null);
+  // Fetch projects
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(user?.id || "");
 
-	// Add these states at the top of your component:
-	const [reportIssueTaskId, setReportIssueTaskId] = useState<string | null>(null);
-	const [taskIssueForm, setTaskIssueForm] = useState({
-		type: "Safety Hazard",
-		location: "",
-		description: "",
-		priority: "High - Immediate attention",
-		photos: null as File | null,
-	});
+  // Set default project when projects load
+  useEffect(() => {
+    if (Array.isArray(projects) && projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0].id);
+      setLogForm(prev => ({ ...prev, projectId: projects[0].id }));
+    }
+  }, [projects, selectedProject]);
 
-	// New state for crew management
-	const [openCrewId, setOpenCrewId] = useState<string | null>(null);
-	const [reassignCrewId, setReassignCrewId] = useState<string | null>(null);
-	const [selectedUser, setSelectedUser] = useState("");
-	const [accessLevel, setAccessLevel] = useState("Level 1 (Read Only)");
+  // Fetch all daily logs for selected project
+  const { data: allDailyLogs = [], isLoading: allLogsLoading } = useDailyLogs(selectedProject);
 
-	// Example user list for the dropdown (replace with your real users)
-	const users = [
-		"Choose a user",
-		"John Smith",
-		"Mike Wilson",
-		"Dave Brown",
-		"Sarah Connor",
-		"Lisa Anderson",
-		"Mary Johnson",
-		"Bob Electric",
-		"Jim Sparks",
-		"Ray Current",
-	];
+  // Fetch daily logs for specific date
+  const { data: specificDateLogs = [], isLoading: specificLogsLoading } = useDailyLogsByDate(
+    selectedProject,
+    selectedDate
+  );
 
-	// Handle photo upload (mock)
+  // Mutations
+  const createLogMutation = useCreateDailyLog();
+  const updateLogMutation = useUpdateDailyLog();
+  const deleteLogMutation = useDeleteDailyLog();
 
-	const handleEditClick = (log: typeof dummyLogs[0]) => {
-		setEditForm({
-			weather: log.weather,
-			crewCount: log.crewCount,
-			work: log.work,
-			issues: log.issues,
-		});
-		setEditLogId(log.id);
-	};
+  // Handle form changes
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setLogForm(prev => ({
+      ...prev,
+      [name]: name === "workHours" || name === "workersPresent" ? Number(value) : value,
+    }));
+  };
 
-	const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-		const { name, value } = e.target;
-		setEditForm((prev) => ({
-			...prev,
-			[name]: name === "crewCount" ? Number(value) : value,
-		}));
-	};
+  // Handle project change
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProject(projectId);
+    setLogForm(prev => ({ ...prev, projectId }));
+  };
 
-	const handleEditSave = () => {
-		// Here you would update the log in your backend or state
-		// For demo, just close the popup
-		setEditLogId(null);
-	};
+  // Handle form submit for adding/editing log
+  const handleLogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
 
-	const handleEditCancel = () => {
-		setEditLogId(null);
-	};
+    try {
+      if (editingLog) {
+        const updateData: UpdateDailyLogDto = {
+          date: logForm.date,
+          weather: logForm.weather,
+          notes: logForm.notes,
+          workHours: logForm.workHours,
+          workersPresent: logForm.workersPresent,
+        };
+        await updateLogMutation.mutateAsync({ id: editingLog.id, log: updateData });
+      } else {
+        await createLogMutation.mutateAsync(logForm);
+      }
+      
+      // Reset form
+      setLogForm({
+        date: moment().format("YYYY-MM-DD"),
+        projectId: selectedProject,
+        weather: "",
+        notes: "",
+        workHours: 0,
+        workersPresent: 0,
+      });
+      setEditingLog(null);
+      setActiveTab("view_all");
+    } catch (error) {
+      console.error("Error saving log:", error);
+    }
+  };
 
-	// Handler for form changes
-	const handleTaskIssueChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-		const { name, value } = e.target;
-		setTaskIssueForm((prev) => ({
-			...prev,
-			[name]: value,
-		}));
-	};
+  // Handle edit log
+  const handleEditLog = (log: DailyLog) => {
+    setEditingLog(log);
+    setLogForm({
+      date: moment(log.date).format("YYYY-MM-DD"),
+      projectId: log.projectId,
+      weather: log.weather || "",
+      notes: log.notes || "",
+      workHours: log.workHours || 0,
+      workersPresent: log.workersPresent || 0,
+    });
+    setActiveTab("add_log");
+  };
 
-	// Handler for photo upload
-	const handleTaskIssuePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0] || null;
-		setTaskIssueForm((prev) => ({
-			...prev,
-			photos: file,
-		}));
-	};
+  // Handle delete log
+  const handleDeleteLog = (log: DailyLog) => {
+    setLogToDelete(log);
+    setShowDeleteModal(true);
+  };
 
-	// Handler for submit (demo: just close popup)
-	const handleTaskIssueSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		setReportIssueTaskId(null);
-		// You can add logic to save the issue here
-	};
+  const confirmDeleteLog = async () => {
+    if (!logToDelete) return;
+    
+    try {
+      await deleteLogMutation.mutateAsync(logToDelete.id);
+      setShowDeleteModal(false);
+      setLogToDelete(null);
+    } catch (error) {
+      console.error("Error deleting log:", error);
+    }
+  };
 
-	// Add this state at the top of your component:
-	const [checkedInCrews, setCheckedInCrews] = useState<string[]>([]);
-	const [showAttendancePopup, setShowAttendancePopup] = useState(false);
-	const [showTimesheetPopup, setShowTimesheetPopup] = useState(false);
-	const [showBriefingPopup, setShowBriefingPopup] = useState(false);
+  // Check if projects is available and is an array
+  const hasProjects = Array.isArray(projects) && projects.length > 0;
 
-	// New state for safety checklist details
-	const [openSafetyChecklistId, setOpenSafetyChecklistId] = useState<string | null>(null);
+  // If no projects available, show a message
+  if (!projectsLoading && !hasProjects) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-600 mb-4">No Projects Available</h2>
+          <p className="text-gray-500">You need to be assigned to a project to view daily logs.</p>
+        </div>
+      </div>
+    );
+  }
 
-	// Add this state at the top of your component, with the other useState hooks:
-	const [openIssueId, setOpenIssueId] = useState<string | null>(null);
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Daily Logs Management</h1>
+          <p className="text-gray-500">Track and manage daily project activities</p>
+        </div>
+        
+        {/* Project Selection */}
+        {hasProjects && (
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium">Project:</label>
+            <select
+              className="select select-bordered"
+              value={selectedProject}
+              onChange={(e) => handleProjectChange(e.target.value)}
+            >
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
+      {/* Tabs */}
+      <div className="tabs tabs-bordered mb-6">
+        <button
+          className={`tab text-base ${activeTab === "view_all" ? "tab-active font-bold" : ""}`}
+          onClick={() => setActiveTab("view_all")}
+        >
+          <MdVisibility className="mr-2" />
+          View All Logs
+        </button>
+        <button
+          className={`tab text-base ${activeTab === "view_specific" ? "tab-active font-bold" : ""}`}
+          onClick={() => setActiveTab("view_specific")}
+        >
+          <MdSearch className="mr-2" />
+          View Specific Date
+        </button>
+        <button
+          className={`tab text-base ${activeTab === "add_log" ? "tab-active font-bold" : ""}`}
+          onClick={() => {
+            setActiveTab("add_log");
+            setEditingLog(null);
+            setLogForm({
+              date: moment().format("YYYY-MM-DD"),
+              projectId: selectedProject,
+              weather: "",
+              notes: "",
+              workHours: 0,
+              workersPresent: 0,
+            });
+          }}
+        >
+          <MdAdd className="mr-2" />
+          Add Daily Log
+        </button>
+      </div>
 
-	return (
-		<div className="p-8">
-			<h1 className="text-3xl font-bold mb-1">Daily Logs Management</h1>
-			<p className="text-gray-500 mb-6">
-				Downtown Office Complex
-			</p>
+      {/* Tab Content */}
+      {activeTab === "view_all" && (
+        <div className="bg-base-100 rounded-2xl p-6 shadow">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">All Daily Logs</h2>
+            <div className="text-sm text-gray-500">
+              {allLogsLoading ? "Loading..." : `${allDailyLogs.length} logs found`}
+            </div>
+          </div>
 
-			{/* Tabs */}
-			<div className="tabs tabs-border mb-4">
-				<button
-					className={`tab text-base ${activeTab === "daily_log" ? "tab-active font-bold" : ""}`}
-					onClick={() => setActiveTab("daily_log")}
-				>
-					Daily Log
-				</button>
-				<button
-					className={`tab text-base ${activeTab === "tasks" ? "tab-active font-bold" : ""}`}
-					onClick={() => setActiveTab("tasks")}
-				>
-					Tasks
-				</button>
-				<button
-					className={`tab text-base ${activeTab === "crew" ? "tab-active font-bold" : ""}`}
-					onClick={() => setActiveTab("crew")}
-				>
-					Crew Management
-				</button>
-				<button
-					className={`tab text-base ${activeTab === "safety" ? "tab-active font-bold" : ""}`}
-					onClick={() => setActiveTab("safety")}
-				>
-					Safety & QA
-				</button>
-				<button
-					className={`tab text-base ${activeTab === "issues" ? "tab-active font-bold" : ""}`}
-					onClick={() => setActiveTab("issues")}
-				>
-					Issues
-				</button>
-			</div>
+          {allLogsLoading ? (
+            <div className="text-center py-8">
+              <div className="loading loading-spinner loading-lg"></div>
+              <p className="mt-4 text-gray-500">Loading daily logs...</p>
+            </div>
+          ) : allDailyLogs.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Daily Logs Found</h3>
+              <p className="text-gray-500 mb-4">Start by creating your first daily log entry.</p>
+              <button
+                className="btn btn-primary"
+                onClick={() => setActiveTab("add_log")}
+              >
+                <MdAdd className="mr-2" />
+                Add Daily Log
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allDailyLogs.map((log) => (
+                <div key={log.id} className="bg-base-200 rounded-lg p-6 border border-base-300">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-3">
+                        <h3 className="text-lg font-semibold">
+                          {moment(log.date).format("MMMM D, YYYY")}
+                        </h3>
+                        <span className="badge badge-neutral">
+                          {moment(log.date).format("dddd")}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {log.weather && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-600">Weather:</span>
+                            <span className="text-sm">{log.weather}</span>
+                          </div>
+                        )}
+                        {log.workersPresent !== null && log.workersPresent !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-600">Workers:</span>
+                            <span className="text-sm">{log.workersPresent}</span>
+                          </div>
+                        )}
+                        {log.workHours !== null && log.workHours !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-600">Work Hours:</span>
+                            <span className="text-sm">{log.workHours}h</span>
+                          </div>
+                        )}
+                      </div>
 
-			{activeTab === "daily_log" && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					{/* Today's Log Entry */}
-					<div className="col-span-2 bg-base-100 rounded-2xl p-6 shadow">
-						<h2 className="text-xl font-bold mb-1">Today's Log Entry</h2>
-						<div className="text-gray-400 mb-4">
-							{today.date} – {today.day}
-						</div>
-						<form className="space-y-4">
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<div>
-									<label className="label">
-										<span className="label-text font-medium">Weather</span>
-									</label>
-									<input
-										className="input input-bordered w-full"
-										value={weather}
-										onChange={(e) => setWeather(e.target.value)}
-									/>
-								</div>
-								<div>
-									<label className="label">
-										<span className="label-text font-medium">Crew Count</span>
-									</label>
-									<div className="flex items-center gap-2">
-										<input
-											className="input input-bordered w-50 text-center"
-											type="number"
-											min={0}
-											value={crewCount}
-											onChange={(e) => setCrewCount(Number(e.target.value))}
-										/>
-									</div>
-								</div>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Work Completed Today</span>
-								</label>
-								<textarea
-									className="textarea textarea-bordered w-full"
-									rows={2}
-									value={work}
-									onChange={(e) => setWork(e.target.value)}
-									placeholder="Describe work completed today..."
-								/>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Issues/Delays</span>
-								</label>
-								<textarea
-									className="textarea textarea-bordered w-full"
-									rows={2}
-									value={issues}
-									onChange={(e) => setIssues(e.target.value)}
-									placeholder="Describe any issues or delays..."
-								/>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Site Photos</span>
-								</label>
-								<div
-									className="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center py-8 cursor-pointer hover:border-primary transition"
-									style={{ minHeight: 140 }}
-									onClick={() => document.getElementById("site-photo-input")?.click()}
-									onDragOver={e => e.preventDefault()}
-									onDrop={e => {
-										e.preventDefault();
-										const file = e.dataTransfer.files?.[0];
-										if (file) {
-											const url = URL.createObjectURL(file);
-											setPhotos([url, ...photos.slice(1)]);
-										}
-									}}
-								>
-									{photos[0] ? (
-										<img
-											src={photos[0]}
-											alt="Site"
-											className="object-contain h-24 mb-2"
-										/>
-									) : (
-										<>
-											<span className="text-4xl text-gray-400 mb-2">
-												<svg xmlns="http://www.w3.org/2000/svg" className="inline" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /></svg>
-											</span>
-											<span className="text-gray-500 text-base">
-												Drag &amp; drop photo here, or click to select
-											</span>
-										</>
-									)}
-									<input
-										id="site-photo-input"
-										type="file"
-										accept="image/*"
-										className="hidden"
-										onChange={e => {
-											const file = e.target.files?.[0];
-											if (file) {
-												const url = URL.createObjectURL(file);
-												setPhotos([url, ...photos.slice(1)]);
-											}
-										}}
-									/>
-								</div>
-							</div>
-							<button type="submit" className="btn btn-primary w-full mt-4">
-								Submit Daily Log
-							</button>
-						</form>
-					</div>
+                      {log.notes && (
+                        <div className="mb-4">
+                          <span className="text-sm font-medium text-gray-600">Notes:</span>
+                          <p className="text-sm text-gray-700 mt-1">{log.notes}</p>
+                        </div>
+                      )}
 
-					{/* Recent Log Entries */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow">
-						<h2 className="text-lg font-bold mb-2">Recent Log Entries</h2>
-						<div className="text-gray-400 mb-2">Previous daily reports</div>
-						<div className="space-y-4">
-							{recentLogs.map((log) => (
-								<div key={log.id} className="p-4 bg-base-200 rounded-lg shadow mb-2">
-									<div className="flex justify-between text-sm text-gray-500 mb-2">
-										<div>{log.date}</div>
-										<div>{log.weather}</div>
-										<div>Crew: {log.crewCount}</div>
-									</div>
-									<div className="text-gray-700 mb-2">
-										<strong>Work:</strong> {log.work}
-									</div>
-									<div className="text-gray-700 mb-2">
-										<strong>Issues:</strong> {log.issues}
-									</div>
-									<div className="flex justify-end gap-2">
-										<button
-											className="btn btn-sm btn-primary"
-											onClick={() => setOpenLogId(openLogId === log.id ? null : log.id)}
-										>
-											{openLogId === log.id ? "Close" : "View"}
-										</button>
-										<button
-											className="btn btn-sm btn-outline"
-											onClick={() => handleEditClick(log)}
-										>
-											Edit
-										</button>
-										<button className="btn btn-sm btn-danger">
-											Delete
-										</button>
-									</div>
-									{openLogId === log.id && (
-										<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-											<h4 className="font-bold mb-2">Log Details</h4>
-											<div><strong>Date:</strong> {log.date}</div>
-											<div><strong>Weather:</strong> {log.weather}</div>
-											<div><strong>Crew Count:</strong> {log.crewCount}</div>
-											<div><strong>Work Completed:</strong> {log.work}</div>
-											<div><strong>Issues/Delays:</strong> {log.issues}</div>
-											<div><strong>Status:</strong> {log.status}</div>
-										</div>
-									)}
-									{/* Edit Popup */}
-									{editLogId === log.id && (
-										<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-											<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
-												<button
-													className="absolute top-2 right-2 text-xl"
-													onClick={handleEditCancel}
-													aria-label="Close"
-												>
-													&times;
-												</button>
-												<h3 className="text-xl font-bold mb-4">Edit Log Entry</h3>
-												<form
-													onSubmit={e => {
-														e.preventDefault();
-														handleEditSave();
-													}}
-													className="space-y-4"
-												>
-													<div>
-														<label className="label">
-															<span className="label-text font-medium">Weather</span>
-														</label>
-														<input
-															className="input input-bordered w-full"
-															name="weather"
-															value={editForm.weather}
-															onChange={handleEditChange}
-														/>
-													</div>
-													<div>
-														<label className="label">
-															<span className="label-text font-medium">Crew Count</span>
-														</label>
-														<input
-															className="input input-bordered w-full"
-															type="number"
-															min={0}
-															name="crewCount"
-															value={editForm.crewCount}
-															onChange={handleEditChange}
-														/>
-													</div>
-													<div>
-														<label className="label">
-															<span className="label-text font-medium">Work Completed</span>
-														</label>
-														<textarea
-															className="textarea textarea-bordered w-full"
-															name="work"
-															value={editForm.work}
-															onChange={handleEditChange}
-														/>
-													</div>
-													<div>
-														<label className="label">
-															<span className="label-text font-medium">Issues/Delays</span>
-														</label>
-														<textarea
-															className="textarea textarea-bordered w-full"
-															name="issues"
-															value={editForm.issues}
-															onChange={handleEditChange}
-														/>
-													</div>
-													<div className="flex justify-end gap-2 mt-4">
-														<button
-															type="button"
-															className="btn btn-outline"
-															onClick={handleEditCancel}
-														>
-															Cancel
-														</button>
-														<button type="submit" className="btn btn-primary">
-															Save Changes
-														</button>
-													</div>
-												</form>
-											</div>
-										</div>
-									)}
-								</div>
-							))}
-						</div>
-					</div>
-				</div>
-			)}
+                      <div className="text-xs text-gray-500">
+                        Logged by {log.logger.firstName} {log.logger.lastName} • {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
+                      </div>
 
-			{activeTab === "tasks" && (
-				<div className="bg-base-100 rounded-2xl p-6 shadow">
-					<h2 className="text-2xl font-bold mb-1">Assigned Tasks</h2>
-					<p className="text-gray-500 mb-6">
-						Current work assignments for your crews
-					</p>
-					<div className="space-y-6">
-						{dummyTasks.map((task) => (
-							<div
-								key={task.id}
-								className="bg-base-200 rounded-xl p-6 shadow flex flex-col gap-2 border border-base-300"
-							>
-								<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-									<div>
-										<div className="font-semibold text-lg">{task.title}</div>
-										<div className="text-sm text-gray-500">{task.team}</div>
-									</div>
-									<div className="flex gap-2">
-										<span
-											className={`badge badge-md ${
-												task.status === "Completed"
-													? "bg-gray-200 text-gray-700"
-													: "bg-black text-white"
-											}`}
-										>
-											{task.status}
-										</span>
-										<span
-											className={`badge badge-md ${
-												task.priority === "High"
-													? "bg-red-400 text-white"
-													: task.priority === "Medium"
-													? "bg-gray-700 text-white"
-													: "bg-gray-200 text-gray-700"
-											}`}
-										>
-											{task.priority}
-										</span>
-									</div>
-								</div>
-								<div className="mt-2 text-sm font-medium">Progress</div>
-								<div className="w-full flex items-center gap-2">
-									<div className="flex-1 bg-gray-200 rounded-full h-2">
-										<div
-											className="bg-blue-600 h-2 rounded-full transition-all"
-											style={{ width: `${task.progress}%` }}
-										></div>
-									</div>
-									<span className="ml-2 text-sm font-semibold text-gray-700">
-										{task.progress}%
-									</span>
-								</div>
-								<div className="flex flex-wrap gap-2 mt-3">
-									<button className="btn btn-outline btn-sm">Update Progress</button>
-									<button
-										className="btn btn-outline btn-sm"
-										onClick={() => setAddPhotoTaskId(addPhotoTaskId === task.id ? null : task.id)}
-									>
-										Add Photos
-									</button>
-									<button
-										className="btn btn-outline btn-sm"
-										onClick={() => setReportIssueTaskId(task.id)}
-									>
-										Report Issue
-									</button>
-								</div>
-								{/* Add Photo Drop Area */}
-								{addPhotoTaskId === task.id && (
-									<div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg mt-4 p-6">
-										<div className="mb-2 font-medium text-gray-700">Featured Photo</div>
-										<div
-											className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-100 py-8 cursor-pointer hover:border-primary transition"
-											style={{ minHeight: 140 }}
-											onClick={() => document.getElementById(`task-photo-input-${task.id}`)?.click()}
-											onDragOver={e => e.preventDefault()}
-											onDrop={e => {
-												e.preventDefault();
-												const file = e.dataTransfer.files?.[0];
-												if (file) {
-													const url = URL.createObjectURL(file);
-													setTaskPhoto(url);
-												}
-											}}
-										>
-											{taskPhoto ? (
-												<img
-													src={taskPhoto}
-													alt="Task Featured"
-													className="object-contain h-24 mb-2"
-												/>
-											) : (
-												<>
-													<span className="text-4xl text-gray-400 mb-2">
-														<svg xmlns="http://www.w3.org/2000/svg" className="inline" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /></svg>
-													</span>
-													<span className="text-gray-500 text-base">
-														Drag &amp; drop photo here, or click to select
-													</span>
-												</>
-											)}
-											<input
-												id={`task-photo-input-${task.id}`}
-												type="file"
-												accept="image/*"
-												className="hidden"
-												onChange={e => {
-													const file = e.target.files?.[0];
-													if (file) {
-														const url = URL.createObjectURL(file);
-														setTaskPhoto(url);
-													}
-												}}
-											/>
-										</div>
-									</div>
-								)}
-								{/* Report Issue Popup */}
-								{reportIssueTaskId === task.id && (
-									<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-										<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg relative">
-											<button
-												className="absolute top-2 right-2 text-xl"
-												onClick={() => setReportIssueTaskId(null)}
-												aria-label="Close"
-											>
-												&times;
-											</button>
-											<h3 className="text-2xl font-bold mb-4">Report New Issue</h3>
-											<form className="space-y-4" onSubmit={handleTaskIssueSubmit}>
-												{/* New Task field, auto-filled and read-only */}
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Task</span>
-													</label>
-													<input
-														className="input input-bordered w-full"
-														name="task"
-														value={task.title}
-														readOnly
-													/>
-												</div>
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Issue Type</span>
-													</label>
-													<select
-														className="select select-bordered w-full"
-														name="type"
-														value={taskIssueForm.type}
-														onChange={handleTaskIssueChange}
-													>
-														<option>Safety Hazard</option>
-														<option>Equipment Failure</option>
-														<option>Material Shortage</option>
-														<option>Other</option>
-													</select>
-												</div>
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Location</span>
-													</label>
-													<input
-														className="input input-bordered w-full"
-														name="location"
-														value={taskIssueForm.location}
-														onChange={handleTaskIssueChange}
-														placeholder="Building A, Floor 2..."
-													/>
-												</div>
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Description</span>
-													</label>
-													<textarea
-														className="textarea textarea-bordered w-full"
-														name="description"
-														rows={3}
-														value={taskIssueForm.description}
-														onChange={handleTaskIssueChange}
-														placeholder="Describe the issue in detail..."
-													/>
-												</div>
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Priority</span>
-													</label>
-													<select
-														className="select select-bordered w-full"
-														name="priority"
-														value={taskIssueForm.priority}
-														onChange={handleTaskIssueChange}
-													>
-														<option>High - Immediate attention</option>
-														<option>Medium</option>
-														<option>Low</option>
-													</select>
-												</div>
-												<div>
-													<label className="label">
-														<span className="label-text font-medium">Photos</span>
-													</label>
-													<div className="flex items-center gap-2">
-														<input
-															type="file"
-															className="file-input file-input-bordered w-full"
-															onChange={handleTaskIssuePhoto}
-														/>
-														<span className="text-gray-400">Add Photos</span>
-													</div>
-												</div>
-												<button type="submit" className="btn bg-black text-white w-full font-bold mt-2">
-													Submit Issue Report
-												</button>
-											</form>
-										</div>
-									</div>
-								)}
-							</div>
-						))}
-					</div>
-				</div>
-			)}
+                      {log.activities && log.activities.length > 0 && (
+                        <div className="mt-4">
+                          <span className="text-sm font-medium text-gray-600">Activities ({log.activities.length}):</span>
+                          <div className="mt-2 space-y-2">
+                            {log.activities.map((activity) => (
+                              <div key={activity.id} className="text-sm bg-white p-3 rounded border">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">{activity.activity}</span>
+                                  <span className={`badge badge-sm ${
+                                    activity.status === 'COMPLETED' ? 'badge-success' :
+                                    activity.status === 'IN_PROGRESS' ? 'badge-warning' :
+                                    activity.status === 'ON_HOLD' ? 'badge-error' :
+                                    'badge-neutral'
+                                  }`}>
+                                    {activity.status.replace('_', ' ')}
+                                  </span>
+                                </div>
+                                {activity.progress !== null && activity.progress !== undefined && (
+                                  <div className="mt-1">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div 
+                                          className="bg-primary h-2 rounded-full" 
+                                          style={{ width: `${activity.progress}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-xs">{activity.progress}%</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => handleEditLog(log)}
+                      >
+                        <MdEdit />
+                      </button>
+                      <button
+                        className="btn btn-sm btn-error btn-outline"
+                        onClick={() => handleDeleteLog(log)}
+                      >
+                        <MdDelete />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-			{activeTab === "crew" && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					{/* Crew Assignments */}
-					<div className="col-span-2 bg-base-100 rounded-2xl p-6 shadow">
-						<h2 className="text-2xl font-bold mb-1">Crew Assignments</h2>
-						<p className="text-gray-500 mb-6">
-							Manage team assignments and tasks
-						</p>
-						<div className="space-y-6">
-							{dummyCrews.map((crew) => (
-								<div
-									key={crew.id}
-									className="bg-base-200 rounded-xl p-6 border border-base-300 flex flex-col gap-2 relative"
-								>
-									<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-										<div>
-											<div className="font-semibold text-lg">{crew.name}</div>
-											<div className="text-sm text-gray-500">
-												{crew.members.length} members • {crew.task}
-											</div>
-											<div className="text-xs text-gray-500">
-												{crew.members.join(", ")}
-											</div>
-										</div>
-										<span className="badge bg-black text-white absolute top-4 right-4">
-											Active
-										</span>
-									</div>
-									<div className="flex flex-wrap gap-2 mt-3">
-										<button
-											className="btn btn-outline btn-sm"
-											onClick={() => setOpenCrewId(openCrewId === crew.id ? null : crew.id)}
-										>
-											{openCrewId === crew.id ? "Close" : "View Team"}
-										</button>
-										<button
-											className="btn btn-outline btn-sm"
-											onClick={() => setReassignCrewId(crew.id)}
-										>
-											Reassign
-										</button>
-										<button
-											className={`btn btn-sm ${checkedInCrews.includes(crew.id) ? "btn-success" : "btn-outline"}`}
-											onClick={() => {
-												setCheckedInCrews((prev) =>
-													prev.includes(crew.id)
-														? prev.filter((id) => id !== crew.id)
-														: [...prev, crew.id]
-												);
-											}}
-										>
-											{checkedInCrews.includes(crew.id) ? "Checked In" : "Check-in"}
-										</button>
-									</div>
-									{/* Team Members Popup */}
-									{openCrewId === crew.id && (
-										<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-											<h4 className="font-bold mb-2">Team Members</h4>
-											<ul className="list-disc pl-5">
-												{crew.members.map((member, idx) => (
-													<li key={idx} className="mb-1">{member}</li>
-												))}
-											</ul>
-										</div>
-									)}
-									{/* Reassign Popup */}
-									{reassignCrewId === crew.id && (
-										<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-											<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
-												<h2 className="text-2xl font-bold mb-4">Add User to Project</h2>
-												<form className="space-y-6">
-													<div>
-														<label className="block font-semibold mb-1">Select User</label>
-														<select
-															className="input input-bordered w-full"
-															value={selectedUser}
-															onChange={e => setSelectedUser(e.target.value)}
-														>
-															{users.map((user, idx) => (
-																<option key={idx} value={user}>{user}</option>
-															))}
-														</select>
-													</div>
-													<div>
-														<label className="block font-semibold mb-1">Access Level</label>
-														<select
-															className="input input-bordered w-full"
-															value={accessLevel}
-															onChange={e => setAccessLevel(e.target.value)}
-														>
-															<option>Level 1 (Read Only)</option>
-															<option>Level 2 (Edit)</option>
-															<option>Level 3 (Admin)</option>
-														</select>
-													</div>
-													<div className="flex justify-end gap-2 mt-4">
-														<button
-															type="button"
-															className="btn btn-outline"
-															onClick={() => setReassignCrewId(null)}
-														>
-															Cancel
-														</button>
-														<button
-															type="button"
-															className="btn btn-disabled"
-															disabled
-														>
-															Add User
-														</button>
-													</div>
-												</form>
-											</div>
-										</div>
-									)}
-								</div>
-							))}
-						</div>
-					</div>
-					{/* Attendance Tracking */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow flex flex-col gap-4">
-						<h2 className="text-2xl font-bold mb-1">Attendance Tracking</h2>
-						<p className="text-gray-500 mb-4">
-							Today's attendance and hours
-						</p>
-						<div className="grid grid-cols-2 gap-4 mb-4">
-							<div className="bg-green-50 rounded-lg p-4 flex flex-col items-center">
-								<span className="text-2xl font-bold text-green-600">
-									{attendance.present}/{attendance.total}
-								</span>
-								<span className="text-gray-500 text-sm">Present Today</span>
-							</div>
-							<div className="bg-blue-50 rounded-lg p-4 flex flex-col items-center">
-								<span className="text-2xl font-bold text-blue-600">
-									{attendance.hours}
-								</span>
-								<span className="text-gray-500 text-sm">Hours Logged</span>
-							</div>
-						</div>
-						<div className="mb-2 font-semibold">Absent Today</div>
-						<div className="space-y-2 mb-4">
-							{attendance.absent.map((a) => (
-								<div
-									key={a.name}
-									className="flex justify-between items-center bg-red-50 rounded px-3 py-1"
-								>
-									<span>{a.name}</span>
-									<span className="badge bg-red-400 text-white">{a.reason}</span>
-								</div>
-							))}
-						</div>
-						<button
-							className="btn btn-outline w-full mb-2"
-							onClick={() => setShowAttendancePopup(true)}
-						>
-							Mark Attendance
-						</button>
-						<button
-							className="btn btn-outline w-full mb-2"
-							onClick={() => setShowTimesheetPopup(true)}
-						>
-							View Timesheets
-						</button>
-						<button className="btn bg-black text-white w-full font-bold" onClick={() => setShowBriefingPopup(true)}>
-							Start Daily Briefing
-						</button>
-					</div>
-				</div>
-			)}
+      {activeTab === "view_specific" && (
+        <div className="bg-base-100 rounded-2xl p-6 shadow">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-4">View Logs for Specific Date</h2>
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Select Date:</label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+          </div>
 
-			{activeTab === "safety" && (
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{/* Safety Checklists */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow flex flex-col gap-4">
-						<h2 className="text-2xl font-bold mb-1">Safety Checklists</h2>
-						<p className="text-gray-500 mb-4">
-							Daily safety inspections and compliance
-						</p>
-						<div className="space-y-4">
-							{/* Checklist Items */}
-							<div className="bg-base-200 rounded-xl p-5 flex flex-col gap-2 relative">
-								<div className="font-semibold">Morning Safety Briefing</div>
-								<div className="text-sm text-gray-500">07:30 AM • 12/12 items</div>
-								<button
-									className="btn btn-outline btn-sm w-fit"
-									onClick={() =>
-										setOpenSafetyChecklistId(openSafetyChecklistId === "briefing" ? null : "briefing")
-									}
-								>
-									{openSafetyChecklistId === "briefing" ? "Close" : "View"}
-								</button>
-								<span className="badge bg-black text-white absolute top-4 right-4">Completed</span>
-								{openSafetyChecklistId === "briefing" && (
-									<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-										<h4 className="font-bold mb-2">Morning Safety Briefing Details</h4>
-										<ul className="list-disc pl-5 text-gray-700">
-											<li>PPE checked for all crew</li>
-											<li>Fire exits reviewed</li>
-											<li>First aid kit location confirmed</li>
-											<li>All 12 items completed</li>
-										</ul>
-									</div>
-								)}
-							</div>
-							<div className="bg-base-200 rounded-xl p-5 flex flex-col gap-2 relative">
-								<div className="font-semibold">PPE Compliance Check</div>
-								<div className="text-sm text-gray-500">09:15 AM • 8/10 items</div>
-								<div className="flex gap-2">
-									<button className="btn btn-outline btn-sm w-fit">View</button>
-									<button className="btn btn-sm w-fit bg-primary ">Continue</button>
-								</div>
-								<span className="badge bg-gray-200 text-gray-700 absolute top-4 right-4">In Progress</span>
-							</div>
-							<div className="bg-base-200 rounded-xl p-5 flex flex-col gap-2 relative">
-								<div className="font-semibold">Equipment Safety Inspection</div>
-								<div className="text-sm text-gray-500">Not Started • 0/15 items</div>
-								<button className="btn btn-sm w-fit bg-primary">Start</button>
-								<span className="badge bg-gray-200 text-gray-700 absolute top-4 right-4">Pending</span>
-							</div>
-							<div className="bg-base-200 rounded-xl p-5 flex flex-col gap-2 relative">
-								<div className="font-semibold">Site Hazard Assessment</div>
-								<div className="text-sm text-gray-500">11:45 AM • 6/6 items</div>
-								<button className="btn btn-outline btn-sm w-fit">View</button>
-								<span className="badge bg-black text-white absolute top-4 right-4">Completed</span>
-							</div>
-						</div>
-					</div>
-					{/* Quality Control */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow flex flex-col gap-4">
-						<h2 className="text-2xl font-bold mb-1">Quality Control</h2>
-						<p className="text-gray-500 mb-4">
-							QA inspections and material checks
-						</p>
-						{/* QC Score */}
-						<div className="bg-green-50 rounded-lg p-6 flex flex-col items-end mb-4">
-							<div className="text-gray-500 text-base mb-1">Today's QC Score</div>
-							<div className="text-green-600 text-3xl font-bold">94%</div>
-							<div className="text-green-600 text-sm">Above target (90%)</div>
-						</div>
-						{/* Pending Inspections */}
-						<div>
-							<div className="font-semibold mb-2">Pending Inspections</div>
-							<div className="space-y-4">
-								<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-									<div className="font-semibold">Concrete Strength Test</div>
-									<div className="text-sm text-gray-500">Building A Foundation</div>
-									<button className="btn btn-primary btn-sm w-fit mt-1">
-										Schedule
-									</button>
-									<span className="badge bg-red-400 text-white absolute top-4 right-4">Today</span>
-								</div>
-								<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-									<div className="font-semibold">Rebar Placement Check</div>
-									<div className="text-sm text-gray-500">Floor 2 Slab</div>
-									<button className="btn btn-primary btn-sm w-fit mt-1">
-										Schedule
-									</button>
-									<span className="badge bg-gray-200 text-gray-700 absolute top-4 right-4">Tomorrow</span>
-								</div>
-								<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-									<div className="font-semibold">Material Quality Verification</div>
-									<div className="text-sm text-gray-500">Delivery Area</div>
-									<button className="btn btn-primary btn-sm w-fit mt-1">
-										Schedule
-									</button>
-									<span className="badge bg-red-400 text-white absolute top-4 right-4">Today</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
+          {selectedDate ? (
+            <>
+              {specificLogsLoading ? (
+                <div className="text-center py-8">
+                  <div className="loading loading-spinner loading-lg"></div>
+                  <p className="mt-4 text-gray-500">Loading logs for {moment(selectedDate).format("MMMM D, YYYY")}...</p>
+                </div>
+              ) : specificDateLogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Logs Found</h3>
+                  <p className="text-gray-500 mb-4">
+                    No daily logs were found for {moment(selectedDate).format("MMMM D, YYYY")}.
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setLogForm(prev => ({ ...prev, date: selectedDate }));
+                      setActiveTab("add_log");
+                    }}
+                  >
+                    <MdAdd className="mr-2" />
+                    Add Log for This Date
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {specificDateLogs.map((log) => (
+                    <div key={log.id} className="bg-base-200 rounded-lg p-6 border border-base-300">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            {log.weather && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-600">Weather:</span>
+                                <span className="text-sm">{log.weather}</span>
+                              </div>
+                            )}
+                            {log.workersPresent !== null && log.workersPresent !== undefined && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-600">Workers:</span>
+                                <span className="text-sm">{log.workersPresent}</span>
+                              </div>
+                            )}
+                            {log.workHours !== null && log.workHours !== undefined && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-600">Work Hours:</span>
+                                <span className="text-sm">{log.workHours}h</span>
+                              </div>
+                            )}
+                          </div>
 
-			{activeTab === "issues" && (
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{/* Report New Issue */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow">
-						<h2 className="text-2xl font-bold mb-1">Issue Reporting</h2>
-						<p className="text-gray-500 mb-6">
-							Report and track site issues
-						</p>
-						<h3 className="text-lg font-semibold mb-4">Report New Issue</h3>
-						<form className="space-y-4">
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Issue Type</span>
-								</label>
-								<select className="select select-bordered w-full">
-									<option>Safety Hazard</option>
-									<option>Equipment Failure</option>
-									<option>Material Shortage</option>
-									<option>Other</option>
-								</select>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Location</span>
-								</label>
-								<input
-									className="input input-bordered w-full"
-									placeholder="Building A, Floor 2..."
-								/>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Description</span>
-								</label>
-								<textarea
-									className="textarea textarea-bordered w-full"
-									rows={3}
-									placeholder="Describe the issue in detail..."
-								/>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Priority</span>
-								</label>
-								<select className="select select-bordered w-full">
-									<option>High - Immediate attention</option>
-									<option>Medium</option>
-									<option>Low</option>
-								</select>
-							</div>
-							<div>
-								<label className="label">
-									<span className="label-text font-medium">Photos</span>
-								</label>
-								<div className="flex items-center gap-2">
-									<input type="file" className="file-input file-input-bordered w-full" />
-									<span className="text-gray-400">Add Photos</span>
-								</div>
-							</div>
-							<button type="submit" className="btn bg-black text-white w-full font-bold mt-2">
-								Submit Issue Report
-							</button>
-						</form>
-					</div>
-					{/* Recent Issues */}
-					<div className="bg-base-100 rounded-2xl p-6 shadow">
-						<h3 className="text-xl font-bold mb-4">Recent Issues</h3>
-						<div className="space-y-4">
-							<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-								<div className="font-semibold">ISS-001: Equipment Failure</div>
-								<div className="text-sm text-gray-500">Crane #2 • 2 hours ago</div>
-								<div className="flex gap-2 mt-2">
-									<span className="badge bg-black text-white">In Progress</span>
-									<span className="badge bg-gray-200 text-black">High</span>
-								</div>
-								<button
-									className="btn btn-outline btn-sm w-fit mt-2"
-									onClick={() => setOpenIssueId(openIssueId === "ISS-001" ? null : "ISS-001")}
-								>
-									{openIssueId === "ISS-001" ? "Close" : "View Details"}
-								</button>
-								{openIssueId === "ISS-001" && (
-									<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-										<h4 className="font-bold mb-2">Issue Details</h4>
-										<div><strong>ID:</strong> ISS-001</div>
-										<div><strong>Type:</strong> Equipment Failure</div>
-										<div><strong>Location:</strong> Crane #2</div>
-										<div><strong>Status:</strong> In Progress</div>
-										<div><strong>Priority:</strong> High</div>
-										<div><strong>Reported:</strong> 2 hours ago</div>
-										<div className="mt-2"><strong>Description:</strong> Crane #2 stopped working during lift. Maintenance team notified.</div>
-									</div>
-								)}
-							</div>
-							<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-								<div className="font-semibold">ISS-002: Material Shortage</div>
-								<div className="text-sm text-gray-500">Building A • 1 day ago</div>
-								<div className="flex gap-2 mt-2">
-									<span className="badge bg-gray-200 text-black">Resolved</span>
-									<span className="badge bg-gray-200 text-black">Medium</span>
-								</div>
-								<button
-									className="btn btn-outline btn-sm w-fit mt-2"
-									onClick={() => setOpenIssueId(openIssueId === "ISS-002" ? null : "ISS-002")}
-								>
-									{openIssueId === "ISS-002" ? "Close" : "View Details"}
-								</button>
-								{openIssueId === "ISS-002" && (
-									<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-										<h4 className="font-bold mb-2">Issue Details</h4>
-										<div><strong>ID:</strong> ISS-002</div>
-										<div><strong>Type:</strong> Material Shortage</div>
-										<div><strong>Location:</strong> Building A</div>
-										<div><strong>Status:</strong> Resolved</div>
-										<div><strong>Priority:</strong> Medium</div>
-										<div><strong>Reported:</strong> 1 day ago</div>
-										<div className="mt-2"><strong>Description:</strong> Concrete delivery delayed, causing shortfall for pour.</div>
-									</div>
-								)}
-							</div>
-							<div className="bg-base-200 rounded-xl p-4 flex flex-col gap-1 relative">
-								<div className="font-semibold">ISS-003: Safety Hazard</div>
-								<div className="text-sm text-gray-500">Entrance Gate • 3 hours ago</div>
-								<div className="flex gap-2 mt-2">
-									<span className="badge bg-red-400 text-white">Open</span>
-									<span className="badge bg-gray-200 text-black">High</span>
-								</div>
-								<button
-									className="btn btn-outline btn-sm w-fit mt-2"
-									onClick={() => setOpenIssueId(openIssueId === "ISS-003" ? null : "ISS-003")}
-								>
-									{openIssueId === "ISS-003" ? "Close" : "View Details"}
-								</button>
-								{openIssueId === "ISS-003" && (
-									<div className="mt-4 p-4 bg-white rounded shadow border border-base-300">
-										<h4 className="font-bold mb-2">Issue Details</h4>
-										<div><strong>ID:</strong> ISS-003</div>
-										<div><strong>Type:</strong> Safety Hazard</div>
-										<div><strong>Location:</strong> Entrance Gate</div>
-										<div><strong>Status:</strong> Open</div>
-										<div><strong>Priority:</strong> High</div>
-										<div><strong>Reported:</strong> 3 hours ago</div>
-										<div className="mt-2"><strong>Description:</strong> Oil spill at entrance, cones placed for safety.</div>
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
+                          {log.notes && (
+                            <div className="mb-4">
+                              <span className="text-sm font-medium text-gray-600">Notes:</span>
+                              <p className="text-sm text-gray-700 mt-1">{log.notes}</p>
+                            </div>
+                          )}
 
-			{/* Attendance Popup */}
-			{showAttendancePopup && (
-				<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-					<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
-						<button
-							className="absolute top-2 right-2 text-xl"
-							onClick={() => setShowAttendancePopup(false)}
-							aria-label="Close"
-						>
-							&times;
-						</button>
-						<h2 className="text-2xl font-bold mb-4">Mark Attendance</h2>
-						<div className="mb-4">Select crew members present today:</div>
-						<ul className="space-y-2 mb-4">
-							{dummyCrews.flatMap(crew => crew.members).map((member, idx) => (
-								<li key={idx} className="flex items-center gap-2">
-									<input type="checkbox" id={`attend-${idx}`} className="checkbox" />
-									<label htmlFor={`attend-${idx}`}>{member}</label>
-								</li>
-							))}
-						</ul>
-						<button
-							className="btn btn-primary w-full"
-							onClick={() => setShowAttendancePopup(false)}
-						>
-							Save Attendance
-						</button>
-					</div>
-				</div>
-			)}
+                          <div className="text-xs text-gray-500">
+                            Logged by {log.logger.firstName} {log.logger.lastName} • {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
+                          </div>
 
-			{/* Timesheet Popup */}
-			{showTimesheetPopup && (
-				<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-					<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg relative">
-						<button
-							className="absolute top-2 right-2 text-xl"
-							onClick={() => setShowTimesheetPopup(false)}
-							aria-label="Close"
-						>
-							&times;
-						</button>
-						<h2 className="text-2xl font-bold mb-4">Crew Timesheets</h2>
-						<table className="table w-full mb-4">
-							<thead>
-								<tr>
-									<th className="text-left">Name</th>
-									<th className="text-left">Hours</th>
-									<th className="text-left">Status</th>
-								</tr>
-							</thead>
-							<tbody>
-								{dummyCrews.flatMap(crew => crew.members).map((member, idx) => (
-									<tr key={idx}>
-										<td>{member}</td>
-										<td>8</td>
-										<td>Present</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-						<button
-							className="btn btn-outline w-full"
-							onClick={() => setShowTimesheetPopup(false)}
-						>
-							Close
-						</button>
-					</div>
-				</div>
-			)}
+                          {log.activities && log.activities.length > 0 && (
+                            <div className="mt-4">
+                              <span className="text-sm font-medium text-gray-600">Activities ({log.activities.length}):</span>
+                              <div className="mt-2 space-y-2">
+                                {log.activities.map((activity) => (
+                                  <div key={activity.id} className="text-sm bg-white p-3 rounded border">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">{activity.activity}</span>
+                                      <span className={`badge badge-sm ${
+                                        activity.status === 'COMPLETED' ? 'badge-success' :
+                                        activity.status === 'IN_PROGRESS' ? 'badge-warning' :
+                                        activity.status === 'ON_HOLD' ? 'badge-error' :
+                                        'badge-neutral'
+                                      }`}>
+                                        {activity.status.replace('_', ' ')}
+                                      </span>
+                                    </div>
+                                    {activity.progress !== null && activity.progress !== undefined && (
+                                      <div className="mt-1">
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div 
+                                              className="bg-primary h-2 rounded-full" 
+                                              style={{ width: `${activity.progress}%` }}
+                                            ></div>
+                                          </div>
+                                          <span className="text-xs">{activity.progress}%</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => handleEditLog(log)}
+                          >
+                            <MdEdit />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-error btn-outline"
+                            onClick={() => handleDeleteLog(log)}
+                          >
+                            <MdDelete />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <MdCalendarToday className="mx-auto text-6xl text-gray-400 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">Select a Date</h3>
+              <p className="text-gray-500">Choose a date to view daily logs for that specific day.</p>
+            </div>
+          )}
+        </div>
+      )}
 
-			{/* Briefing Popup */}
-			{showBriefingPopup && (
-				<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-					<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg relative">
-						<button
-							className="absolute top-2 right-2 text-xl"
-							onClick={() => setShowBriefingPopup(false)}
-							aria-label="Close"
-						>
-							&times;
-						</button>
-						<h2 className="text-2xl font-bold mb-4">Start Daily Briefing</h2>
-						<div className="mb-4">
-							<strong>Today's Topics:</strong>
-							<ul className="list-disc pl-6 mt-2 text-gray-700">
-								<li>Safety reminders and PPE check</li>
-								<li>Today's work plan and assignments</li>
-								<li>Site hazards and restricted areas</li>
-								<li>Weather and schedule updates</li>
-							</ul>
-						</div>
-						<textarea
-							className="textarea textarea-bordered w-full mb-4"
-							rows={3}
-							placeholder="Add notes or special instructions for today's briefing..."
-						/>
-						<button
-							className="btn btn-primary w-full"
-							onClick={() => setShowBriefingPopup(false)}
-						>
-							Start Briefing
-						</button>
-					</div>
-				</div>
-			)}
-		</div>
-	);
+      {activeTab === "add_log" && (
+        <div className="bg-base-100 rounded-2xl p-6 shadow">
+          <h2 className="text-2xl font-bold mb-6">
+            {editingLog ? "Edit Daily Log" : "Add New Daily Log"}
+          </h2>
+          
+          <form onSubmit={handleLogSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Date</span>
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  className="input input-bordered w-full"
+                  value={logForm.date}
+                  onChange={handleFormChange}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Weather</span>
+                </label>
+                <input
+                  type="text"
+                  name="weather"
+                  className="input input-bordered w-full"
+                  value={logForm.weather}
+                  onChange={handleFormChange}
+                  placeholder="e.g., Sunny, 72°F"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Workers Present</span>
+                </label>
+                <input
+                  type="number"
+                  name="workersPresent"
+                  className="input input-bordered w-full"
+                  value={logForm.workersPresent}
+                  onChange={handleFormChange}
+                  min="0"
+                />
+              </div>
+              
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Work Hours</span>
+                </label>
+                <input
+                  type="number"
+                  name="workHours"
+                  className="input input-bordered w-full"
+                  value={logForm.workHours}
+                  onChange={handleFormChange}
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">
+                <span className="label-text font-medium">Notes</span>
+              </label>
+              <textarea
+                name="notes"
+                className="textarea textarea-bordered w-full"
+                rows={4}
+                value={logForm.notes}
+                onChange={handleFormChange}
+                placeholder="Describe work completed, issues encountered, or any other relevant information..."
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={createLogMutation.isPending || updateLogMutation.isPending}
+              >
+                {createLogMutation.isPending || updateLogMutation.isPending ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    {editingLog ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  <>
+                    {editingLog ? "Update Log" : "Create Log"}
+                  </>
+                )}
+              </button>
+              
+              {editingLog && (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setEditingLog(null);
+                    setLogForm({
+                      date: moment().format("YYYY-MM-DD"),
+                      projectId: selectedProject,
+                      weather: "",
+                      notes: "",
+                      workHours: 0,
+                      workersPresent: 0,
+                    });
+                  }}
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && logToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the daily log for {moment(logToDelete.date).format("MMMM D, YYYY")}? 
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-4">
+              <button
+                className="btn btn-error"
+                onClick={confirmDeleteLog}
+                disabled={deleteLogMutation.isPending}
+              >
+                {deleteLogMutation.isPending ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setLogToDelete(null);
+                }}
+                disabled={deleteLogMutation.isPending}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

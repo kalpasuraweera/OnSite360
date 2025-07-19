@@ -23,6 +23,7 @@ import TaskManagement from "./pages/TaskManagement";
 import WorkforceManagement from "./pages/WorkforceManagement";
 import DailyLogsManagement from "./pages/DailyLogsManagement";
 import Notifications from "./pages/Notifications";
+import IssueReporting from "./pages/IssueReporting";
 
 const queryClient = new QueryClient();
 
@@ -163,6 +164,7 @@ function App() {
             </PermissionRoute>
           ),
         },
+        //TODO: Daily Logs Management, Issue Reporting, Workforce Management(view, add , edit, delete workers and attendance)
         {
           path: "workforce-management",
           element: (
@@ -171,12 +173,19 @@ function App() {
             </PermissionRoute>
           ),
         },
-
         {
           path: "daily-logs-management",
           element: (
             <PermissionRoute pageId="daily-logs-management">
               <DailyLogsManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "issue-reporting",
+          element: (
+            <PermissionRoute pageId="issue-reporting">
+              <IssueReporting />
             </PermissionRoute>
           ),
         },
