@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import type p5Type from "p5";
 
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
@@ -9,6 +10,133 @@ const featureCardDescriptions: Record<string, string> = {
   "Project Oversight": "Gain insights and control over all ongoing projects.",
   "Workforce Management": "Optimize labor allocation and productivity on site.",
   "Document Management": "Centralize and secure all your project documents.",
+};
+
+// const P5Background = () => {
+//   const containerRef = useRef<HTMLDivElement>(null);
+//   const p5InstanceRef = useRef<p5Type | null>(null);
+
+//   const sketch = useCallback((p: p5Type) => {
+//     const spacing = 60;
+//     p.setup = function () {
+//       p.createCanvas(p.windowWidth, p.windowHeight);
+//       p.noFill();
+//       p.strokeWeight(0.5);
+//     };
+//     p.draw = function () {
+//       p.background(255, 0); // transparent background
+//       p.stroke("#f1c40f");
+//       for (let x = 0; x < p.width; x += spacing) {
+//         for (let y = 0; y < p.height; y += spacing) {
+//           const d = p.dist(p.mouseX, p.mouseY, x, y);
+//           const s = p.map(d, 0, 200, 20, 5, true);
+//           p.rect(x - s / 2, y - s / 2, s, s);
+//         }
+//       }
+//     };
+//     p.windowResized = function () {
+//       p.resizeCanvas(p.windowWidth, p.windowHeight);
+//     };
+//   }, []);
+
+//   useEffect(() => {
+//     let isMounted = true;
+//     let p5: typeof p5Type | undefined;
+//     const loadP5 = async () => {
+//       // Dynamically import p5.js
+//       p5 = (await import("p5")).default;
+//       if (containerRef.current && isMounted) {
+//         p5InstanceRef.current = new p5!(sketch, containerRef.current);
+//       }
+//     };
+//     loadP5();
+
+//     return () => {
+//       isMounted = false;
+//       if (p5InstanceRef.current) {
+//         p5InstanceRef.current.remove();
+//         p5InstanceRef.current = null;
+//       }
+//     };
+//   }, [sketch]);
+
+//   return (
+//     <div
+//       ref={containerRef}
+//       style={{
+//         position: "absolute",
+//         inset: 0,
+//         width: "100%",
+//         height: "100%",
+//         zIndex: 0,
+//         pointerEvents: "none",
+//       }}
+//     />
+//   );
+// };
+
+const YellowSquaresBackground = () => {
+  const SQUARE_COUNT = 40;
+  const [squares, setSquares] = useState(() =>
+    Array.from({ length: SQUARE_COUNT }, () => ({
+      size: Math.floor(Math.random() * 18) + 12,
+      top: Math.random() * 80 + 5,
+      left: Math.random() * 90 + 2,
+      opacity: Math.random() * 0.4 + 0.3,
+    }))
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSquares((prev) =>
+        prev.map((sq) => ({
+          // Smoothly transition to new random values
+          size: Math.max(12, Math.min(30, sq.size + (Math.random() - 0.5) * 8)),
+          top: Math.max(5, Math.min(85, sq.top + (Math.random() - 0.5) * 6)),
+          left: Math.max(2, Math.min(92, sq.left + (Math.random() - 0.5) * 8)),
+          opacity: Math.max(
+            0.3,
+            Math.min(0.7, sq.opacity + (Math.random() - 0.5) * 0.08)
+          ),
+        }))
+      );
+    }, 1200); // update every 1.2s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    >
+      {squares.map((sq, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: `${sq.top}%`,
+            left: `${sq.left}%`,
+            width: `${sq.size}px`,
+            height: `${sq.size}px`,
+            background: "#fdc700",
+            opacity: sq.opacity,
+            borderRadius: "4px",
+            zIndex: 0,
+            boxShadow: "0 2px 8px rgba(253,199,0,0.08)",
+            transition: "top 1s, left 1s, width 1s, height 1s, opacity 1s",
+          }}
+        />
+      ))}
+    </div>
+  );
 };
 
 const Home = () => {
@@ -110,7 +238,7 @@ const Home = () => {
   };
 
   return (
-    <div className="bg-base-200">
+    <div className="bg-base-200 relative">
       {/* Navbar */}
       <nav className="px-4 py-4 md:px-12 md:py-6 flex items-center justify-between relative">
         <img src="/logo.png" alt="OnSite360 Logo" className="w-52" />
@@ -214,7 +342,13 @@ const Home = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative">
+      <section
+        className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative"
+        style={{ overflow: "hidden" }}
+      >
+        {/* --- Add the yellow squares background here --- */}
+        <YellowSquaresBackground />
+        {/* <P5Background /> */}
         <div className="text-neutral-500 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
           CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
         </div>
