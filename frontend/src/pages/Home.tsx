@@ -1,5 +1,12 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import {
+  FaUsers,
+  FaCalendarAlt,
+  FaClipboardList,
+  FaHardHat,
+  FaFileAlt,
+} from "react-icons/fa";
 
 const featureCardDescriptions: Record<string, string> = {
   "Employee Management":
@@ -9,6 +16,70 @@ const featureCardDescriptions: Record<string, string> = {
   "Project Oversight": "Gain insights and control over all ongoing projects.",
   "Workforce Management": "Optimize labor allocation and productivity on site.",
   "Document Management": "Centralize and secure all your project documents.",
+};
+
+const YellowSquaresBackground = () => {
+  const SQUARE_COUNT = 100;
+  const [squares, setSquares] = useState(() =>
+    Array.from({ length: SQUARE_COUNT }, () => ({
+      size: Math.floor(Math.random() * 18) + 12,
+      top: Math.random() * 80 + 5,
+      left: Math.random() * 90 + 2,
+      opacity: Math.random() * 0.4 + 0.3,
+    }))
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSquares((prev) =>
+        prev.map((sq) => ({
+          // Smoothly transition to new random values
+          size: Math.max(12, Math.min(30, sq.size + (Math.random() - 0.5) * 8)),
+          top: Math.max(5, Math.min(85, sq.top + (Math.random() - 0.5) * 6)),
+          left: Math.max(2, Math.min(92, sq.left + (Math.random() - 0.5) * 8)),
+          opacity: Math.max(
+            0.3,
+            Math.min(0.7, sq.opacity + (Math.random() - 0.5) * 0.08)
+          ),
+        }))
+      );
+    }, 1200); // update every 1.2s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    >
+      {squares.map((sq, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: `${sq.top}%`,
+            left: `${sq.left}%`,
+            width: `${sq.size}px`,
+            height: `${sq.size}px`,
+            background: "#fdc700",
+            opacity: sq.opacity,
+            borderRadius: "4px",
+            zIndex: 0,
+            boxShadow: "0 2px 8px rgba(253,199,0,0.08)",
+            transition: "top 1s, left 1s, width 1s, height 1s, opacity 1s",
+          }}
+        />
+      ))}
+    </div>
+  );
 };
 
 const Home = () => {
@@ -46,11 +117,31 @@ const Home = () => {
 
   // Feature cards data
   const featureCards = [
-    { title: "Employee Management" },
-    { title: "Schedule Management" },
-    { title: "Project Oversight" },
-    { title: "Workforce Management" },
-    { title: "Document Management" },
+    {
+      title: "Employee Management",
+      icon: <FaUsers size={48} color="#eab308" />, // blue
+      color: "#eab308",
+    },
+    {
+      title: "Schedule Management",
+      icon: <FaCalendarAlt size={48} color="#f59e42" />, // green
+      color: "#f59e42",
+    },
+    {
+      title: "Project Oversight",
+      icon: <FaClipboardList size={48} color="#eab308" />, // purple
+      color: "#eab308",
+    },
+    {
+      title: "Workforce Management",
+      icon: <FaHardHat size={48} color="#f59e42" />, // orange
+      color: "#f59e42",
+    },
+    {
+      title: "Document Management",
+      icon: <FaFileAlt size={48} color="#eab308" />, // yellow
+      color: "#eab308",
+    },
   ];
 
   // Dashboard screenshots
@@ -110,36 +201,10 @@ const Home = () => {
   };
 
   return (
-    <div className="">
+    <div className="bg-base-200 relative">
       {/* Navbar */}
-
-      {/* Toggle button */}
-      {/* <div className="flex-none">
-          <label className="swap swap-rotate">
-            <input
-              type="checkbox"
-              className="theme-controller"
-              checked={theme === "halloween"}
-              onChange={handleThemeToggle}
-            />
-
-         
-            <svg
-              className="swap-off h-10 w-10 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-            >
-              <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-            </svg>
-
-            
-            <svg
-              className="swap-on h-10 w-10 fill-current"
-  return (
-    <div className="bg-white min-h-screen w-full flex flex-col">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm px-4 py-4 md:px-12 md:py-6 flex items-center justify-between relative">
-        <img src="/logo.png" alt="OnSite360 Logo" className="w-32" />
+      <nav className="px-4 py-4 md:px-12 md:py-6 flex items-center justify-between relative">
+        <img src="/logo.png" alt="OnSite360 Logo" className="w-52" />
         {/* Hamburger icon for mobile */}
         <button
           className="md:hidden flex items-center justify-center p-2 rounded focus:outline-none"
@@ -171,12 +236,14 @@ const Home = () => {
           </svg>
         </button>
         {/* Desktop nav links */}
-        <div className="hidden md:flex gap-4 md:gap-10 items-center">
+        <div className="hidden bg-base-100 px-5 py-3 rounded-2xl md:flex gap-4 md:gap-5 items-center">
           {navItems.map((item, idx) => (
             <button
               key={idx}
-              className={`font-semibold px-4 py-2 rounded-lg ${
-                item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+              className={`font-semibold px-6 py-3 rounded-lg transition-colors ${
+                item.active
+                  ? "bg-base-200 text-[#a35608] p-5"
+                  : "text-[#1c1c1c] hover:bg-[#fdc700] hover:text-[#a35608]"
               }`}
               onClick={() => {
                 const section = document.getElementById(
@@ -188,6 +255,8 @@ const Home = () => {
               {item.name}
             </button>
           ))}
+        </div>
+        <div className="flex gap-2">
           <Link to="/login">
             <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a]">
               Login
@@ -202,12 +271,22 @@ const Home = () => {
         </div>
         {/* Mobile nav links dropdown */}
         {navOpen && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-lg z-50 flex flex-col gap-2 py-4 px-4 md:hidden animate-slide-down">
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-lg z-50 flex flex-col items-center justify-center gap-6 px-4 py-8 md:hidden animate-slide-down">
+            <button
+              className="absolute top-6 right-6 text-3xl font-bold text-[#a35608] bg-white rounded-full w-12 h-12 flex items-center justify-center shadow"
+              onClick={() => setNavOpen(false)}
+              aria-label="Close menu"
+              type="button"
+            >
+              &times;
+            </button>
             {navItems.map((item, idx) => (
               <button
                 key={idx}
-                className={`font-semibold px-4 py-2 rounded-lg text-left ${
-                  item.active ? "bg-[#fdc700] text-[#a35608]" : "text-[#1c1c1c]"
+                className={`font-semibold px-6 py-4 rounded-xl text-center w-full text-2xl transition-colors ${
+                  item.active
+                    ? "bg-[#fdc700] text-[#a35608]"
+                    : "text-[#1c1c1c] hover:bg-[#fdc700] hover:text-[#a35608]"
                 }`}
                 onClick={() => {
                   setNavOpen(false);
@@ -220,69 +299,79 @@ const Home = () => {
                 {item.name}
               </button>
             ))}
-            <Link to="/login">
-              <button className="bg-[#3b3b3b] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2a2a2a] w-full text-left">
-                Login
-              </button>
-            </Link>
-            <button
-              className="bg-[#fdc700] text-[#a35608] px-6 py-2 rounded-lg font-medium hover:bg-[#e5b400] w-full text-left"
-              onClick={() => {
-                setNavOpen(false);
-                handleDemoClick();
-              }}
-            >
-              Request a Demo
-            </button>
+            {/* Removed Login and Request a Demo buttons for mobile */}
           </div>
         )}
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative">
-        <h1 className="text-4xl md:text-6xl font-bold text-[#fdc700] mb-2">
-          Shaping <span className="text-[#1c1c1c]">your vision</span>
-        </h1>
-        <h2 className="text-3xl md:text-5xl font-bold text-[#1c1c1c] mb-4">
-          With <span className="text-[#fdc700]">precision</span>
-        </h2>
-        <div className="text-neutral-500 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
-          CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
+      <section
+        className="flex flex-col items-center justify-center text-center py-10 px-4 md:py-20 md:px-0 relative"
+        style={{ overflow: "hidden" }}
+      >
+        {/* --- Add the yellow squares background here --- */}
+        <YellowSquaresBackground />
+        {/* <P5Background /> */}
+        <div className="z-50 flex flex-col justify-center items-center bg-neutral-100/10 backdrop-blur-md p-5 md:p-10 rounded-3xl  max-w-5xl mx-auto">
+          <div className="text-neutral-500 z-50 text-base md:text-lg tracking-widest font-medium mb-6 break-words text-center max-w-xs sm:max-w-md md:max-w-2xl mx-auto">
+            CONSTRUCTION PROJECT MANAGEMENT SOFTWARE
+          </div>
+          <h1 className="text-4xl md:text-7xl z-50 font-bold text-[#fdc700] mb-2">
+            Shaping <span className="text-[#1c1c1c]">your vision</span>
+          </h1>
+          <h2 className="text-4xl md:text-7xl z-50 font-bold text-[#1c1c1c] mb-4">
+            With <span className="text-[#fdc700]">Precision</span>
+          </h2>
+
+          <div className="flex gap-1 justify-center w-full z-50 mt-4">
+            <button
+              className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400]"
+              onClick={handleDemoClick}
+            >
+              Request a Demo
+            </button>{" "}
+            <Link to="/login" className="md:hidden">
+              <button className="bg-[#3b3b3b] text-white px-8 py-4 rounded-lg font-medium hover:bg-[#2a2a2a] w-full">
+                Login
+              </button>
+            </Link>
+          </div>
         </div>
-        <button
-          className="bg-[#fdc700] text-[#a45505] font-semibold px-8 py-4 rounded-xl shadow-lg hover:bg-[#e5b400] mt-4"
-          onClick={handleDemoClick}
-        >
-          Request a Demo
-        </button>
+
         {/* Glow effects */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 -z-10" />
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#fdc700bf] rounded-full blur-2xl opacity-40 z-10" />
       </section>
 
       {/* Feature Cards */}
       <section
         ref={featureCardsRef}
-        className={`flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 px-4 md:px-0 py-8 transition-all duration-500 ${
+        className={`flex flex-row overflow-x-auto md:flex-row items-center justify-start md:justify-center gap-4 md:gap-10 px-4 md:px-0 py-8 transition-all duration-500 ${
           hideFeatureCards
             ? "opacity-0 translate-y-32 pointer-events-none"
             : "opacity-100 translate-y-0"
         }`}
+        style={{ scrollbarWidth: "none" }}
       >
         {featureCards.map((card, idx) => (
           <div
             key={idx}
-            className={`flex flex-col items-center justify-center bg-white rounded-2xl shadow-lg p-4 cursor-pointer transition-transform duration-300 w-full md:w-72 h-24 md:h-28 ${
-              hoveredCard === idx ? "scale-105 z-10" : "scale-100"
+            className={`flex flex-col items-center justify-center min-w-xs bg-base-200 rounded-2xl shadow-xl p-4 cursor-pointer transition-transform duration-300 w-64 md:w-72 h-24 md:h-28 ${
+              hoveredCard === idx ? "scale-110 z-10" : "scale-100"
             }`}
             onMouseEnter={() => setHoveredCard(idx)}
             onMouseLeave={() => setHoveredCard(null)}
           >
-            <div className="font-bold text-[#e8b703] text-lg md:text-xl mb-1">
-              {card.title}
-            </div>
-            {hoveredCard === idx && (
+            <div className="mb-2">{card.icon}</div>
+            {hoveredCard === idx ? (
               <div className="text-sm text-neutral-500 text-center mt-2">
                 {featureCardDescriptions[card.title]}
+              </div>
+            ) : (
+              <div
+                className="font-bold text-lg md:text-xl mb-1"
+                style={{ color: card.color }}
+              >
+                {card.title}
               </div>
             )}
           </div>
@@ -311,7 +400,7 @@ const Home = () => {
       </section>
 
       {/* Communication Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 lg:px-5 px-4 md:px-0">
         <img
           src="main-m.png"
           alt=""
@@ -330,7 +419,7 @@ const Home = () => {
             every day to stay on schedule and prevent rework.
           </p>
           <button
-            className="btn btn-primary w-full md:w-auto"
+            className="btn btn-primary w-full lg:w-2xs md:w-auto"
             onClick={handleDemoClick}
           >
             Request a Demo
@@ -339,7 +428,7 @@ const Home = () => {
       </section>
 
       {/* Access Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+      <section className="flex flex-col-reverse md:flex-row items-center justify-center gap-8 py-8 md:py-16 lg:px-10 px-4 md:px-0">
         <div className="flex flex-col gap-4">
           <div className="font-medium text-black text-lg tracking-widest">
             ACCESS
@@ -350,17 +439,11 @@ const Home = () => {
           <div className="text-[#434343] text-base md:text-lg">
             Trust that all stakeholders have access to the latest information in
             a centralised location, and in a format that everyone can
-            understand.
-            <br />
-            <br />
-            Information is updated instantly so all stakeholders have ultimate
-            visability
-            <br />
-            <br />
-            Mitigate risks with accurate data logs
+            understand. Information is updated instantly so all stakeholders
+            have ultimate visability. Mitigate risks with accurate data logs
           </div>
           <button
-            className="btn btn-primary w-full md:w-auto mt-2"
+            className="btn btn-primary w-full lg:w-2xs md:w-auto mt-2"
             onClick={handleDemoClick}
           >
             Request a Demo
@@ -374,7 +457,7 @@ const Home = () => {
       </section>
 
       {/* Visibility Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0">
+      <section className="flex flex-col-reverse md:flex-row items-center justify-center gap-8 py-8 md:py-16 lg:px-10 px-4 md:px-0">
         <div className="flex flex-col gap-4">
           <div className="font-medium text-black text-lg tracking-widest">
             VISIBILITY
@@ -394,14 +477,14 @@ const Home = () => {
           </div>
           <div className="flex flex-col md:flex-row gap-2 mt-2 w-full">
             <button
-              className="btn btn-primary w-full md:w-auto"
+              className="btn btn-primary lg:w-2xs w-full md:w-auto"
               onClick={handleDemoClick}
             >
               Request a Demo
             </button>
             <button
               onClick={handleInstallClick}
-              className="btn btn-neutral w-full md:w-auto"
+              className="btn btn-neutral lg:w-2xs w-full md:w-auto"
             >
               Get Mobile App
             </button>
@@ -415,23 +498,19 @@ const Home = () => {
       </section>
 
       {/* Project Management CTA Section */}
-      <section className="flex flex-col md:flex-row items-center justify-center gap-8 py-8 md:py-16 px-4 md:px-0 bg-accent">
+      <section className="flex flex-col-reverse md:flex-row items-center justify-center gap-8 py-8  lg:px-10 px-4 md:px-0 bg-accent">
         <div className="flex flex-col gap-4">
-          <h2 className="font-bold text-white text-2xl md:text-4xl">
+          <h2 className="font-bold text-white text-2xl md:text-6xl">
             See how Project Management can work for your team.
           </h2>
           <button
-            className="btn btn-primary w-full md:w-auto mt-2"
+            className="btn btn-primary w-full lg:w-2xs lg:mt-10 md:w-auto mt-2"
             onClick={handleDemoClick}
           >
             Request a Demo
           </button>
         </div>
-        <img
-          src="footer_img.webp"
-          alt=""
-          className="w-full md:w-1/2 h-auto rounded-xl"
-        />
+        <img src="footer_img.webp" alt="" className="w-full md:w-1/2 h-auto" />
       </section>
 
       {/* DaisyUI Modal using modal/modal-open classes */}
@@ -589,11 +668,10 @@ const Home = () => {
       )}
 
       {/* Footer Section */}
-      <footer className="bg-[#fdc700] text-[#a35608] py-8 px-4 md:px-0 mt-8">
+      <footer className="bg-primary/15 text-[#a35608] py-8 px-4 md:px-0 lg:p-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="OnSite360 Logo" className="w-10 h-10" />
-            <span className="font-bold text-lg">OnSite360</span>
+            <img src="/logo.png" alt="OnSite360 Logo" className="w-48" />
           </div>
           <div className="text-sm text-center md:text-right">
             &copy; {new Date().getFullYear()} OnSite360. All rights reserved.
