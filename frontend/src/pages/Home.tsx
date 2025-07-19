@@ -468,11 +468,9 @@ const Home = () => {
           <div className="text-[#434343] text-base md:text-lg">
             Quickly identify potential issues and their impact to schedule and
             budgets. Avoid unwanted surprises with better project visibility.
-            <br />
-            <br />
+            
             Project overview gives a complete picture of any outstanding items.
-            <br />
-            <br />
+           
             Track all steps and speed up the approval process.
           </div>
           <div className="flex flex-col md:flex-row gap-2 mt-2 w-full">
