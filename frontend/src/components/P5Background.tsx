@@ -22,7 +22,7 @@ const P5Background: React.FC<P5BackgroundProps> = ({ className = "" }) => {
       };
 
       p.draw = () => {
-        // Light yellow/cream background that matches the theme
+        // Clean white background that matches the site theme
         p.background(255, 255, 255);
 
         for (let x = spacing / 2; x < p.width; x += spacing) {
@@ -31,25 +31,21 @@ const P5Background: React.FC<P5BackgroundProps> = ({ className = "" }) => {
             const r = p.map(d, 0, maxDist, 30, 6, true);
             const alpha = p.map(d, 0, maxDist, 200, 40, true);
             
-            // Create a subtle gradient effect based on distance from mouse
-            const hue = p.map(d, 0, maxDist, 45, 60, true); // Yellow to orange range
-            const saturation = p.map(d, 0, maxDist, 80, 100, true);
-            const brightness = p.map(d, 0, maxDist, 95, 75, true);
-            
-            p.colorMode(p.HSB, 360, 100, 100, 255);
-            p.fill(hue, saturation, brightness, alpha);
+            // Use the site's brand yellow color (#fbc700) with varying opacity
+            p.colorMode(p.RGB, 255, 255, 255, 255);
+            p.fill(251, 199, 0, alpha); // #fbc700 converted to RGB
             p.ellipse(x, y, r);
             
-            // Add a subtle inner glow for circles near the mouse
+            // Add a subtle inner glow for circles near the mouse using the same yellow
             if (d < maxDist / 2) {
               const innerAlpha = p.map(d, 0, maxDist / 2, 100, 0, true);
-              p.fill(45, 60, 100, innerAlpha); // Pure yellow glow
+              p.fill(251, 199, 0, innerAlpha); // Same yellow with reduced opacity
               p.ellipse(x, y, r * 0.6);
             }
           }
         }
         
-        // Reset color mode for any other components
+        // Ensure color mode is reset for other components
         p.colorMode(p.RGB, 255, 255, 255, 255);
       };
 
