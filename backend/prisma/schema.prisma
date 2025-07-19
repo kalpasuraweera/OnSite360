@@ -17,28 +17,28 @@ datasource db {
 
 // User model for storing user information
 model User {
-  id             String     @id @default(uuid())
-  firstName      String
-  lastName       String?
-  email          String     @unique
-  password       String // Hashed password
-  roleId         String
-  role           Role       @relation(fields: [roleId], references: [id])
-  tasks          Task[] // Tasks assigned to the user
-  threads        Thread[]
-  messages       Message[]
-  userProjects   UserProject[] // Explicit many-to-many relationship with projects
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  dailyLogs       DailyLog[]
-  reportedIssues Issue[] // Issues reported by the user
-  assignedIssues Issue[]    @relation("IssueAssignee") // Issues assigned to the user
-  documents       Document[]
-  requestedRFIs  RFI[]      @relation("RFIRequester") // RFIs requested by this user
-  assignedRFIs   RFI[]      @relation("RFIAssignee") // RFIs assigned to this user
-  comments       Comment[]  // Comments made by this user
-  scheduleEvents ScheduleEvent[] @relation("EventAssignees") // Events assigned to this user
-  createdEvents  ScheduleEvent[] @relation("EventCreator") // Events created by this user
+  id               String              @id @default(uuid())
+  firstName        String
+  lastName         String?
+  email            String              @unique
+  password         String // Hashed password
+  roleId           String
+  role             Role                @relation(fields: [roleId], references: [id])
+  tasks            Task[] // Tasks assigned to the user
+  threads          Thread[]
+  messages         Message[]
+  userProjects     UserProject[] // Explicit many-to-many relationship with projects
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  dailyLogs        DailyLog[]
+  reportedIssues   Issue[] // Issues reported by the user
+  assignedIssues   Issue[]             @relation("IssueAssignee") // Issues assigned to the user
+  documents        Document[]
+  requestedRFIs    RFI[]               @relation("RFIRequester") // RFIs requested by this user
+  assignedRFIs     RFI[]               @relation("RFIAssignee") // RFIs assigned to this user
+  comments         Comment[] // Comments made by this user
+  scheduleEvents   ScheduleEvent[]     @relation("EventAssignees") // Events assigned to this user
+  createdEvents    ScheduleEvent[]     @relation("EventCreator") // Events created by this user
   markedAttendance ProjectAttendance[] // Attendance records marked by this user
 }
 
@@ -89,18 +89,18 @@ model Project {
   id                  String                @id @default(uuid())
   name                String
   description         String?
-  type                String?                // e.g., "Residential", "Commercial", "Industrial"
-  budget              Float?                // Project budget amount
-  squareFeet          Float?                // Square footage of the project
-  location            String?               // Address or description of location
-  coordinates         Json?                 // Stores latitude/longitude as JSON: { "lat": 40.7128, "lng": -74.0060 }
-  logoUrl             String?               // URL to project logo image
-  featuredImageUrl    String?               // URL to featured/header image
+  type                String? // e.g., "Residential", "Commercial", "Industrial"
+  budget              Float? // Project budget amount
+  squareFeet          Float? // Square footage of the project
+  location            String? // Address or description of location
+  coordinates         Json? // Stores latitude/longitude as JSON: { "lat": 40.7128, "lng": -74.0060 }
+  logoUrl             String? // URL to project logo image
+  featuredImageUrl    String? // URL to featured/header image
   startDate           DateTime?
   endDate             DateTime?
-  documents           Document[]            // Documents associated with the project
-  tasks               Task[]                // Tasks for the project
-  userProjects        UserProject[]         // Explicit many-to-many relationship with users
+  documents           Document[] // Documents associated with the project
+  tasks               Task[] // Tasks for the project
+  userProjects        UserProject[] // Explicit many-to-many relationship with users
   threads             Thread[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
@@ -118,30 +118,30 @@ model Project {
 
 // Junction table for many-to-many relationship between User and Project
 model UserProject {
-  id           String    @id @default(uuid())
-  userId       String
-  projectId    String
-  user         User      @relation(fields: [userId], references: [id])
-  project      Project   @relation(fields: [projectId], references: [id])
+  id               String    @id @default(uuid())
+  userId           String
+  projectId        String
+  user             User      @relation(fields: [userId], references: [id])
+  project          Project   @relation(fields: [projectId], references: [id])
   // Role/position of user in this specific project
-  projectRole  String?   // e.g., "Site Manager", "Foreman", "Supervisor", "Worker"
+  projectRole      String? // e.g., "Site Manager", "Foreman", "Supervisor", "Worker"
   // Access level for this user on this project
-  accessLevel  Int @default(0) // 0 = None, 1 = Read-only, 2 = Write, 3 = Admin
+  accessLevel      Int       @default(0) // 0 = None, 1 = Read-only, 2 = Write, 3 = Admin
   // Assignment details
-  assignedDate DateTime  @default(now())
-  endDate      DateTime? // When assignment ends (null for ongoing)
-  isActive     Boolean   @default(true)
+  assignedDate     DateTime  @default(now())
+  endDate          DateTime? // When assignment ends (null for ongoing)
+  isActive         Boolean   @default(true)
   // Work schedule
-  workSchedule String?   // e.g., "Full-time", "Part-time", "Contractor"
-  hourlyRate   Float?    // If applicable
+  workSchedule     String? // e.g., "Full-time", "Part-time", "Contractor"
+  hourlyRate       Float? // If applicable
   // Contact and emergency info for this project
   emergencyContact String?
   // Notes about this assignment
-  notes        String?
+  notes            String?
   // Who assigned this user to the project
-  assignedBy   String?   // User ID of who made the assignment
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  assignedBy       String? // User ID of who made the assignment
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@unique([userId, projectId])
 }
@@ -172,89 +172,89 @@ model Document {
   description  String?
   tags         String[] // Array of tags
   isActive     Boolean  @default(true)
-  tasks        Task[]   // Tasks that reference this document as an attachment
-  rfis         RFI[]    // RFIs that reference this document as an attachment
-  issues       Issue[]  // Issues that reference this document as an attachment
+  tasks        Task[] // Tasks that reference this document as an attachment
+  rfis         RFI[] // RFIs that reference this document as an attachment
+  issues       Issue[] // Issues that reference this document as an attachment
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
 // Task model for task management
 model Task {
-  id          String    @id @default(uuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id])
-  title       String
-  description String?
-  assigneeId  String?
-  assignee    User?     @relation(fields: [assigneeId], references: [id])
-  status      String    @default("Pending") // "Pending", "In Progress", "Completed", "Cancelled"
-  priority    String    @default("Medium") // "Low", "Medium", "High", "Critical"
-  progress    Float     @default(0) // 0-100 percentage
+  id             String     @id @default(uuid())
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id])
+  title          String
+  description    String?
+  assigneeId     String?
+  assignee       User?      @relation(fields: [assigneeId], references: [id])
+  status         String     @default("Pending") // "Pending", "In Progress", "Completed", "Cancelled"
+  priority       String     @default("Medium") // "Low", "Medium", "High", "Critical"
+  progress       Float      @default(0) // 0-100 percentage
   estimatedHours Float?
-  actualHours Float?
-  dueDate     DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-  tags        String[] // Array of tags
-  attachments Document[] // Array of Document IDs for attachments
-  comments    Comment[] // Comments on this task
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  actualHours    Float?
+  dueDate        DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  tags           String[] // Array of tags
+  attachments    Document[] // Array of Document IDs for attachments
+  comments       Comment[] // Comments on this task
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }
 
 // Comment model for task comments
 model Comment {
-  id         String   @id @default(uuid())
-  taskId     String
-  task       Task     @relation(fields: [taskId], references: [id])
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  content    String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // RFI model for formal information requests
 model RFI {
-  id           String      @id @default(uuid())
-  projectId    String
-  project      Project     @relation(fields: [projectId], references: [id])
-  title        String
-  description  String
-  category     String      // e.g., "Design", "Specification", "Clarification"
-  priority     String      @default("Medium") // "Low", "Medium", "High", "Urgent"
-  status       String      @default("Open") // "Open", "In Review", "Answered", "Closed"
+  id            String     @id @default(uuid())
+  projectId     String
+  project       Project    @relation(fields: [projectId], references: [id])
+  title         String
+  description   String
+  category      String // e.g., "Design", "Specification", "Clarification"
+  priority      String     @default("Medium") // "Low", "Medium", "High", "Urgent"
+  status        String     @default("Open") // "Open", "In Review", "Answered", "Closed"
   requestedById String?
-  requester    User?       @relation("RFIRequester", fields: [requestedById], references: [id])
-  assignees    User[]      @relation("RFIAssignee")
-  threadId     String?     // Link to discussion thread
-  thread       Thread?     @relation(fields: [threadId], references: [id])
-  documents    Document[] // Array of Document IDs for attachments
-  dueDate      DateTime?
-  answeredAt   DateTime?
-  answer       String?     // The response/answer
-  attachments  String[]    // Array of S3 URLs
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  requester     User?      @relation("RFIRequester", fields: [requestedById], references: [id])
+  assignees     User[]     @relation("RFIAssignee")
+  threadId      String? // Link to discussion thread
+  thread        Thread?    @relation(fields: [threadId], references: [id])
+  documents     Document[] // Array of Document IDs for attachments
+  dueDate       DateTime?
+  answeredAt    DateTime?
+  answer        String? // The response/answer
+  attachments   String[] // Array of S3 URLs
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 // Thread model for message threads
 model Thread {
-  id        String    @id @default(uuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
-  title     String    // e.g., 'Site Inspection Discussion'
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  title       String // e.g., 'Site Inspection Discussion'
   description String? // Optional description
-  type      String    @default("General") // "General", "RFI", "Issue", "Task"
-  status    String    @default("Active") // "Active", "Closed", "Archived"
-  isPrivate Boolean   @default(false) // Private threads for sensitive discussions
-  tags      String[]  // Array of tags for categorization
-  messages  Message[] // Messages in this thread
-  users     User[]
-  rfis      RFI[]     // RFIs can reference threads
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  type        String    @default("General") // "General", "RFI", "Issue", "Task"
+  status      String    @default("Active") // "Active", "Closed", "Archived"
+  isPrivate   Boolean   @default(false) // Private threads for sensitive discussions
+  tags        String[] // Array of tags for categorization
+  messages    Message[] // Messages in this thread
+  users       User[]
+  rfis        RFI[] // RFIs can reference threads
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // Message model for internal communication
@@ -328,31 +328,31 @@ model MaterialUsage {
 
 // Daily work logs
 model DailyLog {
-  id          String          @id @default(uuid())
-  projectId   String
-  project     Project         @relation(fields: [projectId], references: [id])
-  date        DateTime        @db.Date
-  weather     String? // Weather conditions
-  temperature String? // Temperature range
-  workHours   Float? // Total work hours for the day
-  workersPresent  Int? // Number of workers present
-  summary     String // Summary of work done
-  issues      String? // Any issues encountered
-  notes       String? // Additional notes
-  loggedById  String
-  logger      User            @relation(fields: [loggedById], references: [id])
-  activities  DailyActivity[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id             String          @id @default(uuid())
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id])
+  date           DateTime        @db.Date
+  weather        String? // Weather conditions
+  temperature    String? // Temperature range
+  workHours      Float? // Total work hours for the day
+  workersPresent Int? // Number of workers present
+  summary        String // Summary of work done
+  issues         String? // Any issues encountered
+  notes          String? // Additional notes
+  loggedById     String
+  logger         User            @relation(fields: [loggedById], references: [id])
+  activities     DailyActivity[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@unique([projectId, date])
 }
 
 // Activities within a daily log
 model DailyActivity {
-  id          String    @id @default(uuid())
+  id          String       @id @default(uuid())
   dailyLogId  String
-  dailyLog    DailyLog  @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  dailyLog    DailyLog     @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
   activity    String // Description of activity
   location    String? // Where the activity took place
   crewMembers CrewMember[]
@@ -360,120 +360,120 @@ model DailyActivity {
   endTime     DateTime?
   progress    Float? // Percentage completed (0-100)
   notes       String?
-  status      String    @default("IN_PROGRESS") // "Planned", "In Progress", "Completed", "Delayed"
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status      String       @default("IN_PROGRESS") // "Planned", "In Progress", "Completed", "Delayed"
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 // Issue tracking
 model Issue {
-  id           String    @id @default(uuid())
+  id           String     @id @default(uuid())
   projectId    String
-  project      Project   @relation(fields: [projectId], references: [id])
+  project      Project    @relation(fields: [projectId], references: [id])
   title        String
   description  String
   category     String // e.g., "Safety", "Quality", "Delay", "Equipment"
   severity     String // e.g., "Low", "Medium", "High", "Critical"
-  status       String    @default("Open") // "Open", "In Progress", "Resolved", "Closed"
+  status       String     @default("Open") // "Open", "In Progress", "Resolved", "Closed"
   location     String? // Where the issue occurred
   reportedBy   String // Name of person who reported
   reportedById String?
-  reporter     User?     @relation(fields: [reportedById], references: [id])
+  reporter     User?      @relation(fields: [reportedById], references: [id])
   assignedTo   String? // Who is responsible for fixing
   assignedToId String?
-  assignee     User?     @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  assignee     User?      @relation("IssueAssignee", fields: [assignedToId], references: [id])
   dueDate      DateTime?
   resolvedAt   DateTime?
   resolution   String? // How the issue was resolved
   attachments  Document[] // Array of Document IDs for attachments
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 // Project-based attendance tracking
 model ProjectAttendance {
-  id           String                    @id @default(uuid())
-  projectId    String
-  project      Project                   @relation(fields: [projectId], references: [id])
-  date         DateTime                  @db.Date
-  
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  date      DateTime @db.Date
+
   // Work schedule information
-  actualStartTime    DateTime?  // When work actually started
-  workDelayed        Boolean    @default(false)
-  delayReason        String?
-  delayDuration      Int?       // Delay in minutes
-  
+  actualStartTime DateTime? // When work actually started
+  workDelayed     Boolean   @default(false)
+  delayReason     String?
+  delayDuration   Int? // Delay in minutes
+
   // Marked attendance
   markedById String
-  markedBy   User                      @relation(fields: [markedById], references: [id])
-  
+  markedBy   User   @relation(fields: [markedById], references: [id])
+
   // Day type information
-  dayType            String     @default("WORKDAY") // "WORKDAY", "HOLIDAY", "WEEKEND", "WEATHER_DELAY", "NO_WORK_SCHEDULED"
-  dayTypeReason      String?    // Holiday name, weather condition, etc.
-  isWorkDay          Boolean    @default(true)      // Whether work was scheduled for this day
+  dayType       String  @default("WORKDAY") // "WORKDAY", "HOLIDAY", "WEEKEND", "WEATHER_DELAY", "NO_WORK_SCHEDULED"
+  dayTypeReason String? // Holiday name, weather condition, etc.
+  isWorkDay     Boolean @default(true) // Whether work was scheduled for this day
 
   // Many-to-many relationship with crew members
   crewAttendance AttendanceRecord[]
-  
+
   // General notes for the day
-  notes        String?
-  
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([projectId, date]) // One attendance record per project per day
 }
 
 // Individual crew member attendance within a project attendance
 model AttendanceRecord {
-  id                   String            @id @default(uuid())
-  projectAttendanceId  String
-  projectAttendance    ProjectAttendance @relation(fields: [projectAttendanceId], references: [id], onDelete: Cascade)
-  crewMemberId         String
-  crewMember           CrewMember        @relation(fields: [crewMemberId], references: [id])
-  
+  id                  String            @id @default(uuid())
+  projectAttendanceId String
+  projectAttendance   ProjectAttendance @relation(fields: [projectAttendanceId], references: [id], onDelete: Cascade)
+  crewMemberId        String
+  crewMember          CrewMember        @relation(fields: [crewMemberId], references: [id])
+
   // Attendance status
-  status               String            // "PRESENT", "ABSENT", "HALF_DAY", "LATE", "EARLY_DEPARTURE", "SICK_LEAVE", "VACATION", "HOLIDAY"
-  
+  status String // "PRESENT", "ABSENT", "HALF_DAY", "LATE", "EARLY_DEPARTURE", "SICK_LEAVE", "VACATION", "HOLIDAY"
+
   // Time tracking
-  checkInTime          DateTime?
-  checkOutTime         DateTime?
-  breakDuration        Int?              // Break duration in minutes
-  totalHours           Float?            // Total working hours
-  scheduledHours       Float?            // Scheduled hours for the day
-  
+  checkInTime    DateTime?
+  checkOutTime   DateTime?
+  breakDuration  Int? // Break duration in minutes
+  totalHours     Float? // Total working hours
+  scheduledHours Float? // Scheduled hours for the day
+
   // Leave/absence details
-  leaveType            String?           // "SICK", "VACATION", "PERSONAL", "EMERGENCY", "UNAUTHORIZED"
-  isApproved           Boolean?          // Whether leave was pre-approved
-  
+  leaveType  String? // "SICK", "VACATION", "PERSONAL", "EMERGENCY", "UNAUTHORIZED"
+  isApproved Boolean? // Whether leave was pre-approved
+
   // Work details
-  workLocation         String?           // Specific area where they worked
-  tasks                String[]          // Array of tasks/activities performed
-  
+  workLocation String? // Specific area where they worked
+  tasks        String[] // Array of tasks/activities performed
+
   // Individual notes for this crew member
-  notes                String?
-  
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([projectAttendanceId, crewMemberId]) // One record per crew member per project attendance
 }
 
 // Crew members (non-system users)
 model CrewMember {
-  id             String           @id @default(uuid())
-  name           String
-  role           String // e.g., "Foreman", "Electrician", "Carpenter"
-  phone          String?
-  email          String?
-  skills         String[] // Array of skills
-  isActive       Boolean          @default(true)
-  hireDate       DateTime?
-  assignments    CrewAssignment[]
-  dailyActivities DailyActivity[]
+  id                String             @id @default(uuid())
+  name              String
+  role              String // e.g., "Foreman", "Electrician", "Carpenter"
+  phone             String?
+  email             String?
+  skills            String[] // Array of skills
+  isActive          Boolean            @default(true)
+  hireDate          DateTime?
+  assignments       CrewAssignment[]
+  dailyActivities   DailyActivity[]
   attendanceRecords AttendanceRecord[]
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 // Crew assignments to projects
@@ -505,7 +505,7 @@ model ScheduleEvent {
   endDate      DateTime?
   allDay       Boolean         @default(false)
   location     String?
-  assignees    User[] @relation("EventAssignees") // Users assigned to this event
+  assignees    User[]          @relation("EventAssignees") // Users assigned to this event
   status       String          @default("Scheduled") // "Scheduled", "In Progress", "Completed", "Cancelled"
   priority     String          @default("Medium") // "Low", "Medium", "High"
   color        String? // For calendar display
@@ -514,7 +514,7 @@ model ScheduleEvent {
   dependents   ScheduleEvent[] @relation("EventDependencies")
   notes        String?
   createdById  String // User who created the event
-  createdBy    User   @relation("EventCreator", fields: [createdById], references: [id])
+  createdBy    User            @relation("EventCreator", fields: [createdById], references: [id])
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 }
