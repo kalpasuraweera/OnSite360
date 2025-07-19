@@ -15,6 +15,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
+
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AssignUserToProjectDto } from './dto/assign-user-to-project.dto';
@@ -24,6 +25,8 @@ import { UpdateCrewMemberDto } from './dto/update-crew-member.dto';
 import { CreateProjectAttendanceDto } from './dto/create-project-attendance.dto';
 import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto';
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+import { CreateIssueDto } from './dto/create-issue.dto';
+import { UpdateIssueDto } from './dto/update-issue.dto';
 import {
   ApiBearerAuth,
   ApiTags,
@@ -277,6 +280,30 @@ export class ProjectsController {
     }
   }
 
+  @ApiOperation({ summary: 'Get all issues across all projects' })
+  @ApiResponse({
+    status: 200,
+    description: 'All issues retrieved successfully',
+  })
+  @ApiBearerAuth()
+  @Get('issues')
+  async getAllIssues() {
+    try {
+      const issues = await this.projectsService.getAllIssues();
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'All issues retrieved successfully',
+        data: issues,
+      };
+    } catch (error) {
+      console.error('Error retrieving all issues:', error);
+      throw new HttpException(
+        'Failed to retrieve all issues',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @ApiOperation({ summary: 'Get a project by ID' })
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
@@ -510,6 +537,159 @@ export class ProjectsController {
       console.error('Error retrieving project statistics:', error);
       throw new HttpException(
         'Failed to retrieve project statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Issue Management Routes
+  @ApiOperation({ summary: 'Create a new issue for a project' })
+  @ApiResponse({ status: 201, description: 'Issue created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Post(':id/issues')
+  async createIssue(
+    @Param('id') projectId: string,
+    @Body() createIssueDto: CreateIssueDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    try {
+      const reportedById = req.user?.sub;
+      const issue = await this.projectsService.createIssue(
+        projectId,
+        createIssueDto,
+        reportedById,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Issue created successfully',
+        data: issue,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error creating issue:', error);
+      throw new HttpException(
+        'Failed to create issue',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get all issues for a project' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project issues retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/issues')
+  async getProjectIssues(@Param('id') projectId: string) {
+    try {
+      const issues = await this.projectsService.getProjectIssues(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Project issues retrieved successfully',
+        data: issues,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving project issues:', error);
+      throw new HttpException(
+        'Failed to retrieve project issues',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get a specific issue by ID' })
+  @ApiResponse({ status: 200, description: 'Issue retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Issue or project not found' })
+  @ApiBearerAuth()
+  @Get(':id/issues/:issueId')
+  async getIssue(
+    @Param('id') projectId: string,
+    @Param('issueId') issueId: string,
+  ) {
+    try {
+      const issue = await this.projectsService.getIssue(projectId, issueId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Issue retrieved successfully',
+        data: issue,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving issue:', error);
+      throw new HttpException(
+        'Failed to retrieve issue',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Update an issue' })
+  @ApiResponse({ status: 200, description: 'Issue updated successfully' })
+  @ApiResponse({ status: 404, description: 'Issue or project not found' })
+  @ApiBearerAuth()
+  @Patch(':id/issues/:issueId')
+  async updateIssue(
+    @Param('id') projectId: string,
+    @Param('issueId') issueId: string,
+    @Body() updateIssueDto: UpdateIssueDto,
+  ) {
+    try {
+      const issue = await this.projectsService.updateIssue(
+        projectId,
+        issueId,
+        updateIssueDto,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Issue updated successfully',
+        data: issue,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error updating issue:', error);
+      throw new HttpException(
+        'Failed to update issue',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete an issue' })
+  @ApiResponse({ status: 200, description: 'Issue deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Issue or project not found' })
+  @ApiBearerAuth()
+  @Delete(':id/issues/:issueId')
+  async deleteIssue(
+    @Param('id') projectId: string,
+    @Param('issueId') issueId: string,
+  ) {
+    try {
+      const issue = await this.projectsService.deleteIssue(projectId, issueId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Issue deleted successfully',
+        data: issue,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error deleting issue:', error);
+      throw new HttpException(
+        'Failed to delete issue',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

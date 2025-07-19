@@ -19,6 +19,8 @@ import { UpdateCrewMemberDto } from './dto/update-crew-member.dto';
 import { CreateProjectAttendanceDto } from './dto/create-project-attendance.dto';
 import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto';
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+import { CreateIssueDto } from './dto/create-issue.dto';
+import { UpdateIssueDto } from './dto/update-issue.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -143,14 +145,6 @@ export class ProjectsService {
         issue: {
           include: {
             reporter: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            assignee: {
               select: {
                 id: true,
                 firstName: true,
@@ -1129,6 +1123,326 @@ export class ProjectsService {
         projectId_date: {
           projectId,
           date: new Date(date),
+        },
+      },
+    });
+  }
+
+  // Issue Management Methods
+
+  // Create a new issue for a project
+  async createIssue(
+    projectId: string,
+    createIssueDto: CreateIssueDto,
+    reportedById?: string,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const { taggedUserIds, attachmentIds, ...issueData } = createIssueDto;
+
+    // Create the issue first
+    const issue = await this.prisma.issue.create({
+      data: {
+        ...issueData,
+        projectId,
+        reportedById,
+        dueDate: issueData.dueDate ? new Date(issueData.dueDate) : undefined,
+      },
+    });
+
+    // Handle tagged users and attachments separately if needed
+    if (taggedUserIds?.length || attachmentIds?.length) {
+      const updateData: {
+        taggedUsers?: { connect: { id: string }[] };
+        attachments?: { connect: { id: string }[] };
+      } = {};
+
+      if (taggedUserIds?.length) {
+        updateData.taggedUsers = {
+          connect: taggedUserIds.map((userId) => ({ id: userId })),
+        };
+      }
+
+      if (attachmentIds?.length) {
+        updateData.attachments = {
+          connect: attachmentIds.map((docId) => ({ id: docId })),
+        };
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await this.prisma.issue.update({
+          where: { id: issue.id },
+          data: updateData,
+        });
+      }
+    }
+
+    // Return the complete issue with relations
+    return this.prisma.issue.findUnique({
+      where: { id: issue.id },
+      include: {
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Get all issues for a project
+  async getProjectIssues(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return this.prisma.issue.findMany({
+      where: { projectId },
+      include: {
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  // Get all issues across all projects
+  async getAllIssues() {
+    return this.prisma.issue.findMany({
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
+        },
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  // Get a single issue by ID
+  async getIssue(projectId: string, issueId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const issue = await this.prisma.issue.findFirst({
+      where: {
+        id: issueId,
+        projectId,
+      },
+      include: {
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
+        },
+      },
+    });
+
+    if (!issue) {
+      throw new NotFoundException(
+        `Issue with ID ${issueId} not found in project ${projectId}`,
+      );
+    }
+
+    return issue;
+  }
+
+  // Update an issue
+  async updateIssue(
+    projectId: string,
+    issueId: string,
+    updateIssueDto: UpdateIssueDto,
+  ) {
+    // Check if issue exists and belongs to the project
+    const existingIssue = await this.prisma.issue.findFirst({
+      where: {
+        id: issueId,
+        projectId,
+      },
+    });
+
+    if (!existingIssue) {
+      throw new NotFoundException(
+        `Issue with ID ${issueId} not found in project ${projectId}`,
+      );
+    }
+
+    const { taggedUserIds, attachmentIds, ...issueData } = updateIssueDto;
+
+    // Prepare update data
+    const updateData: {
+      title?: string;
+      description?: string;
+      category?: string;
+      severity?: string;
+      status?: string;
+      resolution?: string;
+      dueDate?: Date;
+      resolvedAt?: Date;
+    } = {
+      ...issueData,
+      dueDate: issueData.dueDate ? new Date(issueData.dueDate) : undefined,
+    };
+
+    // If status is being changed to 'Resolved' or 'Closed', set resolvedAt
+    if (
+      issueData.status &&
+      ['Resolved', 'Closed'].includes(issueData.status) &&
+      existingIssue.status !== issueData.status
+    ) {
+      updateData.resolvedAt = new Date();
+    }
+
+    // Update the basic issue data
+    await this.prisma.issue.update({
+      where: { id: issueId },
+      data: updateData,
+    });
+
+    // Handle tagged users and attachments separately if provided
+    if (taggedUserIds !== undefined || attachmentIds !== undefined) {
+      const relationUpdate: {
+        taggedUsers?: { set: { id: string }[] };
+        attachments?: { set: { id: string }[] };
+      } = {};
+
+      if (taggedUserIds !== undefined) {
+        // Clear existing relations and set new ones
+        relationUpdate.taggedUsers = {
+          set: taggedUserIds.map((userId) => ({ id: userId })),
+        };
+      }
+
+      if (attachmentIds !== undefined) {
+        // Clear existing relations and set new ones
+        relationUpdate.attachments = {
+          set: attachmentIds.map((docId) => ({ id: docId })),
+        };
+      }
+
+      if (Object.keys(relationUpdate).length > 0) {
+        await this.prisma.issue.update({
+          where: { id: issueId },
+          data: relationUpdate,
+        });
+      }
+    }
+
+    // Return the updated issue with relations
+    return this.prisma.issue.findUnique({
+      where: { id: issueId },
+      include: {
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Delete an issue
+  async deleteIssue(projectId: string, issueId: string) {
+    // Check if issue exists and belongs to the project
+    const existingIssue = await this.prisma.issue.findFirst({
+      where: {
+        id: issueId,
+        projectId,
+      },
+    });
+
+    if (!existingIssue) {
+      throw new NotFoundException(
+        `Issue with ID ${issueId} not found in project ${projectId}`,
+      );
+    }
+
+    return this.prisma.issue.delete({
+      where: { id: issueId },
+      include: {
+        reporter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+          },
         },
       },
     });
