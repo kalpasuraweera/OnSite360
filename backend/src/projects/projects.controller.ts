@@ -112,6 +112,34 @@ export class ProjectsController {
     }
   }
 
+  @ApiOperation({ summary: 'Get all projects for a specific user' })
+  @ApiResponse({
+    status: 200,
+    description: 'User projects retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBearerAuth()
+  @Get('users/:userId/projects')
+  async getUserProjects(@Param('userId') userId: string) {
+    try {
+      const projects = await this.projectsService.getUserProjects(userId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User projects retrieved successfully',
+        data: projects,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving user projects:', error);
+      throw new HttpException(
+        'Failed to retrieve user projects',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @ApiOperation({ summary: 'Get a project by ID' })
   @ApiResponse({ status: 200, description: 'Project retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Project not found' })
@@ -345,34 +373,6 @@ export class ProjectsController {
       console.error('Error retrieving project statistics:', error);
       throw new HttpException(
         'Failed to retrieve project statistics',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @ApiOperation({ summary: 'Get all projects for a user' })
-  @ApiResponse({
-    status: 200,
-    description: 'User projects retrieved successfully',
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiBearerAuth()
-  @Get('/users/:userId/projects')
-  async getUserProjects(@Param('userId') userId: string) {
-    try {
-      const projects = await this.projectsService.getUserProjects(userId);
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'User projects retrieved successfully',
-        data: projects,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      console.error('Error retrieving user projects:', error);
-      throw new HttpException(
-        'Failed to retrieve user projects',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
