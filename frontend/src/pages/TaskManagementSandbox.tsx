@@ -3706,6 +3706,1554 @@ const TaskManagement = () => {
         )}
         {mainTab === "analytics" && <Analytics />}
       </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">Add New Task</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Task Title <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                required
+                value={newTask.title}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, title: e.target.value }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Priority</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.priority}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      priority: e.target.value as TaskPriority,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Status</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.status}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      status: e.target.value as TaskStatus,
+                    }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Assignee</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={newTask.assigneeId || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, assigneeId: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select assignee (optional)</option>
+                  {projectUsers.map((userProject) => (
+                    <option
+                      key={userProject.user.id}
+                      value={userProject.user.id}
+                    >
+                      {userProject.user.firstName} {userProject.user.lastName} (
+                      {userProject.projectRole})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Due Date</span>
+                </label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={newTask.dueDate || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({ ...t, dueDate: e.target.value }))
+                  }
+                  disabled={isSubmitting}
+                  min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Estimated Hours</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  step="0.5"
+                  value={newTask.estimatedHours || ""}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      estimatedHours: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                  placeholder="Enter estimated hours"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Progress (%)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="0"
+                  max="100"
+                  value={newTask.progress}
+                  onChange={(e) =>
+                    setNewTask((t) => ({
+                      ...t,
+                      progress: Math.min(
+                        100,
+                        Math.max(0, Number(e.target.value) || 0)
+                      ),
+                    }))
+                  }
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">Description</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                rows={3}
+                value={newTask.description}
+                onChange={(e) =>
+                  setNewTask((t) => ({ ...t, description: e.target.value }))
+                }
+                placeholder="Enter task description (optional)"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder="Enter tags"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex flex-col w-full form-control">
+              <label className="label">
+                <span className="label-text">
+                  Phase <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={newTask.projectPhaseId || ""}
+                onChange={(e) => {
+                  setNewTask((t) => ({
+                    ...t,
+                    projectPhaseId: e.target.value || undefined,
+                  }));
+                  if (phaseError) setPhaseError("");
+                }}
+                disabled={isSubmitting || phasesLoading}
+                required={projectPhases && projectPhases.length > 0}
+              >
+                <option value="">No phase</option>
+                {phasesLoading ? (
+                  <option>Loading phases...</option>
+                ) : (
+                  projectPhases.map((phase: ProjectPhase) => (
+                    <option key={phase.id} value={phase.id}>
+                      {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {phaseError && (
+                <span className="text-error text-sm mt-1">{phaseError}</span>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setShowAddModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`btn ${
+                  submitSuccess ? "btn-success" : "btn-primary"
+                }`}
+                disabled={
+                  isSubmitting ||
+                  (projectPhases &&
+                    projectPhases.length > 0 &&
+                    !newTask.projectPhaseId)
+                }
+              >
+                {submitSuccess ? (
+                  <>
+                    <span className="text-success-content">✓</span>
+                    Task Created!
+                  </>
+                ) : isSubmitting ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  "Create Task"
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
