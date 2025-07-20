@@ -3747,6 +3747,1008 @@ const ScheduleManagement = () => {
               </div>
             </form>
           </div>
+
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-3xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingLog ? "Edit Daily Log" : "Add Daily Log"}
+              </h3>
+              <form onSubmit={handleLogSubmit} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered bg-base-200"
+                    value={logForm.date}
+                    readOnly
+                  />
+                  <div className="label">
+                    <span className="label-text-alt text-info">
+                      {editingLog
+                        ? "Log date cannot be changed"
+                        : "Date is automatically set to today and cannot be changed"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Weather</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={logForm.weather}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          weather: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g., Sunny, Rainy, Cloudy"
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Work Hours</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      value={logForm.workHours}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({
+                          ...prev,
+                          workHours: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                      max="24"
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Workers Present</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered"
+                    value={logForm.workersPresent}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workersPresent: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    value={logForm.notes}
+                    onChange={(e) =>
+                      setLogForm((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="General notes about the day's work..."
+                  />
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setShowLogModal(false);
+                      setEditingLog(null);
+                      setLogForm({
+                        date: moment().format("YYYY-MM-DD"),
+                        projectId: "",
+                        weather: "",
+                        notes: "",
+                        workHours: 0,
+                        workersPresent: 0,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      createLogMutation.isPending || updateLogMutation.isPending
+                    }
+                  >
+                    {createLogMutation.isPending ||
+                    updateLogMutation.isPending ? (
+                      <span className="loading loading-spinner loading-sm"></span>
+                    ) : editingLog ? (
+                      <>
+                        <MdEdit className="mr-2" />
+                        Update Log
+                      </>
+                    ) : (
+                      <>
+                        <MdAdd className="mr-2" />
+                        Add Log
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 
