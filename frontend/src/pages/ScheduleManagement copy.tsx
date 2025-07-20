@@ -313,6 +313,1261 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
           style={{ minHeight: "400px", maxWidth: "100%" }}
         />
       </div>
+
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
+      <div className="w-full">
+        <div className="flex items-center w-full justify-between mb-4">
+          {/* View Mode Controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["Quarter Day", "Half Day", "Day", "Week", "Month"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleViewModeChange(mode)}
+                className={`btn btn-sm ${
+                  viewMode === mode ? "btn-neutral" : "btn-outline"
+                }`}
+                disabled={isLoading}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded"></div>
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+              <span>Milestone</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div
+          className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
+          style={{ minHeight: "400px" }}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-base-100 z-10">
+              <div className="loading loading-spinner loading-lg"></div>
+              <span className="ml-2">Loading Gantt chart...</span>
+            </div>
+          )}
+          <div
+            ref={ganttRef}
+            className="gantt-target w-full h-full"
+            style={{ minHeight: "400px", maxWidth: "100%" }}
+          />
+        </div>
+      </div>
     </div>
   );
 };
@@ -1295,17 +2550,20 @@ const ScheduleManagement = () => {
                               <div className="flex items-center gap-2">
                                 {log.logger && (
                                   <span className="text-sm text-base-content/60">
-                                    by {log.logger.firstName} {log.logger.lastName}
+                                    by {log.logger.firstName}{" "}
+                                    {log.logger.lastName}
                                   </span>
                                 )}
                                 <span className="text-xs text-gray-500">•</span>
                                 <span className="text-xs text-gray-500">
-                                  {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
+                                  {moment(log.createdAt).format(
+                                    "MMM D, YYYY [at] h:mm A"
+                                  )}
                                 </span>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             {log.weather && (
                               <div className="flex items-center gap-2">
@@ -1331,7 +2589,9 @@ const ScheduleManagement = () => {
                                 <span className="text-sm font-medium text-gray-600">
                                   Workers:
                                 </span>
-                                <span className="text-sm">{log.workersPresent}</span>
+                                <span className="text-sm">
+                                  {log.workersPresent}
+                                </span>
                               </div>
                             )}
                             {/* Show coordinates if available */}
@@ -1351,7 +2611,7 @@ const ScheduleManagement = () => {
                                 </a>
                               </div>
                             )}
-                            
+
                             {/* Show file attachments count if available */}
                             {log.files && log.files.length > 0 && (
                               <div className="flex items-center gap-2">
@@ -1365,7 +2625,7 @@ const ScheduleManagement = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           {log.summary && (
                             <div className="mb-4">
                               <div className="flex items-center gap-2 mb-2">
@@ -1379,7 +2639,7 @@ const ScheduleManagement = () => {
                               </p>
                             </div>
                           )}
-                          
+
                           {log.notes && (
                             <div className="mb-4">
                               <div className="flex items-center gap-2 mb-2">
@@ -1393,7 +2653,7 @@ const ScheduleManagement = () => {
                               </p>
                             </div>
                           )}
-                          
+
                           {/* File Attachments Section */}
                           {log.files && log.files.length > 0 && (
                             <div className="mb-4">
@@ -1408,9 +2668,15 @@ const ScheduleManagement = () => {
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-base-200 rounded">
                                 {log.files.map((fileUrl, idx) => {
-                                  const fileName = fileUrl.split("/").pop() || fileUrl;
-                                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-                                  const fullUrl = `${import.meta.env.VITE_DOCUMENTS_URL}${fileUrl}`;
+                                  const fileName =
+                                    fileUrl.split("/").pop() || fileUrl;
+                                  const isImage =
+                                    /\.(jpg|jpeg|png|gif|webp)$/i.test(
+                                      fileName
+                                    );
+                                  const fullUrl = `${
+                                    import.meta.env.VITE_DOCUMENTS_URL
+                                  }${fileUrl}`;
 
                                   return (
                                     <a
@@ -1422,14 +2688,25 @@ const ScheduleManagement = () => {
                                       className="bg-white p-3 rounded-lg border border-base-300 flex items-center gap-3 hover:shadow-md transition-shadow"
                                     >
                                       <div className="bg-blue-50 p-2 rounded-lg">
-                                        {isImage ? <MdPhoto className="text-blue-500" /> : 
-                                         /\.pdf$/i.test(fileName) ? <MdPictureAsPdf className="text-red-500" /> : 
-                                         <MdFilePresent className="text-gray-500" />}
+                                        {isImage ? (
+                                          <MdPhoto className="text-blue-500" />
+                                        ) : /\.pdf$/i.test(fileName) ? (
+                                          <MdPictureAsPdf className="text-red-500" />
+                                        ) : (
+                                          <MdFilePresent className="text-gray-500" />
+                                        )}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{fileName}</p>
+                                        <p className="text-sm font-medium truncate">
+                                          {fileName}
+                                        </p>
                                         <p className="text-xs text-gray-500">
-                                          {isImage ? "Image" : fileName.split(".").pop()?.toUpperCase()}
+                                          {isImage
+                                            ? "Image"
+                                            : fileName
+                                                .split(".")
+                                                .pop()
+                                                ?.toUpperCase()}
                                         </p>
                                       </div>
                                       <MdDownload className="text-gray-400" />
@@ -1470,7 +2747,9 @@ const ScheduleManagement = () => {
                             </div>
                             <h4 className="font-semibold">Activities</h4>
                             {log.activities && log.activities.length > 0 && (
-                              <span className="badge badge-sm">{log.activities.length}</span>
+                              <span className="badge badge-sm">
+                                {log.activities.length}
+                              </span>
                             )}
                           </div>
                           {/* {user &&
@@ -1506,7 +2785,7 @@ const ScheduleManagement = () => {
                                         </div>
                                       </div>
                                     )}
-                                  
+
                                     <div className="flex items-center gap-2 mb-3">
                                       <h4 className="text-lg font-semibold text-gray-800">
                                         {activity.activity}
@@ -1516,7 +2795,8 @@ const ScheduleManagement = () => {
                                           className={`badge ${
                                             activity.status === "COMPLETED"
                                               ? "badge-success"
-                                              : activity.status === "IN_PROGRESS"
+                                              : activity.status ===
+                                                "IN_PROGRESS"
                                               ? "badge-warning"
                                               : activity.status === "ON_HOLD"
                                               ? "badge-error"
@@ -1529,16 +2809,22 @@ const ScheduleManagement = () => {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                      {activity.startTime && activity.endTime && (
-                                        <div className="flex items-center gap-2">
-                                          <MdAccessTime className="text-gray-400" />
-                                          <span className="text-sm text-gray-600">
-                                            {moment(activity.startTime).format("HH:mm")} -{" "}
-                                            {moment(activity.endTime).format("HH:mm")}
-                                          </span>
-                                        </div>
-                                      )}
-                                      
+                                      {activity.startTime &&
+                                        activity.endTime && (
+                                          <div className="flex items-center gap-2">
+                                            <MdAccessTime className="text-gray-400" />
+                                            <span className="text-sm text-gray-600">
+                                              {moment(
+                                                activity.startTime
+                                              ).format("HH:mm")}{" "}
+                                              -{" "}
+                                              {moment(activity.endTime).format(
+                                                "HH:mm"
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
                                       {activity.progress !== undefined &&
                                         activity.progress !== null && (
                                           <div className="flex items-center gap-2">
@@ -1574,13 +2860,17 @@ const ScheduleManagement = () => {
                                             <div className="flex-1 bg-gray-200 rounded-full h-3">
                                               <div
                                                 className={`h-3 rounded-full transition-all duration-300 ${
-                                                  activity.status === "COMPLETED"
+                                                  activity.status ===
+                                                  "COMPLETED"
                                                     ? "bg-green-500"
-                                                    : activity.status === "IN_PROGRESS"
+                                                    : activity.status ===
+                                                      "IN_PROGRESS"
                                                     ? "bg-blue-500"
                                                     : "bg-gray-400"
                                                 }`}
-                                                style={{ width: `${activity.progress}%` }}
+                                                style={{
+                                                  width: `${activity.progress}%`,
+                                                }}
                                               ></div>
                                             </div>
                                           </div>
@@ -1602,45 +2892,59 @@ const ScheduleManagement = () => {
                                     )}
 
                                     {/* Show activity attachments if any */}
-                                    {activity.files && activity.files.length > 0 && (
-                                      <div className="mt-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <MdAttachFile className="text-amber-500" />
-                                          <span className="text-sm font-medium text-gray-600">
-                                            Attachments:
-                                          </span>
-                                          <span className="badge badge-sm">
-                                            {activity.files.length}
-                                          </span>
+                                    {activity.files &&
+                                      activity.files.length > 0 && (
+                                        <div className="mt-4">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <MdAttachFile className="text-amber-500" />
+                                            <span className="text-sm font-medium text-gray-600">
+                                              Attachments:
+                                            </span>
+                                            <span className="badge badge-sm">
+                                              {activity.files.length}
+                                            </span>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-2">
+                                            {activity.files.map(
+                                              (fileUrl, idx) => {
+                                                const fileName =
+                                                  fileUrl.split("/").pop() ||
+                                                  fileUrl;
+                                                const fullUrl = `${
+                                                  import.meta.env
+                                                    .VITE_DOCUMENTS_URL
+                                                }${fileUrl}`;
+                                                return (
+                                                  <a
+                                                    key={idx}
+                                                    href={fullUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    download={fileName}
+                                                    className="bg-base-100 p-2 rounded flex items-center gap-2 hover:bg-base-300 transition-colors text-sm"
+                                                  >
+                                                    {/\.(jpg|jpeg|png|gif|webp)$/i.test(
+                                                      fileName
+                                                    ) ? (
+                                                      <MdPhoto className="text-blue-500" />
+                                                    ) : /\.pdf$/i.test(
+                                                        fileName
+                                                      ) ? (
+                                                      <MdPictureAsPdf className="text-red-500" />
+                                                    ) : (
+                                                      <MdFilePresent className="text-gray-500" />
+                                                    )}
+                                                    <span className="truncate flex-1">
+                                                      {fileName}
+                                                    </span>
+                                                    <MdDownload className="text-gray-500" />
+                                                  </a>
+                                                );
+                                              }
+                                            )}
+                                          </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                          {activity.files.map((fileUrl, idx) => {
-                                            const fileName = fileUrl.split("/").pop() || fileUrl;
-                                            const fullUrl = `${import.meta.env.VITE_DOCUMENTS_URL}${fileUrl}`;
-                                            return (
-                                              <a
-                                                key={idx}
-                                                href={fullUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                download={fileName}
-                                                className="bg-base-100 p-2 rounded flex items-center gap-2 hover:bg-base-300 transition-colors text-sm"
-                                              >
-                                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(fileName) ? 
-                                                  <MdPhoto className="text-blue-500" /> : 
-                                                  /\.pdf$/i.test(fileName) ? 
-                                                  <MdPictureAsPdf className="text-red-500" /> : 
-                                                  <MdFilePresent className="text-gray-500" />}
-                                                <span className="truncate flex-1">
-                                                  {fileName}
-                                                </span>
-                                                <MdDownload className="text-gray-500" />
-                                              </a>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
+                                      )}
                                   </div>
 
                                   {user &&
