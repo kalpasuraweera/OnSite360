@@ -861,7 +861,121 @@ const EmployeeManagement = () => {
                 </div>
               </div>
 
-              
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Role Distribution Chart */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Role Distribution Chart</h3>
+                  <div className="h-64">
+                    <Doughnut
+                      data={{
+                        labels: roleOptions.filter(role => role !== "All"),
+                        datasets: [{
+                          label: 'Employees',
+                          data: roleOptions.filter(role => role !== "All").map(role => 
+                            employees.filter(emp => emp.role?.name === role).length
+                          ),
+                          backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(6, 182, 212, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                          ],
+                          borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(6, 182, 212, 1)',
+                            'rgba(34, 197, 94, 1)',
+                          ],
+                          borderWidth: 2
+                        }]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                          },
+                          title: {
+                            display: true,
+                            text: 'Employee Distribution by Role'
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Task Status Overview */}
+                <div className="bg-base-100 rounded-xl p-4">
+                  <h3 className="text-lg font-semibold mb-4">Task Status Overview</h3>
+                  {userTaskStats ? (
+                    <div className="h-64">
+                      <Bar
+                        data={{
+                          labels: ['Total', 'Completed', 'In Progress', 'Pending', 'Overdue'],
+                          datasets: [{
+                            label: 'Tasks',
+                            data: [
+                              userTaskStats.totalTasks,
+                              userTaskStats.completedTasks,
+                              userTaskStats.inProgressTasks,
+                              userTaskStats.pendingTasks,
+                              userTaskStats.overdueTasks
+                            ],
+                            backgroundColor: [
+                              'rgba(59, 130, 246, 0.8)',
+                              'rgba(16, 185, 129, 0.8)',
+                              'rgba(245, 158, 11, 0.8)',
+                              'rgba(6, 182, 212, 0.8)',
+                              'rgba(239, 68, 68, 0.8)',
+                            ],
+                            borderColor: [
+                              'rgba(59, 130, 246, 1)',
+                              'rgba(16, 185, 129, 1)',
+                              'rgba(245, 158, 11, 1)',
+                              'rgba(6, 182, 212, 1)',
+                              'rgba(239, 68, 68, 1)',
+                            ],
+                            borderWidth: 2
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              display: false,
+                            },
+                            title: {
+                              display: true,
+                              text: 'Global Task Status Distribution'
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <span className="text-gray-500">Loading task data...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Project Analytics Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
