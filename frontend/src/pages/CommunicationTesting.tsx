@@ -336,7 +336,22 @@ const Communication = () => {
     }
   };
 
-  
+  // Thread Edit handlers
+  const handleEditThread = (thread: Thread) => {
+    setEditingThread(thread);
+    setEditThreadSelectedUsers(thread.users?.map((u) => u.id) || []);
+    setShowEditThreadModal(true);
+  };
+
+  const handleAddEditThreadUser = (userId: string) => {
+    if (!editThreadSelectedUsers.includes(userId)) {
+      setEditThreadSelectedUsers((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditThreadUser = (userId: string) => {
+    setEditThreadSelectedUsers((prev) => prev.filter((id) => id !== userId));
+  };
 };
 
 export default Communication;
