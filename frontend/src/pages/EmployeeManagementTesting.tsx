@@ -494,7 +494,117 @@ const EmployeeManagement = () => {
                 </div>
               </div>
 
-              
+              {/* Additional Analytics */}
+              <div className="bg-base-100 rounded-xl p-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  Performance Analytics
+                  {taskStatsLoading && <span className="loading loading-spinner loading-sm"></span>}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Project Engagement */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Project Engagement</div>
+                    <div className="stat-value text-lg text-primary">
+                      {projectsLoading ? '...' : actualUserProjects?.length || 0}
+                    </div>
+                    <div className="stat-desc">Active projects</div>
+                  </div>
+
+                  {/* Task Completion Rate */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Completion Rate</div>
+                    <div className="stat-value text-lg text-success">
+                      {tasksLoading ? '...' : userTasks && userTasks.length > 0 
+                        ? `${Math.round((userTasks.filter(task => task.status === 'Completed').length / userTasks.length) * 100)}%`
+                        : '0%'
+                      }
+                    </div>
+                    <div className="stat-desc">Tasks completed</div>
+                  </div>
+
+                  {/* Average Progress */}
+                  <div className="stat bg-base-200 rounded-lg p-4">
+                    <div className="stat-title">Avg Progress</div>
+                    <div className="stat-value text-lg text-info">
+                      {tasksLoading ? '...' : userTasks && userTasks.length > 0
+                        ? `${Math.round(userTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / userTasks.length)}%`
+                        : '0%'
+                      }
+                    </div>
+                    <div className="stat-desc">Across all tasks</div>
+                  </div>
+                </div>
+
+                {/* Global User Task Statistics */}
+                {userTaskStats && (
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-3">Global Task Performance</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Tasks</div>
+                        <div className="stat-value text-lg text-primary">{userTaskStats.totalTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Completed</div>
+                        <div className="stat-value text-lg text-success">{userTaskStats.completedTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">In Progress</div>
+                        <div className="stat-value text-lg text-warning">{userTaskStats.inProgressTasks}</div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Overdue</div>
+                        <div className="stat-value text-lg text-error">{userTaskStats.overdueTasks}</div>
+                      </div>
+                    </div>
+                    
+                    {userTaskStats.averageCompletionTime && (
+                      <div className="mt-3">
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Avg Completion Time</div>
+                          <div className="stat-value text-lg text-info">
+                            {Math.round(userTaskStats.averageCompletionTime)} days
+                          </div>
+                          <div className="stat-desc">Average time to complete tasks</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {userTaskStats.totalHoursLogged && (
+                      <div className="mt-3">
+                        <div className="stat bg-base-200 rounded-lg p-3">
+                          <div className="stat-title text-xs">Total Hours Logged</div>
+                          <div className="stat-value text-lg text-accent">
+                            {userTaskStats.totalHoursLogged} hrs
+                          </div>
+                          <div className="stat-desc">Across all tasks</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Current Project Time Analytics */}
+                {userTasks && userTasks.some(task => task.estimatedHours || task.actualHours) && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Current Project Time Analytics</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Estimated Hours</div>
+                        <div className="stat-value text-lg text-warning">
+                          {userTasks.reduce((sum, task) => sum + (task.estimatedHours || 0), 0)} hrs
+                        </div>
+                      </div>
+                      <div className="stat bg-base-200 rounded-lg p-3">
+                        <div className="stat-title text-xs">Total Actual Hours</div>
+                        <div className="stat-value text-lg text-info">
+                          {userTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0)} hrs
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
