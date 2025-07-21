@@ -336,6 +336,112 @@ const Communication = () => {
     }
   };
 
+  // Create RFI handlers
+  const handleCreateRFI = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      let threadId = selectedRFIThread;
+      let projectId = formData.get("projectId") as string;
+
+      // If no thread is selected, create a new thread automatically
+      if (!selectedRFIThread) {
+        const title = formData.get("title") as string;
+        const newThreadData: CreateThreadDto = {
+          title: `RFI: ${title}`,
+          description: formData.get("description") as string,
+          projectId: projectId,
+          participantIds: selectedAssignees,
+        };
+        const newThread = await createThreadMutation.mutateAsync(newThreadData);
+        threadId = newThread.id;
+      } else {
+        // If linking to existing thread, use the thread's project ID
+        const existingThread = threads.find((t) => t.id === selectedRFIThread);
+        if (existingThread) {
+          projectId = existingThread.projectId;
+        }
+      }
+
+      const newRFI: CreateRFIDto = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: (formData.get("category") as string) || undefined,
+        priority: (formData.get("priority") as string) || undefined,
+        projectId: projectId,
+        assignedToIds: selectedAssignees,
+        threadId: threadId || undefined,
+        dueDate: (formData.get("dueDate") as string) || undefined,
+      };
+
+      createRFIMutation.mutate(newRFI, {
+        onSuccess: () => {
+          setShowCreateRFIModal(false);
+          (event.target as HTMLFormElement).reset();
+          setSelectedRFIThread("");
+          setSelectedAssignees([]);
+        },
+        onError: (error) => {
+          console.error("Failed to create RFI:", error);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create thread for RFI:", error);
+    }
+  };
+
+  const handleAddAssignee = (userId: string) => {
+    if (!selectedAssignees.includes(userId)) {
+      setSelectedAssignees((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveAssignee = (userId: string) => {
+    setSelectedAssignees((prev) => prev.filter((id) => id !== userId));
+  };
+
+  // RFI Edit handlers
+  const handleEditRFI = (rfi: RFI) => {
+    setEditingRFI(rfi);
+    // Extract assignee IDs from assignees array
+    const assigneeIds = rfi.assignees
+      ? rfi.assignees.map((assignee) => assignee.id)
+      : [];
+    setEditRFISelectedAssignees(assigneeIds);
+    setShowEditRFIModal(true);
+  };
+
+  const handleAddEditAssignee = (userId: string) => {
+    if (!editRFISelectedAssignees.includes(userId)) {
+      setEditRFISelectedAssignees((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditAssignee = (userId: string) => {
+    setEditRFISelectedAssignees((prev) => prev.filter((id) => id !== userId));
+  };
+
+  // RFI Delete handlers
+  const handleDeleteRFI = (rfi: RFI) => {
+    setDeletingRFI(rfi);
+    setShowDeleteRFIModal(true);
+  };
+
+  const confirmDeleteRFI = () => {
+    if (!deletingRFI) return;
+
+    deleteRFIMutation.mutate(deletingRFI.id, {
+      onSuccess: () => {
+        setShowDeleteRFIModal(false);
+        setDeletingRFI(null);
+      },
+      onError: (error) => {
+        console.error("Failed to delete RFI:", error);
+      },
+    });
+  };
+
   // Thread Edit handlers
   const handleEditThread = (thread: Thread) => {
     setEditingThread(thread);
