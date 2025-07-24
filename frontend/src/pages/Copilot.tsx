@@ -12,7 +12,8 @@ import {
 } from "react-icons/io5";
 import { MdSupportAgent, MdHistory } from "react-icons/md";
 import { useAuthStore } from "../stores/useAuthStore";
-import { useUserProjects } from "../hooks/useUsers";
+import { useUserProjects, useProject } from "../hooks/useProjects";
+import { useTextGeneration } from "../hooks/useCopilot";
 
 interface Message {
   id: string;
@@ -38,10 +39,18 @@ const Copilot = () => {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // AI Integration
+  const { mutate: generateText, isPending: isGenerating } = useTextGeneration();
+  
+  // Get current project data
+  const { data: currentProject } = useProject(selectedProject);
+  
+  // Combined loading state
+  const isTyping = isGenerating;
 
   // Chat suggestions
   const chatSuggestions: ChatSuggestion[] = [
@@ -96,29 +105,6 @@ const Copilot = () => {
     }
   }, [inputValue]);
 
-  // Mock responses for demonstration
-  const getMockResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase();
-    
-    if (message.includes('document') || message.includes('drawing') || message.includes('find')) {
-      return `I found 3 relevant documents for your query:\n\n1. **Foundation_Plan_Rev_C.pdf** - Latest foundation drawings with updated specifications\n2. **Structural_Details_Sheet_4.dwg** - Detailed structural drawings for foundation work\n3. **Site_Survey_Report.pdf** - Site conditions report relevant to foundation\n\nWould you like me to retrieve specific information from any of these documents?`;
-    }
-    
-    if (message.includes('rfi') || message.includes('draft') || message.includes('response')) {
-      return `Here's a draft response for the RFI about concrete specifications:\n\n**Subject: Response to RFI #2024-15 - Concrete Mix Design**\n\nThank you for your inquiry regarding the concrete mix design for the foundation elements.\n\n**Response:**\nPer the project specifications (Section 03 30 00), the required concrete strength is f'c = 4000 psi at 28 days. The mix design should include:\n- Portland cement Type II\n- Maximum water-cement ratio: 0.45\n- Air entrainment: 5-7%\n- Slump: 3-5 inches\n\nPlease refer to Drawing S-101 for reinforcement details and Construction Details CD-03 for placement requirements.\n\nWould you like me to modify or add anything to this response?`;
-    }
-    
-    if (message.includes('safety') || message.includes('protocol')) {
-      return `I found several safety protocols in your project documents:\n\n**Key Safety Documents:**\n1. **Site_Safety_Plan_2024.pdf** - Comprehensive safety protocols\n2. **PPE_Requirements.pdf** - Personal protective equipment guidelines\n3. **Emergency_Procedures.pdf** - Emergency response protocols\n\n**Relevant Safety Requirements:**\n- Hard hats and safety vests required in all work areas\n- Fall protection required for work above 6 feet\n- Daily safety briefings mandatory\n- Hot work permits required for welding/cutting\n\nWould you like me to search for specific safety protocols or create a safety checklist?`;
-    }
-    
-    if (message.includes('progress') || message.includes('summary') || message.includes('report')) {
-      return `Based on the latest project reports, here's a summary of current progress:\n\n**Project Status Overview:**\n📊 **Overall Progress:** 68% complete\n🏗️ **Foundation Work:** 95% complete (ahead of schedule)\n🔧 **Structural Steel:** 45% complete (on schedule)\n🧱 **Masonry Work:** 20% complete (2 days behind)\n\n**Key Highlights:**\n- Foundation inspection passed with no issues\n- Steel delivery scheduled for next week\n- Weather delays affected masonry work\n- 3 RFIs pending response\n\n**Upcoming Milestones:**\n- Structural steel completion: March 15\n- MEP rough-in start: March 20\n- Exterior envelope start: April 1\n\nWould you like me to dive deeper into any specific area?`;
-    }
-    
-    return `I'm here to help with your project needs! I can assist you with:\n\n🔍 **Document Search** - Find specific drawings, specs, or reports\n📝 **Draft Responses** - Help create RFI responses, emails, or reports  \n📊 **Project Analysis** - Summarize progress, identify issues, or trends\n🔧 **Technical Support** - Answer questions about specifications or procedures\n\nWhat would you like me to help you with today?`;
-  };
-
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -130,21 +116,67 @@ const Copilot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userPrompt = inputValue.trim();
     setInputValue("");
-    setIsTyping(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: getMockResponse(userMessage.content),
-        isUser: false,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-    }, 1500);
+    // Prepare enhanced prompt with project context
+    let enhancedPrompt = userPrompt;
+    if (currentProject) {
+      const projectContext = `
+Context: You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support for project "${currentProject.name}".
+
+Project Details: ${JSON.stringify(currentProject, null, 2)}
+
+Recent conversation context:
+${messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n')}
+
+User Question: ${userPrompt}
+
+Please provide a helpful, accurate, and professional response considering the project context above.`;
+      enhancedPrompt = projectContext;
+    } else {
+      // Add system context even without a specific project
+      enhancedPrompt = `
+You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support.
+
+Recent conversation context:
+${messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n')}
+
+User Question: ${userPrompt}
+
+Please provide a helpful, accurate, and professional response.`;
+    }
+
+    // Call AI API
+    generateText({
+      prompt: enhancedPrompt,
+      projectId: selectedProject || undefined,
+      model: 'llama3',
+      maxTokens: 1000,
+      temperature: 0.7
+    }, {
+      onSuccess: (response) => {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          content: response.response,
+          isUser: false,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, botResponse]);
+      },
+      onError: (error) => {
+        console.error('AI generation failed:', error);
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "Sorry, I encountered an error while processing your request. Please try again.",
+          isUser: false,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    });
   };
 
   const handleSuggestionClick = (suggestion: ChatSuggestion) => {

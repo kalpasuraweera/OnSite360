@@ -40,8 +40,6 @@ model User {
   scheduleEvents   ScheduleEvent[]     @relation("EventAssignees") // Events assigned to this user
   createdEvents    ScheduleEvent[]     @relation("EventCreator") // Events created by this user
   markedAttendance ProjectAttendance[] // Attendance records marked by this user
-  chatSessions     ChatSession[] // Chat sessions created by this user
-  llmGenerations   LLMGeneration[] // LLM generations by this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -116,7 +114,6 @@ model Project {
   EquipmentAssignment EquipmentAssignment[]
   RFI                 RFI[]
   attendance          ProjectAttendance[]
-  chatSessions        ChatSession[] // Chat sessions related to this project
 }
 
 // Junction table for many-to-many relationship between User and Project
@@ -180,7 +177,6 @@ model Document {
   issues       Issue[] // Issues that reference this document as an attachment
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  embeddings   DocumentEmbedding[] // Vector embeddings for this document
 }
 
 // Task model for task management
@@ -588,85 +584,4 @@ model MaintenanceLog {
   notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-}
-
-// Copilot Chat models
-model ChatSession {
-  id        String      @id @default(uuid())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String?     @default("New Chat")
-  context   String?     // Project context or specific context for the chat
-  projectId String?
-  project   Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  messages  ChatMessage[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  @@map("chat_sessions")
-}
-
-model ChatMessage {
-  id        String      @id @default(uuid())
-  sessionId String
-  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  role      MessageRole // user, assistant, system
-  content   String
-  metadata  Json?       // Store additional metadata like model used, tokens, etc.
-  createdAt DateTime    @default(now())
-
-  @@map("chat_messages")
-}
-
-// Document embeddings for RAG (Retrieval Augmented Generation)
-model DocumentEmbedding {
-  id          String    @id @default(uuid())
-  documentId  String
-  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  chunkIndex  Int       // For splitting large documents
-  content     String    // The text chunk
-  embedding   Float[]   // Vector embedding
-  metadata    Json?     // Additional metadata about the chunk
-  createdAt   DateTime  @default(now())
-
-  @@unique([documentId, chunkIndex])
-  @@map("document_embeddings")
-}
-
-// LLM generation history for auditing and caching
-model LLMGeneration {
-  id          String      @id @default(uuid())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        GenerationType // text, embedding, chat_completion
-  model       String      // Model name used
-  prompt      String      // Input prompt
-  response    String?     // Generated response
-  tokens      Int?        // Number of tokens used
-  duration    Int?        // Duration in milliseconds
-  cost        Float?      // Cost if applicable
-  metadata    Json?       // Additional metadata
-  status      GenerationStatus @default(PENDING)
-  error       String?     // Error message if failed
-  createdAt   DateTime    @default(now())
-
-  @@map("llm_generations")
-}
-
-enum MessageRole {
-  USER
-  ASSISTANT
-  SYSTEM
-}
-
-enum GenerationType {
-  TEXT_GENERATION
-  EMBEDDING
-  CHAT_COMPLETION
-}
-
-enum GenerationStatus {
-  PENDING
-  COMPLETED
-  FAILED
 }
