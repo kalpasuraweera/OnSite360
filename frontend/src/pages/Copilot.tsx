@@ -12,8 +12,10 @@ import {
 } from "react-icons/io5";
 import { MdSupportAgent, MdHistory } from "react-icons/md";
 import { useAuthStore } from "../stores/useAuthStore";
-import { useUserProjects, useProject } from "../hooks/useProjects";
+import { useProject, useProjectStatistics, useProjectIssues } from "../hooks/useProjects";
 import { useTextGeneration } from "../hooks/useCopilot";
+import type { Issue } from "../hooks/useProjects";
+import { useUserProjects } from "../hooks/useUsers";
 
 interface Message {
   id: string;
@@ -48,37 +50,66 @@ const Copilot = () => {
   
   // Get current project data
   const { data: currentProject } = useProject(selectedProject);
+  const { data: projectStatistics } = useProjectStatistics(selectedProject);
+  const { data: projectIssues } = useProjectIssues(selectedProject);
   
   // Combined loading state
   const isTyping = isGenerating;
 
-  // Chat suggestions
-  const chatSuggestions: ChatSuggestion[] = [
-    {
-      id: '1',
-      text: 'Find drawings related to foundation work',
-      icon: <IoDocument className="text-blue-500" />,
-      category: 'document'
-    },
-    {
-      id: '2',
-      text: 'Draft a response for the latest RFI about concrete specifications',
-      icon: <IoBulb className="text-yellow-500" />,
-      category: 'draft'
-    },
-    {
-      id: '3',
-      text: 'Search for safety protocols in project documents',
-      icon: <IoSearch className="text-green-500" />,
-      category: 'search'
-    },
-    {
-      id: '4',
-      text: 'Summarize project progress from recent reports',
-      icon: <IoRocket className="text-purple-500" />,
-      category: 'general'
+  // Chat suggestions - context-aware based on project data
+  const getChatSuggestions = (): ChatSuggestion[] => {
+    const baseSuggestions = [
+      {
+        id: '1',
+        text: 'Show me the current project status and progress',
+        icon: <IoRocket className="text-purple-500" />,
+        category: 'general' as const
+      },
+      {
+        id: '2',
+        text: 'What are the current issues and their priorities?',
+        icon: <IoBulb className="text-yellow-500" />,
+        category: 'search' as const
+      },
+      {
+        id: '3',
+        text: 'Generate a daily progress report for today',
+        icon: <IoDocument className="text-blue-500" />,
+        category: 'document' as const
+      },
+      {
+        id: '4',
+        text: 'Review safety protocols and recommendations',
+        icon: <IoSearch className="text-green-500" />,
+        category: 'search' as const
+      }
+    ];
+
+    // Add project-specific suggestions if we have project data
+    if (currentProject && projectStatistics) {
+      if (projectStatistics.overdueTasks > 0) {
+        baseSuggestions.push({
+          id: '5',
+          text: `Help prioritize ${projectStatistics.overdueTasks} overdue tasks`,
+          icon: <IoBulb className="text-red-500" />,
+          category: 'general' as const
+        });
+      }
+
+      if (projectStatistics.totalIssues > 0) {
+        baseSuggestions.push({
+          id: '6',
+          text: `Analyze and summarize ${projectStatistics.totalIssues} project issues`,
+          icon: <IoSearch className="text-orange-500" />,
+          category: 'search' as const
+        });
+      }
     }
-  ];
+
+    return baseSuggestions;
+  };
+
+  const chatSuggestions = getChatSuggestions();
 
   // Set default project when projects load
   useEffect(() => {
@@ -108,6 +139,29 @@ const Copilot = () => {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    // Check if a project is selected and user has projects
+    if (Array.isArray(projects) && projects.length === 0) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "It looks like you don't have access to any projects yet. Please contact your administrator to get assigned to a project, or create a new project to start using OnSite360 Copilot.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
+    if (!selectedProject) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "Please select a project from the dropdown above to get project-specific insights and assistance.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue.trim(),
@@ -119,38 +173,89 @@ const Copilot = () => {
     const userPrompt = inputValue.trim();
     setInputValue("");
 
-    // Prepare enhanced prompt with project context
-    let enhancedPrompt = userPrompt;
-    if (currentProject) {
-      const projectContext = `
-Context: You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support for project "${currentProject.name}".
+    // Build rich project context
+    const buildProjectContext = () => {
+      if (!currentProject) return '';
 
-Project Details: ${JSON.stringify(currentProject, null, 2)}
+      let context = `
+## Current Project Context
+**Project:** ${currentProject.name}
+**Description:** ${currentProject.description || 'No description available'}
+**Location:** ${currentProject.location || 'Location not specified'}
+**Type:** ${currentProject.type || 'Type not specified'}
+**Budget:** ${currentProject.budget ? `$${currentProject.budget.toLocaleString()}` : 'Budget not specified'}
+**Square Feet:** ${currentProject.squareFeet ? `${currentProject.squareFeet.toLocaleString()} sq ft` : 'Square footage not specified'}
+**Start Date:** ${currentProject.startDate ? new Date(currentProject.startDate).toLocaleDateString() : 'Start date not set'}
+**End Date:** ${currentProject.endDate ? new Date(currentProject.endDate).toLocaleDateString() : 'End date not set'}`;
 
-Recent conversation context:
-${messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n')}
+      // Add project statistics if available
+      if (projectStatistics) {
+        context += `
 
-User Question: ${userPrompt}
+## Project Statistics
+**Total Tasks:** ${projectStatistics.totalTasks}
+**Completed Tasks:** ${projectStatistics.completedTasks}
+**Overdue Tasks:** ${projectStatistics.overdueTasks}
+**Completion Percentage:** ${projectStatistics.completionPercentage}%
+**Total Documents:** ${projectStatistics.totalDocuments}
+**Total Issues:** ${projectStatistics.totalIssues}
+**Total Team Members:** ${projectStatistics.totalUsers}
+**Total Crew Members:** ${projectStatistics.totalCrewMembers}`;
+      }
 
-Please provide a helpful, accurate, and professional response considering the project context above.`;
-      enhancedPrompt = projectContext;
-    } else {
-      // Add system context even without a specific project
-      enhancedPrompt = `
-You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support.
+      // Add recent issues if available
+      if (projectIssues && projectIssues.length > 0) {
+        const recentIssues = projectIssues.slice(0, 5); // Get latest 5 issues
+        context += `
 
-Recent conversation context:
-${messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n')}
+## Recent Issues
+${recentIssues.map((issue: Issue) => 
+  `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}`
+).join('\n')}`;
+      }
 
-User Question: ${userPrompt}
+      // Add team members if available
+      if (currentProject.userProjects && currentProject.userProjects.length > 0) {
+        context += `
 
-Please provide a helpful, accurate, and professional response.`;
-    }
+## Team Members
+${currentProject.userProjects.slice(0, 5).map((up: typeof currentProject.userProjects[0]) => 
+  `- **${up.user.firstName} ${up.user.lastName}** (${up.projectRole || 'No role specified'}) - Access Level: ${up.accessLevel || 'Not specified'}`
+).join('\n')}`;
+      }
+
+      return context;
+    };
+
+    // Prepare enhanced prompt with comprehensive project context
+    const projectContextString = buildProjectContext();
+    const conversationContext = messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n');
+    
+    const enhancedPrompt = `You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support.
+
+${projectContextString}
+
+## Recent Conversation
+${conversationContext}
+
+## User Question
+${userPrompt}
+
+## Instructions
+Based on the project context above, provide a helpful, accurate, and professional response. Consider:
+- Current project status and statistics
+- Any relevant issues or concerns
+- Team composition and roles
+- Project timeline and budget constraints
+- Construction industry best practices
+- Safety considerations
+
+Please provide actionable insights and recommendations when appropriate.`;
 
     // Call AI API
     generateText({
       prompt: enhancedPrompt,
-      projectId: selectedProject || undefined,
+      projectId: selectedProject,
       model: 'llama3',
       maxTokens: 1000,
       temperature: 0.7
@@ -167,9 +272,16 @@ Please provide a helpful, accurate, and professional response.`;
       },
       onError: (error) => {
         console.error('AI generation failed:', error);
+        let errorContent = "Sorry, I encountered an error while processing your request. Please try again.";
+        
+        // Handle specific timeout errors
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ECONNABORTED') {
+          errorContent = "The request is taking longer than expected. Please try with a shorter question or try again in a moment.";
+        }
+        
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: "Sorry, I encountered an error while processing your request. Please try again.",
+          content: errorContent,
           isUser: false,
           timestamp: new Date()
         };
@@ -217,24 +329,36 @@ Please provide a helpful, accurate, and professional response.`;
         
         {/* Project Selection */}
         <div className="flex items-center gap-4">
-          <select
-            className="select select-bordered"
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
-            disabled={projectsLoading}
-          >
-            {projectsLoading ? (
-              <option>Loading projects...</option>
-            ) : Array.isArray(projects) && projects.length > 0 ? (
-              projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))
-            ) : (
-              <option>No projects available</option>
+          <div className="form-control">
+            <select
+              className={`select select-bordered ${!selectedProject ? 'select-error' : ''}`}
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+              disabled={projectsLoading}
+            >
+              {projectsLoading ? (
+                <option>Loading projects...</option>
+              ) : Array.isArray(projects) && projects.length > 0 ? (
+                projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))
+              ) : (
+                <option>No projects available</option>
+              )}
+            </select>
+            {!selectedProject && Array.isArray(projects) && projects.length > 0 && (
+              <label className="label">
+                <span className="label-text-alt text-error">Please select a project</span>
+              </label>
             )}
-          </select>
+            {Array.isArray(projects) && projects.length === 0 && !projectsLoading && (
+              <label className="label">
+                <span className="label-text-alt text-warning">No projects assigned</span>
+              </label>
+            )}
+          </div>
           
           {messages.length > 0 && (
             <button
