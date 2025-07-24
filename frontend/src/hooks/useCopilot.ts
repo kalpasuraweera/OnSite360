@@ -141,9 +141,9 @@ export const CopilotModels = {
 } as const;
 
 export const CopilotConfig = {
-  DEFAULT_MAX_TOKENS: 1000,
+  DEFAULT_MAX_TOKENS: 10000,
   DEFAULT_TEMPERATURE: 0.7,
-  DEFAULT_TIMEOUT: 60000, // 60 seconds for regular generation
+  DEFAULT_TIMEOUT: 120000, // 2 minutes for regular generation
   STREAMING_TIMEOUT: 120000, // 2 minutes for streaming generation
-  QUICK_TIMEOUT: 30000, // 30 seconds for quick operations
+  QUICK_TIMEOUT: 120000, // 2 minutes for quick operations
 } as const;

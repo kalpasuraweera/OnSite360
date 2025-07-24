@@ -49,12 +49,13 @@ const Copilot = () => {
   const { mutate: generateText, isPending: isGenerating } = useTextGeneration();
   
   // Get current project data
-  const { data: currentProject } = useProject(selectedProject);
-  const { data: projectStatistics } = useProjectStatistics(selectedProject);
-  const { data: projectIssues } = useProjectIssues(selectedProject);
+  const { data: currentProject, isLoading: currentProjectLoading } = useProject(selectedProject);
+  const { data: projectStatistics, isLoading: statisticsLoading } = useProjectStatistics(selectedProject);
+  const { data: projectIssues, isLoading: issuesLoading } = useProjectIssues(selectedProject);
   
   // Combined loading state
   const isTyping = isGenerating;
+  const isDataLoading = currentProjectLoading || statisticsLoading || issuesLoading;
 
   // Chat suggestions - context-aware based on project data
   const getChatSuggestions = (): ChatSuggestion[] => {
@@ -140,7 +141,7 @@ const Copilot = () => {
     if (!inputValue.trim()) return;
 
     // Check if a project is selected and user has projects
-    if (Array.isArray(projects) && projects.length === 0) {
+    if (Array.isArray(projects) && projects.length === 0 && !projectsLoading) {
       const errorMessage: Message = {
         id: Date.now().toString(),
         content: "It looks like you don't have access to any projects yet. Please contact your administrator to get assigned to a project, or create a new project to start using OnSite360 Copilot.",
@@ -162,6 +163,30 @@ const Copilot = () => {
       return;
     }
 
+    // If we're still loading project data, show a loading message
+    if (isDataLoading && !currentProject) {
+      const loadingMessage: Message = {
+        id: Date.now().toString(),
+        content: "Loading project data... Please wait a moment for the most up-to-date information.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+      return;
+    }
+
+    // Wait for at least the basic project data before proceeding
+    if (selectedProject && !currentProject) {
+      const waitingMessage: Message = {
+        id: Date.now().toString(),
+        content: "Please wait while I gather the latest project information...",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, waitingMessage]);
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue.trim(),
@@ -173,55 +198,132 @@ const Copilot = () => {
     const userPrompt = inputValue.trim();
     setInputValue("");
 
-    // Build rich project context
+    // Build project context with current data at the time of sending
     const buildProjectContext = () => {
-      if (!currentProject) return '';
+      // Debug logging to understand data structure
+      console.log('🔍 Building context with:', {
+        currentProject,
+        projectStatistics,
+        projectIssues: projectIssues?.length || 0,
+        loadingStates: {
+          currentProjectLoading,
+          statisticsLoading,
+          issuesLoading
+        }
+      });
 
-      let context = `
+      let context = '';
+
+      // Extract the actual data from the API response wrapper
+      const projectData = currentProject?.data;
+      const statsData = projectStatistics?.data;
+      const issuesData = projectIssues?.data || projectIssues; // Issues might be direct array
+
+      // Current project info - access data from API response wrapper
+      if (projectData) {
+        context += `
 ## Current Project Context
-**Project:** ${currentProject.name}
-**Description:** ${currentProject.description || 'No description available'}
-**Location:** ${currentProject.location || 'Location not specified'}
-**Type:** ${currentProject.type || 'Type not specified'}
-**Budget:** ${currentProject.budget ? `$${currentProject.budget.toLocaleString()}` : 'Budget not specified'}
-**Square Feet:** ${currentProject.squareFeet ? `${currentProject.squareFeet.toLocaleString()} sq ft` : 'Square footage not specified'}
-**Start Date:** ${currentProject.startDate ? new Date(currentProject.startDate).toLocaleDateString() : 'Start date not set'}
-**End Date:** ${currentProject.endDate ? new Date(currentProject.endDate).toLocaleDateString() : 'End date not set'}`;
+**Project:** ${projectData.name || 'Unnamed Project'}
+**Description:** ${projectData.description || 'No description available'}
+**Location:** ${projectData.location || 'Location not specified'}
+**Type:** ${projectData.type || 'Type not specified'}
+**Budget:** ${projectData.budget ? `$${projectData.budget.toLocaleString()}` : 'Budget not specified'}
+**Square Feet:** ${projectData.squareFeet ? `${projectData.squareFeet.toLocaleString()} sq ft` : 'Square footage not specified'}
+**Start Date:** ${projectData.startDate ? new Date(projectData.startDate).toLocaleDateString() : 'Start date not set'}
+**End Date:** ${projectData.endDate ? new Date(projectData.endDate).toLocaleDateString() : 'End date not set'}`;
 
-      // Add project statistics if available
-      if (projectStatistics) {
+        // Add team members if available
+        if (projectData.userProjects && projectData.userProjects.length > 0) {
+          context += `
+
+## Team Members
+${projectData.userProjects.slice(0, 5).map((up: {
+            user: { firstName: string; lastName: string };
+            projectRole?: string;
+            accessLevel?: number;
+          }) => 
+            `- **${up.user.firstName} ${up.user.lastName}** (${up.projectRole || 'No role specified'}) - Access Level: ${up.accessLevel || 'Not specified'}`
+          ).join('\n')}`;
+        }
+
+        // Add recent tasks if available
+        if (projectData.tasks && projectData.tasks.length > 0) {
+          const recentTasks = projectData.tasks.slice(0, 3);
+          context += `
+
+## Recent Tasks
+${recentTasks.map((task: {
+            title: string;
+            status: string;
+            priority: string;
+            progress: number;
+          }) => 
+            `- **${task.title}** (${task.status}) - ${task.priority} priority, ${task.progress}% complete`
+          ).join('\n')}`;
+        }
+      } else {
+        context += `
+## Current Project Context
+Project details are currently being loaded...`;
+      }
+
+      // Project statistics - access data from API response wrapper
+      if (statsData) {
         context += `
 
 ## Project Statistics
-**Total Tasks:** ${projectStatistics.totalTasks}
-**Completed Tasks:** ${projectStatistics.completedTasks}
-**Overdue Tasks:** ${projectStatistics.overdueTasks}
-**Completion Percentage:** ${projectStatistics.completionPercentage}%
-**Total Documents:** ${projectStatistics.totalDocuments}
-**Total Issues:** ${projectStatistics.totalIssues}
-**Total Team Members:** ${projectStatistics.totalUsers}
-**Total Crew Members:** ${projectStatistics.totalCrewMembers}`;
+**Total Tasks:** ${statsData.tasks?.total ?? 0}
+**Completed Tasks:** ${statsData.tasks?.completed ?? 0}
+**In Progress Tasks:** ${statsData.tasks?.inProgress ?? 0}
+**Pending Tasks:** ${statsData.tasks?.pending ?? 0}
+**Task Completion Rate:** ${statsData.tasks?.completionRate?.toFixed(1) ?? 0}%
+**Total Documents:** ${statsData.documents?.total ?? 0}
+**Total Communication Threads:** ${statsData.threads?.total ?? 0}
+**Total Issues:** ${statsData.issues?.total ?? 0}
+**Open Issues:** ${statsData.issues?.open ?? 0}
+**Resolved Issues:** ${statsData.issues?.resolved ?? 0}
+**Total Team Members:** ${statsData.users?.total ?? 0}
+**Active Team Members:** ${statsData.users?.active ?? 0}`;
+      } else if (statisticsLoading) {
+        context += `
+
+## Project Statistics
+Project statistics are currently loading...`;
+      } else {
+        context += `
+
+## Project Statistics
+No statistics available for this project.`;
       }
 
-      // Add recent issues if available
-      if (projectIssues && projectIssues.length > 0) {
-        const recentIssues = projectIssues.slice(0, 5); // Get latest 5 issues
+      // Recent issues - access from project data if available
+      if (projectData?.issue && projectData.issue.length > 0) {
+        const recentIssues = projectData.issue.slice(0, 3);
+        context += `
+
+## Recent Issues
+${recentIssues.map((issue: {
+          title: string;
+          status: string;
+          severity: string;
+          category: string;
+          reportedBy: string;
+        }) => 
+          `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}, Reported by: ${issue.reportedBy}`
+        ).join('\n')}`;
+      } else if (issuesData && Array.isArray(issuesData) && issuesData.length > 0) {
+        const recentIssues = issuesData.slice(0, 3);
         context += `
 
 ## Recent Issues
 ${recentIssues.map((issue: Issue) => 
-  `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}`
-).join('\n')}`;
-      }
-
-      // Add team members if available
-      if (currentProject.userProjects && currentProject.userProjects.length > 0) {
+          `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}`
+        ).join('\n')}`;
+      } else if (issuesLoading) {
         context += `
 
-## Team Members
-${currentProject.userProjects.slice(0, 5).map((up: typeof currentProject.userProjects[0]) => 
-  `- **${up.user.firstName} ${up.user.lastName}** (${up.projectRole || 'No role specified'}) - Access Level: ${up.accessLevel || 'Not specified'}`
-).join('\n')}`;
+## Recent Issues
+Issues are currently loading...`;
       }
 
       return context;
@@ -229,6 +331,7 @@ ${currentProject.userProjects.slice(0, 5).map((up: typeof currentProject.userPro
 
     // Prepare enhanced prompt with comprehensive project context
     const projectContextString = buildProjectContext();
+    console.log(projectContextString)
     const conversationContext = messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n');
     
     const enhancedPrompt = `You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support.
@@ -274,9 +377,17 @@ Please provide actionable insights and recommendations when appropriate.`;
         console.error('AI generation failed:', error);
         let errorContent = "Sorry, I encountered an error while processing your request. Please try again.";
         
-        // Handle specific timeout errors
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'ECONNABORTED') {
-          errorContent = "The request is taking longer than expected. Please try with a shorter question or try again in a moment.";
+        // Handle specific error types
+        if (error && typeof error === 'object') {
+          if ('code' in error && error.code === 'ECONNABORTED') {
+            errorContent = "The request is taking longer than expected. Please try with a shorter question or try again in a moment.";
+          } else if ('message' in error && typeof error.message === 'string') {
+            if (error.message.includes('timeout')) {
+              errorContent = "Request timed out. Please try again with a simpler question.";
+            } else if (error.message.includes('network')) {
+              errorContent = "Network error occurred. Please check your connection and try again.";
+            }
+          }
         }
         
         const errorMessage: Message = {
@@ -356,6 +467,14 @@ Please provide actionable insights and recommendations when appropriate.`;
             {Array.isArray(projects) && projects.length === 0 && !projectsLoading && (
               <label className="label">
                 <span className="label-text-alt text-warning">No projects assigned</span>
+              </label>
+            )}
+            {selectedProject && isDataLoading && (
+              <label className="label">
+                <span className="label-text-alt text-info">
+                  <span className="loading loading-dots loading-xs"></span>
+                  Loading project data...
+                </span>
               </label>
             )}
           </div>
