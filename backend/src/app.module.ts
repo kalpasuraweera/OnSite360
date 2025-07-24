@@ -13,6 +13,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CopilotModule } from './copilot/copilot.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { join } from 'path';
     ScheduleModule,
     TasksModule,
     DocumentsModule,
+    CopilotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
