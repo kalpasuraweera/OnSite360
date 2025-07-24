@@ -789,6 +789,7 @@ const ProjectOversight = () => {
                         name="budget"
                         placeholder="Enter budget amount"
                         required
+                        min={0}
                       />
                     </div>
                     <div>

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { IoClose, IoAttach, IoTrash, IoEye, IoPencil } from "react-icons/io5";
-import { 
-  useProjects, 
-  useAllIssues, 
-  useProjectIssues, 
-  useCreateIssue, 
-  useUpdateIssue, 
+import {
+  useProjects,
+  useAllIssues,
+  useProjectIssues,
+  useCreateIssue,
+  useUpdateIssue,
   useDeleteIssue,
   useProjectUsers,
   IssueCategory,
@@ -14,7 +14,7 @@ import {
   type Issue,
   type CreateIssueDto,
   type UpdateIssueDto,
-  type Project
+  type Project,
 } from "../hooks/useProjects";
 
 const IssueReporting = () => {
@@ -22,18 +22,19 @@ const IssueReporting = () => {
   const { user: currentUser } = useAuthStore();
 
   // API hooks
-  const { data: projectsResponse = [], isLoading: projectsLoading } = useProjects();
+  const { data: projectsResponse = [], isLoading: projectsLoading } =
+    useProjects();
   const { data: allIssuesResponse } = useAllIssues();
-  
+
   // State
   const [activeTab, setActiveTab] = useState("issues");
   const [selectedProject, setSelectedProject] = useState<string>("");
-  
+
   // Get project-specific issues when a project is selected
   const { data: projectIssuesResponse } = useProjectIssues(
     selectedProject || ""
   );
-  
+
   // Get project users for tagging
   const { data: projectUsersResponse } = useProjectUsers(selectedProject || "");
 
@@ -47,23 +48,23 @@ const IssueReporting = () => {
   // Extract issues from response
   const issues = useMemo(() => {
     let issuesData = [];
-    
+
     if (selectedProject) {
       // Use project-specific issues
       if (projectIssuesResponse) {
-        issuesData = Array.isArray(projectIssuesResponse) 
-          ? projectIssuesResponse 
+        issuesData = Array.isArray(projectIssuesResponse)
+          ? projectIssuesResponse
           : projectIssuesResponse.data || [];
       }
     } else {
       // Use all issues
       if (allIssuesResponse) {
-        issuesData = Array.isArray(allIssuesResponse) 
-          ? allIssuesResponse 
+        issuesData = Array.isArray(allIssuesResponse)
+          ? allIssuesResponse
           : allIssuesResponse.data || [];
       }
     }
-    
+
     return issuesData;
   }, [selectedProject, projectIssuesResponse, allIssuesResponse]);
 
@@ -111,20 +112,29 @@ const IssueReporting = () => {
       return { issuesByStatus: {}, issuesBySeverity: {}, issuesByCategory: {} };
     }
 
-    const issuesByStatus = filteredIssues.reduce((acc: Record<string, number>, issue: Issue) => {
-      acc[issue.status] = (acc[issue.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const issuesByStatus = filteredIssues.reduce(
+      (acc: Record<string, number>, issue: Issue) => {
+        acc[issue.status] = (acc[issue.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const issuesBySeverity = filteredIssues.reduce((acc: Record<string, number>, issue: Issue) => {
-      acc[issue.severity] = (acc[issue.severity] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const issuesBySeverity = filteredIssues.reduce(
+      (acc: Record<string, number>, issue: Issue) => {
+        acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const issuesByCategory = filteredIssues.reduce((acc: Record<string, number>, issue: Issue) => {
-      acc[issue.category] = (acc[issue.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const issuesByCategory = filteredIssues.reduce(
+      (acc: Record<string, number>, issue: Issue) => {
+        acc[issue.category] = (acc[issue.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return { issuesByStatus, issuesBySeverity, issuesByCategory };
   }, [filteredIssues]);
@@ -197,10 +207,13 @@ const IssueReporting = () => {
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         severity: formData.get("severity") as string,
-        location: formData.get("location") as string || undefined,
-        reportedBy: `${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`.trim() || "Unknown",
-        taggedUserIds: selectedTaggedUsers.map(id => id.toString()),
-        dueDate: formData.get("dueDate") as string || undefined,
+        location: (formData.get("location") as string) || undefined,
+        reportedBy:
+          `${currentUser?.firstName || ""} ${
+            currentUser?.lastName || ""
+          }`.trim() || "Unknown",
+        taggedUserIds: selectedTaggedUsers.map((id) => id.toString()),
+        dueDate: (formData.get("dueDate") as string) || undefined,
         attachmentIds: [], // For now, we'll handle file uploads separately
       };
 
@@ -246,7 +259,8 @@ const IssueReporting = () => {
   const handleEditIssue = (issue: Issue) => {
     setEditingIssue(issue);
     // Extract user IDs from tagged users
-    const taggedUserIds = issue.taggedUsers?.map(user => Number(user.id)) || [];
+    const taggedUserIds =
+      issue.taggedUsers?.map((user) => Number(user.id)) || [];
     setEditSelectedTaggedUsers(taggedUserIds);
     setShowEditIssueModal(true);
   };
@@ -263,10 +277,10 @@ const IssueReporting = () => {
         category: formData.get("category") as string,
         severity: formData.get("severity") as string,
         status: formData.get("status") as string,
-        location: formData.get("location") as string || undefined,
-        taggedUserIds: editSelectedTaggedUsers.map(id => id.toString()),
-        dueDate: formData.get("dueDate") as string || undefined,
-        resolution: formData.get("resolution") as string || undefined,
+        location: (formData.get("location") as string) || undefined,
+        taggedUserIds: editSelectedTaggedUsers.map((id) => id.toString()),
+        dueDate: (formData.get("dueDate") as string) || undefined,
+        resolution: (formData.get("resolution") as string) || undefined,
       };
 
       await updateIssueMutation.mutateAsync({
@@ -382,7 +396,9 @@ const IssueReporting = () => {
                   className="btn btn-primary"
                   onClick={() => setShowCreateIssueModal(true)}
                   disabled={!selectedProject}
-                  title={!selectedProject ? "Please select a project first" : ""}
+                  title={
+                    !selectedProject ? "Please select a project first" : ""
+                  }
                 >
                   + Report Issue
                 </button>
@@ -424,15 +440,23 @@ const IssueReporting = () => {
                           <span className="badge badge-neutral font-mono">
                             {issue.id}
                           </span>
-                          <span className={`badge ${getCategoryBadge(issue.category)}`}>
+                          <span
+                            className={`badge ${getCategoryBadge(
+                              issue.category
+                            )}`}
+                          >
                             {issue.category}
                           </span>
                           <span
-                            className={`badge ${getSeverityBadge(issue.severity)}`}
+                            className={`badge ${getSeverityBadge(
+                              issue.severity
+                            )}`}
                           >
                             {issue.severity}
                           </span>
-                          <span className={`badge ${getStatusBadge(issue.status)}`}>
+                          <span
+                            className={`badge ${getStatusBadge(issue.status)}`}
+                          >
                             {issue.status}
                           </span>
                         </div>
@@ -447,7 +471,8 @@ const IssueReporting = () => {
 
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span>
-                            Reported by: {issue.reporter?.firstName} {issue.reporter?.lastName || issue.reportedBy}
+                            Reported by: {issue.reporter?.firstName}{" "}
+                            {issue.reporter?.lastName || issue.reportedBy}
                           </span>
                           <span>
                             {new Date(issue.createdAt).toLocaleDateString()}
@@ -457,7 +482,8 @@ const IssueReporting = () => {
                           )}
                           {issue.dueDate && (
                             <span>
-                              Due: {new Date(issue.dueDate).toLocaleDateString()}
+                              Due:{" "}
+                              {new Date(issue.dueDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
@@ -513,7 +539,8 @@ const IssueReporting = () => {
                 </div>
                 <div className="badge badge-info badge-lg">
                   {selectedProject
-                    ? projects.find((p: Project) => p.id === selectedProject)?.name || "Project"
+                    ? projects.find((p: Project) => p.id === selectedProject)
+                        ?.name || "Project"
                     : "All Projects"}
                 </div>
               </div>
@@ -522,7 +549,11 @@ const IssueReporting = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="stat bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg">
                   <div className="stat-figure">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path
                         fillRule="evenodd"
                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -532,12 +563,18 @@ const IssueReporting = () => {
                   </div>
                   <div className="stat-title text-blue-100">Total Issues</div>
                   <div className="stat-value">{filteredIssues.length}</div>
-                  <div className="stat-desc text-blue-200">All reported issues</div>
+                  <div className="stat-desc text-blue-200">
+                    All reported issues
+                  </div>
                 </div>
 
                 <div className="stat bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl shadow-lg">
                   <div className="stat-figure">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path
                         fillRule="evenodd"
                         d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -546,13 +583,21 @@ const IssueReporting = () => {
                     </svg>
                   </div>
                   <div className="stat-title text-red-100">Open Issues</div>
-                  <div className="stat-value">{analyticsData.issuesByStatus.Open || 0}</div>
-                  <div className="stat-desc text-red-200">Require attention</div>
+                  <div className="stat-value">
+                    {analyticsData.issuesByStatus.Open || 0}
+                  </div>
+                  <div className="stat-desc text-red-200">
+                    Require attention
+                  </div>
                 </div>
 
                 <div className="stat bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-lg">
                   <div className="stat-figure">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
@@ -561,13 +606,21 @@ const IssueReporting = () => {
                     </svg>
                   </div>
                   <div className="stat-title text-amber-100">In Progress</div>
-                  <div className="stat-value">{analyticsData.issuesByStatus["In Progress"] || 0}</div>
-                  <div className="stat-desc text-amber-200">Being worked on</div>
+                  <div className="stat-value">
+                    {analyticsData.issuesByStatus["In Progress"] || 0}
+                  </div>
+                  <div className="stat-desc text-amber-200">
+                    Being worked on
+                  </div>
                 </div>
 
                 <div className="stat bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl shadow-lg">
                   <div className="stat-figure">
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -576,8 +629,12 @@ const IssueReporting = () => {
                     </svg>
                   </div>
                   <div className="stat-title text-green-100">Resolved</div>
-                  <div className="stat-value">{analyticsData.issuesByStatus.Resolved || 0}</div>
-                  <div className="stat-desc text-green-200">Successfully fixed</div>
+                  <div className="stat-value">
+                    {analyticsData.issuesByStatus.Resolved || 0}
+                  </div>
+                  <div className="stat-desc text-green-200">
+                    Successfully fixed
+                  </div>
                 </div>
               </div>
 
@@ -635,7 +692,9 @@ const IssueReporting = () => {
                           key={category}
                           className="flex justify-between items-center"
                         >
-                          <span className={`badge ${getCategoryBadge(category)}`}>
+                          <span
+                            className={`badge ${getCategoryBadge(category)}`}
+                          >
                             {category}
                           </span>
                           <span className="font-bold">{count as number}</span>
@@ -659,8 +718,10 @@ const IssueReporting = () => {
                 <h3 className="font-bold text-lg">Report New Issue</h3>
                 {selectedProject && (
                   <p className="text-sm text-gray-500 mt-1">
-                    For project: <span className="font-medium text-primary">
-                      {projects.find((p: Project) => p.id === selectedProject)?.name || "Selected Project"}
+                    For project:{" "}
+                    <span className="font-medium text-primary">
+                      {projects.find((p: Project) => p.id === selectedProject)
+                        ?.name || "Selected Project"}
                     </span>
                   </p>
                 )}
@@ -698,13 +759,19 @@ const IssueReporting = () => {
                   <label className="label">
                     <span className="label-text font-medium">Category *</span>
                   </label>
-                  <select name="category" className="select select-bordered" required>
+                  <select
+                    name="category"
+                    className="select select-bordered"
+                    required
+                  >
                     <option value="">Select category</option>
                     <option value={IssueCategory.SAFETY}>Safety</option>
                     <option value={IssueCategory.QUALITY}>Quality</option>
                     <option value={IssueCategory.DELAY}>Delay</option>
                     <option value={IssueCategory.EQUIPMENT}>Equipment</option>
-                    <option value={IssueCategory.ENVIRONMENTAL}>Environmental</option>
+                    <option value={IssueCategory.ENVIRONMENTAL}>
+                      Environmental
+                    </option>
                     <option value={IssueCategory.MATERIAL}>Material</option>
                     <option value={IssueCategory.OTHER}>Other</option>
                   </select>
@@ -714,7 +781,11 @@ const IssueReporting = () => {
                   <label className="label">
                     <span className="label-text font-medium">Severity *</span>
                   </label>
-                  <select name="severity" className="select select-bordered" required>
+                  <select
+                    name="severity"
+                    className="select select-bordered"
+                    required
+                  >
                     <option value="">Select severity</option>
                     <option value={IssueSeverity.LOW}>Low</option>
                     <option value={IssueSeverity.MEDIUM}>Medium</option>
@@ -727,47 +798,70 @@ const IssueReporting = () => {
                   <label className="label">
                     <span className="label-text font-medium">Due Date</span>
                   </label>
-                  <input type="date" name="dueDate" className="input input-bordered" />
+                  <input
+                    type="date"
+                    name="dueDate"
+                    className="input input-bordered"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
                 </div>
               </div>
 
               {/* Tag Users */}
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-medium">Tag Users (for notifications)</span>
+                  <span className="label-text font-medium">
+                    Tag Users (for notifications)
+                  </span>
                 </label>
                 <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
                   <div className="space-y-2">
                     {projectUsers.length === 0 ? (
-                      <p className="text-sm text-gray-500">No users available for tagging. Select a project first.</p>
+                      <p className="text-sm text-gray-500">
+                        No users available for tagging. Select a project first.
+                      </p>
                     ) : (
-                      projectUsers.map((userProject: { user: { id: number; firstName: string; lastName: string; email: string } }) => {
-                        const user = userProject.user;
-                        return (
-                          <div key={user.id} className="flex items-center justify-between">
-                            <span className="text-sm">
-                              {user.firstName} {user.lastName} ({user.email})
-                            </span>
-                            {selectedTaggedUsers.includes(user.id) ? (
-                              <button
-                                type="button"
-                                className="btn btn-error btn-xs"
-                                onClick={() => handleRemoveTaggedUser(user.id)}
-                              >
-                                Remove
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="btn btn-info btn-xs"
-                                onClick={() => handleAddTaggedUser(user.id)}
-                              >
-                                Tag
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })
+                      projectUsers.map(
+                        (userProject: {
+                          user: {
+                            id: number;
+                            firstName: string;
+                            lastName: string;
+                            email: string;
+                          };
+                        }) => {
+                          const user = userProject.user;
+                          return (
+                            <div
+                              key={user.id}
+                              className="flex items-center justify-between"
+                            >
+                              <span className="text-sm">
+                                {user.firstName} {user.lastName} ({user.email})
+                              </span>
+                              {selectedTaggedUsers.includes(user.id) ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-error btn-xs"
+                                  onClick={() =>
+                                    handleRemoveTaggedUser(user.id)
+                                  }
+                                >
+                                  Remove
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-info btn-xs"
+                                  onClick={() => handleAddTaggedUser(user.id)}
+                                >
+                                  Tag
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                      )
                     )}
                   </div>
                 </div>
@@ -795,7 +889,10 @@ const IssueReporting = () => {
                 {uploadedFiles.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {uploadedFiles.map((fileName, index) => (
-                      <div key={index} className="flex items-center justify-between bg-base-200 p-2 rounded">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-base-200 p-2 rounded"
+                      >
                         <span className="text-sm">{fileName}</span>
                         <button
                           type="button"
@@ -902,7 +999,9 @@ const IssueReporting = () => {
                     <option value={IssueCategory.QUALITY}>Quality</option>
                     <option value={IssueCategory.DELAY}>Delay</option>
                     <option value={IssueCategory.EQUIPMENT}>Equipment</option>
-                    <option value={IssueCategory.ENVIRONMENTAL}>Environmental</option>
+                    <option value={IssueCategory.ENVIRONMENTAL}>
+                      Environmental
+                    </option>
                     <option value={IssueCategory.MATERIAL}>Material</option>
                     <option value={IssueCategory.OTHER}>Other</option>
                   </select>
@@ -1000,7 +1099,9 @@ const IssueReporting = () => {
                 <span className="badge badge-neutral font-mono text-lg">
                   {viewingIssue.id}
                 </span>
-                <span className={`badge ${getCategoryBadge(viewingIssue.category)}`}>
+                <span
+                  className={`badge ${getCategoryBadge(viewingIssue.category)}`}
+                >
                   {viewingIssue.category}
                 </span>
                 <span
@@ -1029,7 +1130,8 @@ const IssueReporting = () => {
                 </div>
                 <div>
                   <span className="font-medium">Reporter:</span>{" "}
-                  {viewingIssue.reporter?.firstName} {viewingIssue.reporter?.lastName || viewingIssue.reportedBy}
+                  {viewingIssue.reporter?.firstName}{" "}
+                  {viewingIssue.reporter?.lastName || viewingIssue.reportedBy}
                 </div>
                 {viewingIssue.location && (
                   <div>
@@ -1073,19 +1175,23 @@ const IssueReporting = () => {
                   </div>
                 )}
 
-              {viewingIssue.attachments && viewingIssue.attachments.length > 0 && (
-                <div>
-                  <span className="font-medium">Attachments:</span>
-                  <div className="space-y-1 mt-1">
-                    {viewingIssue.attachments.map((attachment, index) => (
-                      <div key={attachment.id || index} className="badge badge-neutral">
-                        <IoAttach size={14} className="mr-1" />
-                        {attachment.name || `Attachment ${index + 1}`}
-                      </div>
-                    ))}
+              {viewingIssue.attachments &&
+                viewingIssue.attachments.length > 0 && (
+                  <div>
+                    <span className="font-medium">Attachments:</span>
+                    <div className="space-y-1 mt-1">
+                      {viewingIssue.attachments.map((attachment, index) => (
+                        <div
+                          key={attachment.id || index}
+                          className="badge badge-neutral"
+                        >
+                          <IoAttach size={14} className="mr-1" />
+                          {attachment.name || `Attachment ${index + 1}`}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {viewingIssue.resolution && (
                 <div className="bg-base-200 p-4 rounded-lg">

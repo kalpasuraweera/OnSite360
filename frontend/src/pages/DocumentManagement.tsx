@@ -74,28 +74,6 @@ const DocumentManagement = () => {
     }
   }, [projects, selectedProject, projectsLoading]);
 
-  // File upload handler
-  // const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const files = e.target.files;
-  //   if (!files || files.length === 0 || !selectedProject) return;
-  //   setUploading(true);
-  //   // Only upload first file for now (can be extended for multiple)
-  //   const file = files[0];
-  //   const dto = {
-  //     projectId: selectedProject,
-  //     name: file.name,
-  //     type: activeTab,
-  //     // Optionally add more fields (category, tags, etc.)
-  //   };
-  //   try {
-  //     await uploadMutation.mutateAsync({ dto, file });
-  //     refetchDocuments();
-  //   } catch (err) {
-  //     // Optionally show error
-  //   }
-  //   setUploading(false);
-  // };
-
   // Delete handler
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this document?")) {

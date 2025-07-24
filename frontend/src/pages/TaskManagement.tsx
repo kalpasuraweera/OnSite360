@@ -304,6 +304,7 @@ const AddTaskModal = ({
                   setNewTask((t) => ({ ...t, dueDate: e.target.value }))
                 }
                 disabled={isSubmitting}
+                min={new Date().toISOString().split("T")[0]} // Prevent past dates
               />
             </div>
           </div>
