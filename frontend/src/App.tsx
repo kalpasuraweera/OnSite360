@@ -24,6 +24,7 @@ import WorkforceManagement from "./pages/WorkforceManagement";
 import DailyLogsManagement from "./pages/DailyLogsManagement";
 import Notifications from "./pages/Notifications";
 import IssueReporting from "./pages/IssueReporting";
+import Copilot from "./pages/Copilot";
 
 const queryClient = new QueryClient();
 
@@ -186,6 +187,14 @@ function App() {
           element: (
             <PermissionRoute pageId="issue-reporting">
               <IssueReporting />
+            </PermissionRoute>
+          ),
+        },
+         {
+          path: "copilot",
+          element: (
+            <PermissionRoute pageId="copilot">
+              <Copilot />
             </PermissionRoute>
           ),
         },
