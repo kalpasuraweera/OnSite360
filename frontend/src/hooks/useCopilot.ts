@@ -20,6 +20,7 @@ export interface TextGenerationRequest {
   temperature?: number;
   stream?: boolean;
   projectId?: string;
+  timeout?: number; // Custom timeout in milliseconds
 }
 
 export interface TextGenerationResponse {
@@ -34,7 +35,13 @@ export interface TextGenerationResponse {
 export const useTextGeneration = () => {
   return useMutation({
     mutationFn: async (request: TextGenerationRequest): Promise<TextGenerationResponse> => {
-      const { data } = await instance.post('/copilot/generate', request);
+      // Use custom timeout if provided, otherwise use defaults based on stream mode
+      const timeout = request.timeout || 
+        (request.stream ? CopilotConfig.STREAMING_TIMEOUT : CopilotConfig.DEFAULT_TIMEOUT);
+      
+      const { data } = await instance.post('/copilot/generate', request, {
+        timeout, // Override the default 10 second timeout
+      });
       return data;
     },
   });
@@ -50,7 +57,8 @@ export const useQuickGenerate = () => {
   ): Promise<string> => {
     const response = await generateText({
       prompt,
-      ...options,
+      timeout: CopilotConfig.QUICK_TIMEOUT, // Default to quick timeout for utility functions
+      ...options, // Allow override of timeout and other options
     });
     return response.response;
   };
@@ -102,7 +110,11 @@ export const useConstructionAssistant = (projectId?: string) => {
 
     prompt += `\n\nUser Question: ${userMessage}\n\nPlease provide a helpful, accurate, and professional response.`;
 
-    return await quickGenerate(prompt, { projectId });
+    // Use longer timeout for detailed responses that might include project context
+    return await quickGenerate(prompt, { 
+      projectId,
+      timeout: CopilotConfig.DEFAULT_TIMEOUT // Use default timeout for conversational responses
+    });
   };
 
   return {
@@ -131,4 +143,7 @@ export const CopilotModels = {
 export const CopilotConfig = {
   DEFAULT_MAX_TOKENS: 1000,
   DEFAULT_TEMPERATURE: 0.7,
+  DEFAULT_TIMEOUT: 60000, // 60 seconds for regular generation
+  STREAMING_TIMEOUT: 120000, // 2 minutes for streaming generation
+  QUICK_TIMEOUT: 30000, // 30 seconds for quick operations
 } as const;
