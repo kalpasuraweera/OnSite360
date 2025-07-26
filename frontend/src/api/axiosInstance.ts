@@ -1,11 +1,14 @@
 import axios, { AxiosError } from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/v1";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://e87ca3dc38bd.ngrok-free.app/v1";
 
 const instance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000, // Set a timeout for requests
+  headers: {
+    "ngrok-skip-browser-warning": "true", // Skip ngrok browser warning
+  },
 });
 
 // Flag to track if a token refresh is in progress

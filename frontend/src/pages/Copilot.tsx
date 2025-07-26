@@ -12,10 +12,63 @@ import {
 } from "react-icons/io5";
 import { MdSupportAgent, MdHistory } from "react-icons/md";
 import { useAuthStore } from "../stores/useAuthStore";
-import { useProject, useProjectStatistics, useProjectIssues } from "../hooks/useProjects";
+import { 
+  useProject, 
+  useProjectStatistics
+} from "../hooks/useProjects";
 import { useTextGeneration } from "../hooks/useCopilot";
 import type { Issue } from "../hooks/useProjects";
 import { useUserProjects } from "../hooks/useUsers";
+import instance from "../api/axiosInstance";
+
+// Define interfaces for API responses
+interface DailyActivity {
+  activity: string;
+  location?: string;
+  startTime?: string;
+  endTime?: string;
+  progress?: number;
+  status: string;
+  notes?: string;
+}
+
+interface DailyLog {
+  weather?: string;
+  temperature?: string;
+  workHours?: number;
+  workersPresent?: number;
+  summary?: string;
+  issues?: string;
+  notes?: string;
+  logger?: { firstName: string; lastName: string };
+  activities?: DailyActivity[];
+}
+
+interface AttendanceRecord {
+  date: string;
+  isWorkDay: boolean;
+  workersPresent?: number;
+  workDelayed: boolean;
+  delayReason?: string;
+  actualStartTime?: string;
+  notes?: string;
+}
+
+interface ThreadUser {
+  firstName: string;
+  lastName: string;
+}
+
+interface Thread {
+  projectId: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  users?: ThreadUser[];
+  messages?: unknown[];
+  rfis?: unknown[];
+}
 
 interface Message {
   id: string;
@@ -30,7 +83,8 @@ interface ChatSuggestion {
   id: string;
   text: string;
   icon: React.ReactNode;
-  category: 'document' | 'draft' | 'search' | 'general';
+  category: 'issues' | 'daily-log' | 'attendance' | 'communication';
+  promptType?: 'smart'; // For smart prompts that fetch specific data
 }
 
 const Copilot = () => {
@@ -51,66 +105,252 @@ const Copilot = () => {
   // Get current project data
   const { data: currentProject, isLoading: currentProjectLoading } = useProject(selectedProject);
   const { data: projectStatistics, isLoading: statisticsLoading } = useProjectStatistics(selectedProject);
-  const { data: projectIssues, isLoading: issuesLoading } = useProjectIssues(selectedProject);
   
   // Combined loading state
   const isTyping = isGenerating;
-  const isDataLoading = currentProjectLoading || statisticsLoading || issuesLoading;
+  const isDataLoading = currentProjectLoading || statisticsLoading;
 
   // Chat suggestions - context-aware based on project data
   const getChatSuggestions = (): ChatSuggestion[] => {
-    const baseSuggestions = [
+    const smartSuggestions: ChatSuggestion[] = [
       {
         id: '1',
-        text: 'Show me the current project status and progress',
-        icon: <IoRocket className="text-purple-500" />,
-        category: 'general' as const
+        text: 'Show me all unresolved issues in this project',
+        icon: <IoBulb className="text-red-500" />,
+        category: 'issues',
+        promptType: 'smart'
       },
       {
         id: '2',
-        text: 'What are the current issues and their priorities?',
-        icon: <IoBulb className="text-yellow-500" />,
-        category: 'search' as const
+        text: 'Study the July 9th daily log and prepare a report',
+        icon: <IoDocument className="text-blue-500" />,
+        category: 'daily-log',
+        promptType: 'smart'
       },
       {
         id: '3',
-        text: 'Generate a daily progress report for today',
-        icon: <IoDocument className="text-blue-500" />,
-        category: 'document' as const
+        text: 'Give me a summary of employee attendance in July',
+        icon: <IoSearch className="text-green-500" />,
+        category: 'attendance',
+        promptType: 'smart'
       },
       {
         id: '4',
-        text: 'Review safety protocols and recommendations',
-        icon: <IoSearch className="text-green-500" />,
-        category: 'search' as const
+        text: 'Summarize communication threads for this project',
+        icon: <IoRocket className="text-purple-500" />,
+        category: 'communication',
+        promptType: 'smart'
       }
     ];
 
-    // Add project-specific suggestions if we have project data
-    if (currentProject && projectStatistics) {
-      if (projectStatistics.overdueTasks > 0) {
-        baseSuggestions.push({
-          id: '5',
-          text: `Help prioritize ${projectStatistics.overdueTasks} overdue tasks`,
-          icon: <IoBulb className="text-red-500" />,
-          category: 'general' as const
-        });
-      }
-
-      if (projectStatistics.totalIssues > 0) {
-        baseSuggestions.push({
-          id: '6',
-          text: `Analyze and summarize ${projectStatistics.totalIssues} project issues`,
-          icon: <IoSearch className="text-orange-500" />,
-          category: 'search' as const
-        });
-      }
-    }
-
-    return baseSuggestions;
+    return smartSuggestions;
   };
 
   const chatSuggestions = getChatSuggestions();
+
+  // Smart prompt handler that fetches specific data based on prompt type
+  const handleSmartPrompt = async (suggestion: ChatSuggestion, userPrompt: string) => {
+    let context = '';
+    let enhancedPrompt = '';
+
+    switch (suggestion.category) {
+      case 'issues': {
+        // Fetch only unresolved issues
+        try {
+          const issuesResponse = await instance.get(`/projects/${selectedProject}/issues`);
+          const issuesData = issuesResponse.data;
+          const unresolvedIssues = issuesData.filter((issue: Issue) => 
+            issue.status !== 'Resolved' && issue.status !== 'Closed'
+          );
+
+          context = `
+## Unresolved Issues in Project
+Total unresolved issues: ${unresolvedIssues.length}
+
+${unresolvedIssues.map((issue: Issue) => `
+**${issue.title}**
+- Status: ${issue.status}
+- Severity: ${issue.severity}
+- Category: ${issue.category}
+- Reported by: ${issue.reportedBy}
+- Due Date: ${issue.dueDate ? new Date(issue.dueDate).toLocaleDateString() : 'No due date'}
+- Description: ${issue.description}
+`).join('\n')}`;
+
+        } catch {
+          context = 'Unable to fetch current issues data.';
+        }
+
+        enhancedPrompt = `You are OnSite360 Copilot. Based on the unresolved issues data below, provide a comprehensive analysis and recommendations.
+
+${context}
+
+## User Request
+${userPrompt}
+
+Please provide:
+1. Overview of critical and high-priority issues
+2. Categorization of issues by type
+3. Recommended action items and prioritization
+4. Any potential risks or concerns`;
+        break;
+      }
+
+      case 'daily-log': {
+        // Fetch July 9th daily log
+        try {
+          const dailyLogResponse = await instance.get(`/schedule/daily-logs/by-date?projectId=${selectedProject}&date=2025-07-09`);
+          const dailyLogData = dailyLogResponse.data;
+
+          if (dailyLogData && dailyLogData.length > 0) {
+            const log: DailyLog = dailyLogData[0];
+            context = `
+## Daily Log for July 9, 2025
+**Weather:** ${log.weather || 'Not recorded'}
+**Temperature:** ${log.temperature || 'Not recorded'}
+**Work Hours:** ${log.workHours || 'Not recorded'}
+**Workers Present:** ${log.workersPresent || 'Not recorded'}
+**Summary:** ${log.summary || 'No summary provided'}
+**Issues:** ${log.issues || 'No issues reported'}
+**Notes:** ${log.notes || 'No additional notes'}
+**Logged by:** ${log.logger ? `${log.logger.firstName} ${log.logger.lastName}` : 'Unknown'}
+
+## Activities for the Day
+${log.activities && log.activities.length > 0 ? 
+  log.activities.map((activity: DailyActivity) => `
+**${activity.activity}**
+- Location: ${activity.location || 'Not specified'}
+- Time: ${activity.startTime || 'Not specified'} - ${activity.endTime || 'Not specified'}
+- Progress: ${activity.progress || 0}%
+- Status: ${activity.status}
+- Notes: ${activity.notes || 'No notes'}
+`).join('\n') : 'No activities recorded'}`;
+          } else {
+            context = 'No daily log found for July 9, 2025. This could mean no work was logged for this date.';
+          }
+        } catch {
+          context = 'Unable to fetch daily log data for July 9, 2025.';
+        }
+
+        enhancedPrompt = `You are OnSite360 Copilot. Based on the July 9th daily log data below, prepare a comprehensive report.
+
+${context}
+
+## User Request
+${userPrompt}
+
+Please provide:
+1. Summary of activities and progress for the day
+2. Analysis of productivity and work completion
+3. Weather impact on work (if applicable)
+4. Issues encountered and their implications
+5. Recommendations for future similar work days`;
+        break;
+      }
+
+      case 'attendance': {
+        // Fetch July attendance data
+        try {
+          const attendanceResponse = await instance.get(`/projects/${selectedProject}/attendance?startDate=2025-07-01&endDate=2025-07-31`);
+          const attendanceData = attendanceResponse.data;
+
+          if (attendanceData && attendanceData.length > 0) {
+            const totalWorkDays = attendanceData.filter((record: AttendanceRecord) => record.isWorkDay).length;
+            const delayedDays = attendanceData.filter((record: AttendanceRecord) => record.workDelayed).length;
+            const averageWorkers = attendanceData.reduce((sum: number, record: AttendanceRecord) => 
+              sum + (record.workersPresent || 0), 0) / attendanceData.length;
+
+            context = `
+## July 2025 Attendance Summary
+**Total recorded days:** ${attendanceData.length}
+**Work days:** ${totalWorkDays}
+**Days with delays:** ${delayedDays}
+**Average workers present:** ${averageWorkers.toFixed(1)}
+
+## Daily Breakdown
+${attendanceData.slice(0, 10).map((record: AttendanceRecord) => `
+**${new Date(record.date).toLocaleDateString()}**
+- Work day: ${record.isWorkDay ? 'Yes' : 'No'}
+- Workers present: ${record.workersPresent || 'Not recorded'}
+- Work delayed: ${record.workDelayed ? 'Yes' : 'No'}
+- Delay reason: ${record.delayReason || 'N/A'}
+- Start time: ${record.actualStartTime || 'Not recorded'}
+- Notes: ${record.notes || 'No notes'}
+`).join('\n')}${attendanceData.length > 10 ? '\n... and more days' : ''}`;
+          } else {
+            context = 'No attendance data found for July 2025.';
+          }
+        } catch {
+          context = 'Unable to fetch attendance data for July 2025.';
+        }
+
+        enhancedPrompt = `You are OnSite360 Copilot. Based on the July attendance data below, provide a comprehensive summary.
+
+${context}
+
+## User Request
+${userPrompt}
+
+Please provide:
+1. Overall attendance patterns and trends
+2. Analysis of delays and their impact
+3. Workforce utilization insights
+4. Recommendations for improving attendance and reducing delays
+5. Any concerns or positive trends identified`;
+        break;
+      }
+
+      case 'communication': {
+        // Fetch communication threads for the project
+        try {
+          const threadsResponse = await instance.get('/communication/threads');
+          const allThreads = threadsResponse.data;
+          const projectThreads = allThreads.filter((thread: Thread) => thread.projectId === selectedProject);
+
+          if (projectThreads && projectThreads.length > 0) {
+            context = `
+## Communication Threads Summary
+**Total threads:** ${projectThreads.length}
+
+## Recent Threads
+${projectThreads.slice(0, 8).map((thread: Thread) => `
+**${thread.title}**
+- Description: ${thread.description || 'No description'}
+- Created: ${new Date(thread.createdAt).toLocaleDateString()}
+- Last updated: ${new Date(thread.updatedAt).toLocaleDateString()}
+- Participants: ${thread.users?.map((user: ThreadUser) => `${user.firstName} ${user.lastName}`).join(', ') || 'No participants listed'}
+- Messages: ${thread.messages?.length || 0}
+- RFIs: ${thread.rfis?.length || 0}
+`).join('\n')}${projectThreads.length > 8 ? '\n... and more threads' : ''}`;
+          } else {
+            context = 'No communication threads found for this project.';
+          }
+        } catch {
+          context = 'Unable to fetch communication threads data.';
+        }
+
+        enhancedPrompt = `You are OnSite360 Copilot. Based on the communication threads data below, provide a comprehensive summary.
+
+${context}
+
+## User Request
+${userPrompt}
+
+Please provide:
+1. Overview of communication activity and engagement
+2. Analysis of thread topics and categories
+3. Identification of frequently discussed issues
+4. Team collaboration insights
+5. Recommendations for improving communication efficiency`;
+        break;
+      }
+
+      default:
+        enhancedPrompt = userPrompt;
+    }
+
+    return enhancedPrompt;
+  };
 
   // Set default project when projects load
   useEffect(() => {
@@ -198,143 +438,35 @@ const Copilot = () => {
     const userPrompt = inputValue.trim();
     setInputValue("");
 
-    // Build project context with current data at the time of sending
-    const buildProjectContext = () => {
-      // Debug logging to understand data structure
-      console.log('🔍 Building context with:', {
-        currentProject,
-        projectStatistics,
-        projectIssues: projectIssues?.length || 0,
-        loadingStates: {
-          currentProjectLoading,
-          statisticsLoading,
-          issuesLoading
-        }
-      });
-
+    // Build simple project context for regular messages
+    const buildSimpleProjectContext = () => {
       let context = '';
-
-      // Extract the actual data from the API response wrapper
       const projectData = currentProject?.data;
       const statsData = projectStatistics?.data;
-      const issuesData = projectIssues?.data || projectIssues; // Issues might be direct array
 
-      // Current project info - access data from API response wrapper
       if (projectData) {
         context += `
-## Current Project Context
-**Project:** ${projectData.name || 'Unnamed Project'}
+## Current Project: ${projectData.name || 'Unnamed Project'}
 **Description:** ${projectData.description || 'No description available'}
-**Location:** ${projectData.location || 'Location not specified'}
-**Type:** ${projectData.type || 'Type not specified'}
-**Budget:** ${projectData.budget ? `$${projectData.budget.toLocaleString()}` : 'Budget not specified'}
-**Square Feet:** ${projectData.squareFeet ? `${projectData.squareFeet.toLocaleString()} sq ft` : 'Square footage not specified'}
-**Start Date:** ${projectData.startDate ? new Date(projectData.startDate).toLocaleDateString() : 'Start date not set'}
-**End Date:** ${projectData.endDate ? new Date(projectData.endDate).toLocaleDateString() : 'End date not set'}`;
-
-        // Add team members if available
-        if (projectData.userProjects && projectData.userProjects.length > 0) {
-          context += `
-
-## Team Members
-${projectData.userProjects.slice(0, 5).map((up: {
-            user: { firstName: string; lastName: string };
-            projectRole?: string;
-            accessLevel?: number;
-          }) => 
-            `- **${up.user.firstName} ${up.user.lastName}** (${up.projectRole || 'No role specified'}) - Access Level: ${up.accessLevel || 'Not specified'}`
-          ).join('\n')}`;
-        }
-
-        // Add recent tasks if available
-        if (projectData.tasks && projectData.tasks.length > 0) {
-          const recentTasks = projectData.tasks.slice(0, 3);
-          context += `
-
-## Recent Tasks
-${recentTasks.map((task: {
-            title: string;
-            status: string;
-            priority: string;
-            progress: number;
-          }) => 
-            `- **${task.title}** (${task.status}) - ${task.priority} priority, ${task.progress}% complete`
-          ).join('\n')}`;
-        }
-      } else {
-        context += `
-## Current Project Context
-Project details are currently being loaded...`;
+**Location:** ${projectData.location || 'Location not specified'}`;
       }
 
-      // Project statistics - access data from API response wrapper
       if (statsData) {
         context += `
-
-## Project Statistics
-**Total Tasks:** ${statsData.tasks?.total ?? 0}
-**Completed Tasks:** ${statsData.tasks?.completed ?? 0}
-**In Progress Tasks:** ${statsData.tasks?.inProgress ?? 0}
-**Pending Tasks:** ${statsData.tasks?.pending ?? 0}
-**Task Completion Rate:** ${statsData.tasks?.completionRate?.toFixed(1) ?? 0}%
-**Total Documents:** ${statsData.documents?.total ?? 0}
-**Total Communication Threads:** ${statsData.threads?.total ?? 0}
-**Total Issues:** ${statsData.issues?.total ?? 0}
-**Open Issues:** ${statsData.issues?.open ?? 0}
-**Resolved Issues:** ${statsData.issues?.resolved ?? 0}
-**Total Team Members:** ${statsData.users?.total ?? 0}
-**Active Team Members:** ${statsData.users?.active ?? 0}`;
-      } else if (statisticsLoading) {
-        context += `
-
-## Project Statistics
-Project statistics are currently loading...`;
-      } else {
-        context += `
-
-## Project Statistics
-No statistics available for this project.`;
-      }
-
-      // Recent issues - access from project data if available
-      if (projectData?.issue && projectData.issue.length > 0) {
-        const recentIssues = projectData.issue.slice(0, 3);
-        context += `
-
-## Recent Issues
-${recentIssues.map((issue: {
-          title: string;
-          status: string;
-          severity: string;
-          category: string;
-          reportedBy: string;
-        }) => 
-          `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}, Reported by: ${issue.reportedBy}`
-        ).join('\n')}`;
-      } else if (issuesData && Array.isArray(issuesData) && issuesData.length > 0) {
-        const recentIssues = issuesData.slice(0, 3);
-        context += `
-
-## Recent Issues
-${recentIssues.map((issue: Issue) => 
-          `- **${issue.title}** (${issue.status}) - ${issue.severity} severity, Category: ${issue.category}`
-        ).join('\n')}`;
-      } else if (issuesLoading) {
-        context += `
-
-## Recent Issues
-Issues are currently loading...`;
+## Quick Stats
+- Total Tasks: ${statsData.tasks?.total ?? 0} (${statsData.tasks?.completed ?? 0} completed)
+- Total Issues: ${statsData.issues?.total ?? 0} (${statsData.issues?.open ?? 0} open)
+- Team Members: ${statsData.users?.total ?? 0}`;
       }
 
       return context;
     };
 
-    // Prepare enhanced prompt with comprehensive project context
-    const projectContextString = buildProjectContext();
-    console.log(projectContextString)
+    // Prepare simplified prompt for regular queries
+    const projectContextString = buildSimpleProjectContext();
     const conversationContext = messages.slice(-3).map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.content}`).join('\n');
     
-    const enhancedPrompt = `You are OnSite360 Copilot, an AI assistant specialized in construction project management, document analysis, and technical support.
+    const enhancedPrompt = `You are OnSite360 Copilot, an AI assistant specialized in construction project management.
 
 ${projectContextString}
 
@@ -344,16 +476,7 @@ ${conversationContext}
 ## User Question
 ${userPrompt}
 
-## Instructions
-Based on the project context above, provide a helpful, accurate, and professional response. Consider:
-- Current project status and statistics
-- Any relevant issues or concerns
-- Team composition and roles
-- Project timeline and budget constraints
-- Construction industry best practices
-- Safety considerations
-
-Please provide actionable insights and recommendations when appropriate.`;
+Please provide a helpful response based on the project context above.`;
 
     // Call AI API
     generateText({
@@ -402,10 +525,67 @@ Please provide actionable insights and recommendations when appropriate.`;
     });
   };
 
-  const handleSuggestionClick = (suggestion: ChatSuggestion) => {
-    setInputValue(suggestion.text);
-    if (inputRef.current) {
-      inputRef.current.focus();
+  const handleSuggestionClick = async (suggestion: ChatSuggestion) => {
+    if (suggestion.promptType === 'smart') {
+      // For smart prompts, directly send the message with enhanced context
+      if (!selectedProject) {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          content: "Please select a project from the dropdown above to get project-specific insights and assistance.",
+          isUser: false,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
+      }
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: suggestion.text,
+        isUser: true,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+
+      // Get enhanced prompt with specific data
+      const enhancedPrompt = await handleSmartPrompt(suggestion, suggestion.text);
+
+      // Call AI API with enhanced prompt
+      generateText({
+        prompt: enhancedPrompt,
+        projectId: selectedProject,
+        model: 'llama3',
+        maxTokens: 1000,
+        temperature: 0.7
+      }, {
+        onSuccess: (response) => {
+          const botResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            content: response.response,
+            isUser: false,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, botResponse]);
+        },
+        onError: () => {
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            content: "Sorry, I encountered an error while processing your request. Please try again.",
+            isUser: false,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, errorMessage]);
+        }
+      });
+    } else {
+      // For regular suggestions, just set the input value
+      setInputValue(suggestion.text);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   };
 

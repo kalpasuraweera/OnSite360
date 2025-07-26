@@ -25,10 +25,11 @@ async function bootstrap() {
 
   // Enable CORS for the frontend application
   app.enableCors({
-    origin: 'http://localhost:5173', // Your frontend origin
+    origin: ['http://localhost:5173', 'https://on-site360.vercel.app'], // Local and production frontend origins
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders:
+      'Content-Type, Accept, Authorization, ngrok-skip-browser-warning',
   });
 
   const config = new DocumentBuilder()
