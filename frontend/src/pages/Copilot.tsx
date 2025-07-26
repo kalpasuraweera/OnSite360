@@ -14,12 +14,15 @@ import { MdSupportAgent, MdHistory } from "react-icons/md";
 import { useAuthStore } from "../stores/useAuthStore";
 import { 
   useProject, 
-  useProjectStatistics
+  useProjectStatistics, 
+  useProjectIssues,
+  useProjectAttendanceHistory
 } from "../hooks/useProjects";
 import { useTextGeneration } from "../hooks/useCopilot";
 import type { Issue } from "../hooks/useProjects";
 import { useUserProjects } from "../hooks/useUsers";
-import instance from "../api/axiosInstance";
+import { useDailyLogsByDate } from "../hooks/useSchedule";
+import { useThreads } from "../hooks/useCommunication";
 
 // Define interfaces for API responses
 interface DailyActivity {
@@ -30,18 +33,6 @@ interface DailyActivity {
   progress?: number;
   status: string;
   notes?: string;
-}
-
-interface DailyLog {
-  weather?: string;
-  temperature?: string;
-  workHours?: number;
-  workersPresent?: number;
-  summary?: string;
-  issues?: string;
-  notes?: string;
-  logger?: { firstName: string; lastName: string };
-  activities?: DailyActivity[];
 }
 
 interface AttendanceRecord {
@@ -106,6 +97,16 @@ const Copilot = () => {
   const { data: currentProject, isLoading: currentProjectLoading } = useProject(selectedProject);
   const { data: projectStatistics, isLoading: statisticsLoading } = useProjectStatistics(selectedProject);
   
+  // Data for smart prompts - only fetch when needed based on selected project
+  const { data: projectIssues, isLoading: issuesLoading } = useProjectIssues(selectedProject);
+  const { data: attendanceHistory } = useProjectAttendanceHistory(
+    selectedProject, 
+    "2025-07-01", 
+    "2025-07-31"
+  );
+  const { data: dailyLogsJuly9 } = useDailyLogsByDate(selectedProject, "2025-07-09");
+  const { data: allThreads } = useThreads();
+  
   // Combined loading state
   const isTyping = isGenerating;
   const isDataLoading = currentProjectLoading || statisticsLoading;
@@ -148,17 +149,16 @@ const Copilot = () => {
 
   const chatSuggestions = getChatSuggestions();
 
-  // Smart prompt handler that fetches specific data based on prompt type
-  const handleSmartPrompt = async (suggestion: ChatSuggestion, userPrompt: string) => {
+  // Smart prompt handler that uses pre-fetched data
+  const handleSmartPrompt = (suggestion: ChatSuggestion, userPrompt: string): string => {
     let context = '';
     let enhancedPrompt = '';
 
     switch (suggestion.category) {
       case 'issues': {
-        // Fetch only unresolved issues
-        try {
-          const issuesResponse = await instance.get(`/projects/${selectedProject}/issues`);
-          const issuesData = issuesResponse.data;
+        // Use pre-fetched issues data
+        if (projectIssues) {
+          const issuesData = Array.isArray(projectIssues) ? projectIssues : projectIssues.data || [];
           const unresolvedIssues = issuesData.filter((issue: Issue) => 
             issue.status !== 'Resolved' && issue.status !== 'Closed'
           );
@@ -176,8 +176,9 @@ ${unresolvedIssues.map((issue: Issue) => `
 - Due Date: ${issue.dueDate ? new Date(issue.dueDate).toLocaleDateString() : 'No due date'}
 - Description: ${issue.description}
 `).join('\n')}`;
-
-        } catch {
+        } else if (issuesLoading) {
+          context = 'Issues are currently loading...';
+        } else {
           context = 'Unable to fetch current issues data.';
         }
 
@@ -197,14 +198,10 @@ Please provide:
       }
 
       case 'daily-log': {
-        // Fetch July 9th daily log
-        try {
-          const dailyLogResponse = await instance.get(`/schedule/daily-logs/by-date?projectId=${selectedProject}&date=2025-07-09`);
-          const dailyLogData = dailyLogResponse.data;
-
-          if (dailyLogData && dailyLogData.length > 0) {
-            const log: DailyLog = dailyLogData[0];
-            context = `
+        // Use pre-fetched daily log data for July 9th
+        if (dailyLogsJuly9 && dailyLogsJuly9.length > 0) {
+          const log = dailyLogsJuly9[0];
+          context = `
 ## Daily Log for July 9, 2025
 **Weather:** ${log.weather || 'Not recorded'}
 **Temperature:** ${log.temperature || 'Not recorded'}
@@ -225,11 +222,8 @@ ${log.activities && log.activities.length > 0 ?
 - Status: ${activity.status}
 - Notes: ${activity.notes || 'No notes'}
 `).join('\n') : 'No activities recorded'}`;
-          } else {
-            context = 'No daily log found for July 9, 2025. This could mean no work was logged for this date.';
-          }
-        } catch {
-          context = 'Unable to fetch daily log data for July 9, 2025.';
+        } else {
+          context = 'No daily log found for July 9, 2025. This could mean no work was logged for this date.';
         }
 
         enhancedPrompt = `You are OnSite360 Copilot. Based on the July 9th daily log data below, prepare a comprehensive report.
@@ -249,18 +243,15 @@ Please provide:
       }
 
       case 'attendance': {
-        // Fetch July attendance data
-        try {
-          const attendanceResponse = await instance.get(`/projects/${selectedProject}/attendance?startDate=2025-07-01&endDate=2025-07-31`);
-          const attendanceData = attendanceResponse.data;
+        // Use pre-fetched attendance data for July
+        if (attendanceHistory && attendanceHistory.length > 0) {
+          const attendanceData = Array.isArray(attendanceHistory) ? attendanceHistory : attendanceHistory.data || [];
+          const totalWorkDays = attendanceData.filter((record: AttendanceRecord) => record.isWorkDay).length;
+          const delayedDays = attendanceData.filter((record: AttendanceRecord) => record.workDelayed).length;
+          const averageWorkers = attendanceData.reduce((sum: number, record: AttendanceRecord) => 
+            sum + (record.workersPresent || 0), 0) / attendanceData.length;
 
-          if (attendanceData && attendanceData.length > 0) {
-            const totalWorkDays = attendanceData.filter((record: AttendanceRecord) => record.isWorkDay).length;
-            const delayedDays = attendanceData.filter((record: AttendanceRecord) => record.workDelayed).length;
-            const averageWorkers = attendanceData.reduce((sum: number, record: AttendanceRecord) => 
-              sum + (record.workersPresent || 0), 0) / attendanceData.length;
-
-            context = `
+          context = `
 ## July 2025 Attendance Summary
 **Total recorded days:** ${attendanceData.length}
 **Work days:** ${totalWorkDays}
@@ -277,11 +268,8 @@ ${attendanceData.slice(0, 10).map((record: AttendanceRecord) => `
 - Start time: ${record.actualStartTime || 'Not recorded'}
 - Notes: ${record.notes || 'No notes'}
 `).join('\n')}${attendanceData.length > 10 ? '\n... and more days' : ''}`;
-          } else {
-            context = 'No attendance data found for July 2025.';
-          }
-        } catch {
-          context = 'Unable to fetch attendance data for July 2025.';
+        } else {
+          context = 'No attendance data found for July 2025.';
         }
 
         enhancedPrompt = `You are OnSite360 Copilot. Based on the July attendance data below, provide a comprehensive summary.
@@ -301,11 +289,10 @@ Please provide:
       }
 
       case 'communication': {
-        // Fetch communication threads for the project
-        try {
-          const threadsResponse = await instance.get('/communication/threads');
-          const allThreads = threadsResponse.data;
-          const projectThreads = allThreads.filter((thread: Thread) => thread.projectId === selectedProject);
+        // Use pre-fetched threads data
+        if (allThreads) {
+          const threadsData = Array.isArray(allThreads) ? allThreads : [];
+          const projectThreads = threadsData.filter((thread: Thread) => thread.projectId === selectedProject);
 
           if (projectThreads && projectThreads.length > 0) {
             context = `
@@ -325,7 +312,7 @@ ${projectThreads.slice(0, 8).map((thread: Thread) => `
           } else {
             context = 'No communication threads found for this project.';
           }
-        } catch {
+        } else {
           context = 'Unable to fetch communication threads data.';
         }
 
@@ -525,7 +512,7 @@ Please provide a helpful response based on the project context above.`;
     });
   };
 
-  const handleSuggestionClick = async (suggestion: ChatSuggestion) => {
+  const handleSuggestionClick = (suggestion: ChatSuggestion) => {
     if (suggestion.promptType === 'smart') {
       // For smart prompts, directly send the message with enhanced context
       if (!selectedProject) {
@@ -549,7 +536,7 @@ Please provide a helpful response based on the project context above.`;
       setMessages(prev => [...prev, userMessage]);
 
       // Get enhanced prompt with specific data
-      const enhancedPrompt = await handleSmartPrompt(suggestion, suggestion.text);
+      const enhancedPrompt = handleSmartPrompt(suggestion, suggestion.text);
 
       // Call AI API with enhanced prompt
       generateText({
