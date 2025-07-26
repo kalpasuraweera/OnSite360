@@ -1,13 +1,15 @@
 import React, { useState, useRef } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useProjects, useCreateProject, useUpdateProject, type Project, type CreateProjectDto, type UpdateProjectDto } from "../hooks/useProjects";
+import {
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+  type Project,
+  type CreateProjectDto,
+  type UpdateProjectDto,
+} from "../hooks/useProjects";
 import { useUsers, type User } from "../hooks/useUsers";
 
 // Fix default marker icon for leaflet in React
@@ -50,7 +52,12 @@ const ProjectOversight = () => {
 
   // New: state for project users management
   const [selectedUsers, setSelectedUsers] = useState<
-    { userId: string; projectRole: string; accessLevel: number; userName?: string }[]
+    {
+      userId: string;
+      projectRole: string;
+      accessLevel: number;
+      userName?: string;
+    }[]
   >([]);
   const [showUserModal, setShowUserModal] = useState(false);
 
@@ -105,7 +112,7 @@ const ProjectOversight = () => {
   const handleCreateProject = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const newProject: CreateProjectDto = {
       name: formData.get("projectName") as string,
       description: formData.get("description") as string,
@@ -116,13 +123,16 @@ const ProjectOversight = () => {
       coordinates: locationCoords || undefined,
       // logoUrl: "", // Set after upload if needed
       // featuredImageUrl: "", // Set after upload if needed
-      startDate: formData.get("startDate") as string || undefined,
-      endDate: formData.get("endDate") as string || undefined,
-      users: selectedUsers.length > 0 ? selectedUsers.map(user => ({
-        userId: user.userId,
-        projectRole: user.projectRole,
-        accessLevel: user.accessLevel
-      })) : undefined,
+      startDate: (formData.get("startDate") as string) || undefined,
+      endDate: (formData.get("endDate") as string) || undefined,
+      users:
+        selectedUsers.length > 0
+          ? selectedUsers.map((user) => ({
+              userId: user.userId,
+              projectRole: user.projectRole,
+              accessLevel: user.accessLevel,
+            }))
+          : undefined,
     };
 
     createProject.mutate(newProject, {
@@ -143,7 +153,7 @@ const ProjectOversight = () => {
     if (!selectedProject) return;
 
     const formData = new FormData(event.currentTarget);
-    
+
     const updatedProject: UpdateProjectDto & { id: string } = {
       id: selectedProject.id,
       name: formData.get("projectName") as string,
@@ -155,13 +165,16 @@ const ProjectOversight = () => {
       coordinates: locationCoords || undefined,
       logoUrl: selectedProject.logoUrl, // Keep existing logo for now
       featuredImageUrl: selectedProject.featuredImageUrl, // Keep existing image for now
-      startDate: formData.get("startDate") as string || undefined,
-      endDate: formData.get("endDate") as string || undefined,
-      users: selectedUsers.length > 0 ? selectedUsers.map(user => ({
-        userId: user.userId,
-        projectRole: user.projectRole,
-        accessLevel: user.accessLevel
-      })) : undefined,
+      startDate: (formData.get("startDate") as string) || undefined,
+      endDate: (formData.get("endDate") as string) || undefined,
+      users:
+        selectedUsers.length > 0
+          ? selectedUsers.map((user) => ({
+              userId: user.userId,
+              projectRole: user.projectRole,
+              accessLevel: user.accessLevel,
+            }))
+          : undefined,
     };
 
     updateProject.mutate(updatedProject, {
@@ -261,24 +274,27 @@ const ProjectOversight = () => {
   // User management functions
   const handleAddUser = (userId: string, accessLevel: number) => {
     const user = users.find((u: User) => u.id === userId);
-    if (user && !selectedUsers.find(su => su.userId === userId)) {
-      setSelectedUsers(prev => [...prev, {
-        userId,
-        projectRole: user.role?.name || 'No Role',
-        accessLevel,
-        userName: `${user.firstName} ${user.lastName}`
-      }]);
+    if (user && !selectedUsers.find((su) => su.userId === userId)) {
+      setSelectedUsers((prev) => [
+        ...prev,
+        {
+          userId,
+          projectRole: user.role?.name || "No Role",
+          accessLevel,
+          userName: `${user.firstName} ${user.lastName}`,
+        },
+      ]);
     }
   };
 
   const handleRemoveUser = (userId: string) => {
-    setSelectedUsers(prev => prev.filter(u => u.userId !== userId));
+    setSelectedUsers((prev) => prev.filter((u) => u.userId !== userId));
   };
 
   const handleUpdateUserRole = (userId: string, accessLevel: number) => {
-    setSelectedUsers(prev => prev.map(u => 
-      u.userId === userId ? { ...u, accessLevel } : u
-    ));
+    setSelectedUsers((prev) =>
+      prev.map((u) => (u.userId === userId ? { ...u, accessLevel } : u))
+    );
   };
 
   // User Modal Component
@@ -296,10 +312,10 @@ const ProjectOversight = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
           <h3 className="text-lg font-semibold mb-4">Add User to Project</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="label">
@@ -311,14 +327,21 @@ const ProjectOversight = () => {
                 onChange={(e) => setTempUserId(e.target.value)}
                 disabled={usersLoading}
               >
-                <option value="">{usersLoading ? "Loading users..." : "Choose a user"}</option>
-                {!usersLoading && users
-                  .filter((user: User) => !selectedUsers.find(su => su.userId === user.id))
-                  .map((user: User) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName} ({user.email}) - {user.role?.name || 'No Role'}
-                    </option>
-                  ))}
+                <option value="">
+                  {usersLoading ? "Loading users..." : "Choose a user"}
+                </option>
+                {!usersLoading &&
+                  users
+                    .filter(
+                      (user: User) =>
+                        !selectedUsers.find((su) => su.userId === user.id)
+                    )
+                    .map((user: User) => (
+                      <option key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.email}) -{" "}
+                        {user.role?.name || "No Role"}
+                      </option>
+                    ))}
               </select>
             </div>
 
@@ -331,7 +354,7 @@ const ProjectOversight = () => {
                 value={tempAccessLevel}
                 onChange={(e) => setTempAccessLevel(Number(e.target.value))}
               >
-                {accessLevelOptions.map(level => (
+                {accessLevelOptions.map((level) => (
                   <option key={level.value} value={level.value}>
                     {level.label}
                   </option>
@@ -372,7 +395,7 @@ const ProjectOversight = () => {
 
       {/* Map Modal */}
       {showMapModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-xl relative">
             <h3 className="text-lg font-semibold mb-2">
               Pick Project Location
@@ -472,9 +495,7 @@ const ProjectOversight = () => {
                             {project.location || "No location"}
                           </span>
                           {project.coordinates && (
-                            <span className="badge badge-info">
-                              📍 Located
-                            </span>
+                            <span className="badge badge-info">📍 Located</span>
                           )}
                           {project._count && (
                             <>
@@ -495,19 +516,25 @@ const ProjectOversight = () => {
                         </div>
                         <div className="flex gap-4 text-sm text-gray-600">
                           {project.budget && (
-                            <span>Budget: {formatCurrency(project.budget)}</span>
+                            <span>
+                              Budget: {formatCurrency(project.budget)}
+                            </span>
                           )}
                           {project.squareFeet && (
-                            <span>Size: {project.squareFeet.toLocaleString()} sq ft</span>
+                            <span>
+                              Size: {project.squareFeet.toLocaleString()} sq ft
+                            </span>
                           )}
                           {project.startDate && (
                             <span>
-                              Start: {new Date(project.startDate).toLocaleDateString()}
+                              Start:{" "}
+                              {new Date(project.startDate).toLocaleDateString()}
                             </span>
                           )}
                           {project.endDate && (
                             <span>
-                              End: {new Date(project.endDate).toLocaleDateString()}
+                              End:{" "}
+                              {new Date(project.endDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
@@ -573,7 +600,7 @@ const ProjectOversight = () => {
                       <div className="stat-desc">Total allocated</div>
                     </div>
                   )}
-                  
+
                   {selectedProject.squareFeet && (
                     <div className="stat bg-base-100 rounded-xl shadow">
                       <div className="stat-title">Size</div>
@@ -631,7 +658,9 @@ const ProjectOversight = () => {
                         <div className="flex justify-between">
                           <span>Start Date:</span>
                           <span className="font-medium">
-                            {new Date(selectedProject.startDate).toLocaleDateString()}
+                            {new Date(
+                              selectedProject.startDate
+                            ).toLocaleDateString()}
                           </span>
                         </div>
                       )}
@@ -639,7 +668,9 @@ const ProjectOversight = () => {
                         <div className="flex justify-between">
                           <span>End Date:</span>
                           <span className="font-medium">
-                            {new Date(selectedProject.endDate).toLocaleDateString()}
+                            {new Date(
+                              selectedProject.endDate
+                            ).toLocaleDateString()}
                           </span>
                         </div>
                       )}
@@ -659,13 +690,17 @@ const ProjectOversight = () => {
                       <div className="flex justify-between">
                         <span>Created:</span>
                         <span className="font-medium">
-                          {new Date(selectedProject.createdAt).toLocaleDateString()}
+                          {new Date(
+                            selectedProject.createdAt
+                          ).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Last Updated:</span>
                         <span className="font-medium">
-                          {new Date(selectedProject.updatedAt).toLocaleDateString()}
+                          {new Date(
+                            selectedProject.updatedAt
+                          ).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -689,21 +724,30 @@ const ProjectOversight = () => {
                       <div className="flex justify-between">
                         <span>Description:</span>
                         <span className="font-medium">
-                          {selectedProject.description || "No description provided"}
+                          {selectedProject.description ||
+                            "No description provided"}
                         </span>
                       </div>
-                      {selectedProject.userProjects && selectedProject.userProjects.length > 0 && (
-                        <div>
-                          <span>Team Members:</span>
-                          <div className="mt-2">
-                            {selectedProject.userProjects.map((userProject) => (
-                              <div key={userProject.id} className="badge badge-outline mr-2 mb-2">
-                                {userProject.user.firstName} {userProject.user.lastName} ({userProject.projectRole})
-                              </div>
-                            ))}
+                      {selectedProject.userProjects &&
+                        selectedProject.userProjects.length > 0 && (
+                          <div>
+                            <span>Team Members:</span>
+                            <div className="mt-2">
+                              {selectedProject.userProjects.map(
+                                (userProject) => (
+                                  <div
+                                    key={userProject.id}
+                                    className="badge badge-outline mr-2 mb-2"
+                                  >
+                                    {userProject.user.firstName}{" "}
+                                    {userProject.user.lastName} (
+                                    {userProject.projectRole})
+                                  </div>
+                                )
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 </div>
@@ -741,11 +785,15 @@ const ProjectOversight = () => {
               >
                 {/* Basic Information Section */}
                 <div className="bg-base-100 p-4 rounded-xl">
-                  <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    Basic Information
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Project Name</span>
+                        <span className="label-text font-medium">
+                          Project Name
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -777,7 +825,9 @@ const ProjectOversight = () => {
 
                 {/* Project Details Section */}
                 <div className="bg-base-100 p-4 rounded-xl">
-                  <h3 className="text-lg font-semibold mb-4">Project Details</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    Project Details
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="label">
@@ -794,7 +844,9 @@ const ProjectOversight = () => {
                     </div>
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Square Feet</span>
+                        <span className="label-text font-medium">
+                          Square Feet
+                        </span>
                       </label>
                       <input
                         type="number"
@@ -814,7 +866,9 @@ const ProjectOversight = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Start Date</span>
+                        <span className="label-text font-medium">
+                          Start Date
+                        </span>
                       </label>
                       <input
                         type="date"
@@ -849,7 +903,7 @@ const ProjectOversight = () => {
                       Add Team Member
                     </button>
                   </div>
-                  
+
                   {selectedUsers.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="table w-full">
@@ -866,16 +920,26 @@ const ProjectOversight = () => {
                             <tr key={user.userId}>
                               <td className="font-medium">{user.userName}</td>
                               <td>
-                                <span className="badge badge-outline">{user.projectRole}</span>
+                                <span className="badge badge-outline">
+                                  {user.projectRole}
+                                </span>
                               </td>
                               <td>
                                 <select
                                   className="select select-bordered select-sm w-full"
                                   value={user.accessLevel}
-                                  onChange={(e) => handleUpdateUserRole(user.userId, Number(e.target.value))}
+                                  onChange={(e) =>
+                                    handleUpdateUserRole(
+                                      user.userId,
+                                      Number(e.target.value)
+                                    )
+                                  }
                                 >
-                                  {accessLevelOptions.map(level => (
-                                    <option key={level.value} value={level.value}>
+                                  {accessLevelOptions.map((level) => (
+                                    <option
+                                      key={level.value}
+                                      value={level.value}
+                                    >
                                       {level.label}
                                     </option>
                                   ))}
@@ -897,7 +961,8 @@ const ProjectOversight = () => {
                     </div>
                   ) : (
                     <div className="text-center py-4 text-gray-500">
-                      No team members added yet. Click "Add Team Member" to get started.
+                      No team members added yet. Click "Add Team Member" to get
+                      started.
                     </div>
                   )}
                 </div>
@@ -908,7 +973,9 @@ const ProjectOversight = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Coordinates</span>
+                        <span className="label-text font-medium">
+                          Coordinates
+                        </span>
                       </label>
                       <div className="flex gap-2 items-center">
                         <button
@@ -920,14 +987,17 @@ const ProjectOversight = () => {
                         </button>
                         {locationCoords && (
                           <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                            {locationCoords.lat.toFixed(5)}, {locationCoords.lng.toFixed(5)}
+                            {locationCoords.lat.toFixed(5)},{" "}
+                            {locationCoords.lng.toFixed(5)}
                           </span>
                         )}
                       </div>
                     </div>
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Address/Description</span>
+                        <span className="label-text font-medium">
+                          Address/Description
+                        </span>
                       </label>
                       <input
                         type="text"
@@ -966,8 +1036,18 @@ const ProjectOversight = () => {
                           />
                         ) : (
                           <div className="text-center">
-                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            <svg
+                              className="w-8 h-8 mx-auto mb-2 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                              />
                             </svg>
                             <span className="text-gray-400 text-sm">
                               Drag & drop logo here, or click to select
@@ -986,7 +1066,9 @@ const ProjectOversight = () => {
                     </div>
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Featured Photo</span>
+                        <span className="label-text font-medium">
+                          Featured Photo
+                        </span>
                       </label>
                       <div
                         className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
@@ -1004,8 +1086,18 @@ const ProjectOversight = () => {
                           />
                         ) : (
                           <div className="text-center">
-                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-8 h-8 mx-auto mb-2 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
                             <span className="text-gray-400 text-sm">
                               Drag & drop photo here, or click to select
@@ -1046,8 +1138,8 @@ const ProjectOversight = () => {
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={createProject.isPending}
                   >
@@ -1079,7 +1171,9 @@ const ProjectOversight = () => {
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-2xl font-bold">Edit Project</h2>
-                      <p className="text-neutral-500">Modify project details and settings.</p>
+                      <p className="text-neutral-500">
+                        Modify project details and settings.
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -1092,11 +1186,15 @@ const ProjectOversight = () => {
 
                   {/* Basic Information Section */}
                   <div className="bg-base-100 p-4 rounded-xl">
-                    <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Basic Information
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Project Name</span>
+                          <span className="label-text font-medium">
+                            Project Name
+                          </span>
                         </label>
                         <input
                           type="text"
@@ -1127,7 +1225,9 @@ const ProjectOversight = () => {
                     </div>
                     <div className="mt-4">
                       <label className="label">
-                        <span className="label-text font-medium">Description</span>
+                        <span className="label-text font-medium">
+                          Description
+                        </span>
                       </label>
                       <textarea
                         className="textarea textarea-bordered w-full"
@@ -1141,7 +1241,9 @@ const ProjectOversight = () => {
 
                   {/* Project Details Section */}
                   <div className="bg-base-100 p-4 rounded-xl">
-                    <h3 className="text-lg font-semibold mb-4">Project Details</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Project Details
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="label">
@@ -1157,7 +1259,9 @@ const ProjectOversight = () => {
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Square Feet</span>
+                          <span className="label-text font-medium">
+                            Square Feet
+                          </span>
                         </label>
                         <input
                           type="number"
@@ -1177,7 +1281,9 @@ const ProjectOversight = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Start Date</span>
+                          <span className="label-text font-medium">
+                            Start Date
+                          </span>
                         </label>
                         <input
                           type="date"
@@ -1185,14 +1291,18 @@ const ProjectOversight = () => {
                           name="startDate"
                           defaultValue={
                             selectedProject.startDate
-                              ? new Date(selectedProject.startDate).toISOString().split('T')[0]
+                              ? new Date(selectedProject.startDate)
+                                  .toISOString()
+                                  .split("T")[0]
                               : ""
                           }
                         />
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">End Date</span>
+                          <span className="label-text font-medium">
+                            End Date
+                          </span>
                         </label>
                         <input
                           type="date"
@@ -1200,7 +1310,9 @@ const ProjectOversight = () => {
                           name="endDate"
                           defaultValue={
                             selectedProject.endDate
-                              ? new Date(selectedProject.endDate).toISOString().split('T')[0]
+                              ? new Date(selectedProject.endDate)
+                                  .toISOString()
+                                  .split("T")[0]
                               : ""
                           }
                         />
@@ -1220,7 +1332,7 @@ const ProjectOversight = () => {
                         Add Team Member
                       </button>
                     </div>
-                    
+
                     {selectedUsers.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="table w-full">
@@ -1237,16 +1349,26 @@ const ProjectOversight = () => {
                               <tr key={user.userId}>
                                 <td className="font-medium">{user.userName}</td>
                                 <td>
-                                  <span className="badge badge-outline">{user.projectRole}</span>
+                                  <span className="badge badge-outline">
+                                    {user.projectRole}
+                                  </span>
                                 </td>
                                 <td>
                                   <select
                                     className="select select-bordered select-sm w-full"
                                     value={user.accessLevel}
-                                    onChange={(e) => handleUpdateUserRole(user.userId, Number(e.target.value))}
+                                    onChange={(e) =>
+                                      handleUpdateUserRole(
+                                        user.userId,
+                                        Number(e.target.value)
+                                      )
+                                    }
                                   >
-                                    {accessLevelOptions.map(level => (
-                                      <option key={level.value} value={level.value}>
+                                    {accessLevelOptions.map((level) => (
+                                      <option
+                                        key={level.value}
+                                        value={level.value}
+                                      >
                                         {level.label}
                                       </option>
                                     ))}
@@ -1256,7 +1378,9 @@ const ProjectOversight = () => {
                                   <button
                                     type="button"
                                     className="btn btn-error btn-xs"
-                                    onClick={() => handleRemoveUser(user.userId)}
+                                    onClick={() =>
+                                      handleRemoveUser(user.userId)
+                                    }
                                   >
                                     Remove
                                   </button>
@@ -1268,7 +1392,8 @@ const ProjectOversight = () => {
                       </div>
                     ) : (
                       <div className="text-center py-4 text-gray-500">
-                        No team members assigned yet. Click "Add Team Member" to get started.
+                        No team members assigned yet. Click "Add Team Member" to
+                        get started.
                       </div>
                     )}
                   </div>
@@ -1279,7 +1404,9 @@ const ProjectOversight = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Coordinates</span>
+                          <span className="label-text font-medium">
+                            Coordinates
+                          </span>
                         </label>
                         <div className="flex gap-2 items-center">
                           <button
@@ -1291,16 +1418,24 @@ const ProjectOversight = () => {
                           </button>
                           <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
                             {locationCoords
-                              ? `${locationCoords.lat.toFixed(5)}, ${locationCoords.lng.toFixed(5)}`
+                              ? `${locationCoords.lat.toFixed(
+                                  5
+                                )}, ${locationCoords.lng.toFixed(5)}`
                               : selectedProject.coordinates
-                              ? `${selectedProject.coordinates.lat.toFixed(5)}, ${selectedProject.coordinates.lng.toFixed(5)}`
+                              ? `${selectedProject.coordinates.lat.toFixed(
+                                  5
+                                )}, ${selectedProject.coordinates.lng.toFixed(
+                                  5
+                                )}`
                               : "No coordinates"}
                           </span>
                         </div>
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Address/Description</span>
+                          <span className="label-text font-medium">
+                            Address/Description
+                          </span>
                         </label>
                         <input
                           type="text"
@@ -1339,8 +1474,18 @@ const ProjectOversight = () => {
                             />
                           ) : (
                             <div className="text-center">
-                              <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              <svg
+                                className="w-8 h-8 mx-auto mb-2 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                />
                               </svg>
                               <span className="text-gray-400 text-sm">
                                 Drag & drop logo here, or click to select
@@ -1359,7 +1504,9 @@ const ProjectOversight = () => {
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Featured Photo</span>
+                          <span className="label-text font-medium">
+                            Featured Photo
+                          </span>
                         </label>
                         <div
                           className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
@@ -1377,8 +1524,18 @@ const ProjectOversight = () => {
                             />
                           ) : (
                             <div className="text-center">
-                              <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              <svg
+                                className="w-8 h-8 mx-auto mb-2 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
                               </svg>
                               <span className="text-gray-400 text-sm">
                                 Drag & drop photo here, or click to select

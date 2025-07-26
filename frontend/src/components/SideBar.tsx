@@ -19,24 +19,24 @@ const Sidebar = ({
     }))
     .sort((a, b) => {
       // Always put dashboard first
-      if (a.page_id === 'dashboard') return -1;
-      if (b.page_id === 'dashboard') return 1;
+      if (a.page_id === "dashboard") return -1;
+      if (b.page_id === "dashboard") return 1;
       // Otherwise maintain alphabetical order by page_name
       return a.page_name.localeCompare(b.page_name);
     });
   const sidebarOpen = useSystemStore((s) => s.sidebarOpen);
   const setSidebarOpen = useSystemStore((s) => s.setSidebarOpen);
-  
+
   return (
     <>
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      
+
       <div
         className={`${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -46,7 +46,7 @@ const Sidebar = ({
       >
         <div className="flex flex-col gap-2 px-4 py-4">
           {/* Show logo on mobile when sidebar is open, or on desktop when expanded */}
-          {(sidebarOpen) && (
+          {sidebarOpen && (
             <img
               src="/logo.png"
               alt="Logo"

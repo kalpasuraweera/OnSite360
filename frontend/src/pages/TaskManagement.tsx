@@ -1879,7 +1879,7 @@ const TaskManagement = () => {
       {(updateTaskMutation.isPending ||
         deleteTaskMutation.isPending ||
         createTaskMutation.isPending) && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md/20 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-base-100 p-6 rounded-2xl shadow-2xl flex items-center gap-4">
             <span className="loading loading-spinner loading-lg"></span>
             <span className="text-lg font-medium">
