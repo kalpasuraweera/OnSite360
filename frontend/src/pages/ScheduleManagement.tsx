@@ -330,7 +330,9 @@ const ScheduleManagement = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(
+    null
+  );
   const [eventForm, setEventForm] = useState<CreateScheduleEventDto>({
     title: "",
     description: "",
@@ -361,15 +363,23 @@ const ScheduleManagement = () => {
 
   // Daily Activity modal state
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<DailyActivity | null>(null);
-  const [selectedLogForActivity, setSelectedLogForActivity] = useState<DailyLog | null>(null);
+  const [editingActivity, setEditingActivity] = useState<DailyActivity | null>(
+    null
+  );
+  const [selectedLogForActivity, setSelectedLogForActivity] =
+    useState<DailyLog | null>(null);
   const [activityForm, setActivityForm] = useState({
     activity: "",
     dailyLogId: "",
     startTime: "",
     endTime: "",
     progress: 0,
-    status: "NOT_STARTED" as 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED',
+    status: "NOT_STARTED" as
+      | "NOT_STARTED"
+      | "IN_PROGRESS"
+      | "COMPLETED"
+      | "ON_HOLD"
+      | "CANCELLED",
     notes: "",
   });
 
@@ -377,8 +387,9 @@ const ScheduleManagement = () => {
   const { user } = useAuthStore();
 
   // Fetch projects
-  const { data: projects = [], isLoading: projectsLoading } =
-    useUserProjects(user?.id || "");
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects(
+    user?.id || ""
+  );
 
   // Set default project when projects load
   useEffect(() => {
@@ -518,7 +529,7 @@ const ScheduleManagement = () => {
 
   const confirmDeleteLog = async () => {
     if (!logToDelete) return;
-    
+
     try {
       await deleteLogMutation.mutateAsync(logToDelete.id);
       setShowDeleteLogModal(false);
@@ -599,7 +610,9 @@ const ScheduleManagement = () => {
       title: event.title,
       description: event.description || "",
       startDate: moment(event.startDate).format("YYYY-MM-DDTHH:mm"),
-      endDate: moment(event.endDate || event.startDate).format("YYYY-MM-DDTHH:mm"),
+      endDate: moment(event.endDate || event.startDate).format(
+        "YYYY-MM-DDTHH:mm"
+      ),
       projectId: event.projectId,
       type: event.type,
       priority: event.priority,
@@ -657,7 +670,7 @@ const ScheduleManagement = () => {
         };
         await createLogMutation.mutateAsync(logData);
       }
-      
+
       setShowLogModal(false);
       setEditingLog(null);
       setLogForm({
@@ -668,7 +681,7 @@ const ScheduleManagement = () => {
         workHours: 0,
         workersPresent: 0,
       });
-      
+
       // Set selected date to today to show the newly created/updated log
       setSelectedDate(moment().format("YYYY-MM-DD"));
     } catch (error) {
@@ -685,7 +698,9 @@ const ScheduleManagement = () => {
       // Helper function to combine date with time
       const combineDateTime = (time: string): string | undefined => {
         if (!time) return undefined;
-        const logDate = moment(selectedLogForActivity.date).format('YYYY-MM-DD');
+        const logDate = moment(selectedLogForActivity.date).format(
+          "YYYY-MM-DD"
+        );
         return `${logDate}T${time}:00`;
       };
 
@@ -716,7 +731,7 @@ const ScheduleManagement = () => {
         };
         await createActivityMutation.mutateAsync(activityData);
       }
-      
+
       setShowActivityModal(false);
       setEditingActivity(null);
       setSelectedLogForActivity(null);
@@ -752,11 +767,11 @@ const ScheduleManagement = () => {
   const handleEditActivity = (activity: DailyActivity) => {
     setEditingActivity(activity);
     setSelectedLogForActivity(activity.dailyLog || null);
-    
+
     // Helper function to extract time from datetime
     const extractTime = (dateTime: string | null | undefined): string => {
       if (!dateTime) return "";
-      return moment(dateTime).format('HH:mm');
+      return moment(dateTime).format("HH:mm");
     };
 
     setActivityForm({
@@ -782,7 +797,8 @@ const ScheduleManagement = () => {
 
     // Sort parent phases by start date
     parentPhases.sort(
-      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      (a, b) =>
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     );
 
     // Build organized list
@@ -795,7 +811,8 @@ const ScheduleManagement = () => {
       const children = childPhases
         .filter((child) => child.parentId === parent.id)
         .sort(
-          (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+          (a, b) =>
+            new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
         );
 
       organizedPhases.push(...children);
@@ -1017,15 +1034,17 @@ const ScheduleManagement = () => {
                   {organizedPhases.map((phase) => (
                     <div
                       key={phase.id}
-                      className={`flex items-center gap-4 p-4 rounded-xl bg-base-100 border border-base-300 hover:shadow-md transition-shadow ${
-                        phase.parentId ? "ml-8 border-l-4 border-l-primary" : ""
+                      className={`flex items-center gap-4 p-4 rounded-xl bg-base-100 border border-base-300 hover:shadow-xl  transition-shadow ${
+                        phase.parentId
+                          ? "ml-8 border-l-4 border-l-primary bg-primary/20"
+                          : ""
                       }`}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="flex items-center gap-2">
                             {phase.parentId && (
-                              <span className="text-xs text-base-content/50">
+                              <span className="font-semibold text-base-content/50">
                                 └─
                               </span>
                             )}
@@ -1033,11 +1052,11 @@ const ScheduleManagement = () => {
                               {phase.name}
                             </h3>
                           </div>
-                          <div className="badge badge-outline">
+                          <div className="badge badge-success text-base-200">
                             {phase.progress}% Complete
                           </div>
                           {phase.parentId && (
-                            <div className="badge badge-ghost badge-sm">
+                            <div className="badge badge-soft badge-sm">
                               Sub-phase
                             </div>
                           )}
@@ -1071,20 +1090,20 @@ const ScheduleManagement = () => {
                         </div>
                         <div className="w-full bg-base-200 rounded-full h-2 mt-2">
                           <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            className="bg-info h-2 rounded-full transition-all duration-300"
                             style={{ width: `${phase.progress}%` }}
                           ></div>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button
-                          className="btn btn-sm btn-ghost"
+                          className="btn btn-md btn-ghost rounded-2xl bg-base-200"
                           onClick={() => handleEditPhase(phase)}
                         >
                           <MdEdit />
                         </button>
                         <button
-                          className="btn btn-sm btn-ghost text-error"
+                          className="btn btn-md bg-base-200 rounded-2xl btn-ghost text-error"
                           onClick={() => handleDeletePhase(phase.id)}
                         >
                           <MdDelete />
@@ -1103,7 +1122,8 @@ const ScheduleManagement = () => {
               {/* Heading */}
               <div className="flex justify-between items-center my-3">
                 <div className="text-xs text-gray-500 mt-2">
-                  Click on an event to view details or date to view logs for that day.
+                  Click on an event to view details or date to view logs for
+                  that day.
                 </div>
                 <button
                   className="btn btn-primary btn-sm"
@@ -1131,27 +1151,27 @@ const ScheduleManagement = () => {
               </div>
               {/* Legend */}
               <div className="mt-4 flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-500 rounded"></div>
-                    <span className="text-sm">Deliveries</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                    <span className="text-sm">Inspections</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-500 rounded"></div>
-                    <span className="text-sm">Tasks</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                    <span className="text-sm">Milestones</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                    <span className="text-sm">Meetings</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded"></div>
+                  <span className="text-sm">Deliveries</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                  <span className="text-sm">Inspections</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded"></div>
+                  <span className="text-sm">Tasks</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                  <span className="text-sm">Milestones</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                  <span className="text-sm">Meetings</span>
+                </div>
+              </div>
 
               {eventsLoading ? (
                 <div className="flex justify-center py-8">
@@ -1175,7 +1195,9 @@ const ScheduleManagement = () => {
                     onView={(newView) => setCurrentView(newView)}
                     onSelectEvent={(event) => {
                       // Find the actual event from scheduleEvents
-                      const actualEvent = scheduleEvents.find(e => e.id === event.id);
+                      const actualEvent = scheduleEvents.find(
+                        (e) => e.id === event.id
+                      );
                       if (actualEvent) {
                         handleShowEventDetails(actualEvent);
                       }
@@ -1306,37 +1328,43 @@ const ScheduleManagement = () => {
                             </p>
                           )}
                         </div>
-                        {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
-                          <div className="flex gap-2">
-                            <button
-                              className="btn btn-sm btn-ghost"
-                              onClick={() => handleEditLog(log)}
-                            >
-                              <MdEdit />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-ghost text-error"
-                              onClick={() => handleDeleteLog(log)}
-                            >
-                              <MdDelete />
-                            </button>
-                          </div>
-                        )}
+                        {user &&
+                          user.id === log.loggedById &&
+                          moment(log.date).format("YYYY-MM-DD") ===
+                            moment().format("YYYY-MM-DD") && (
+                            <div className="flex gap-2">
+                              <button
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => handleEditLog(log)}
+                              >
+                                <MdEdit />
+                              </button>
+                              <button
+                                className="btn btn-sm btn-ghost text-error"
+                                onClick={() => handleDeleteLog(log)}
+                              >
+                                <MdDelete />
+                              </button>
+                            </div>
+                          )}
                       </div>
 
                       {/* Activities */}
                       <div className="border-t border-base-300 pt-4">
                         <div className="flex justify-between items-center mb-3">
                           <h4 className="font-semibold">Activities</h4>
-                          {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
-                            <button
-                              className="btn btn-xs btn-primary"
-                              onClick={() => handleAddActivity(log)}
-                            >
-                              <MdAdd className="mr-1" />
-                              Add Activity
-                            </button>
-                          )}
+                          {user &&
+                            user.id === log.loggedById &&
+                            moment(log.date).format("YYYY-MM-DD") ===
+                              moment().format("YYYY-MM-DD") && (
+                              <button
+                                className="btn btn-xs btn-primary"
+                                onClick={() => handleAddActivity(log)}
+                              >
+                                <MdAdd className="mr-1" />
+                                Add Activity
+                              </button>
+                            )}
                         </div>
                         {log.activities && log.activities.length > 0 ? (
                           <div className="space-y-3">
@@ -1369,8 +1397,13 @@ const ScheduleManagement = () => {
                                   <div className="flex gap-4 text-xs text-base-content/60">
                                     {activity.startTime && activity.endTime && (
                                       <span>
-                                        {moment(activity.startTime).format('HH:mm')} -{" "}
-                                        {moment(activity.endTime).format('HH:mm')}
+                                        {moment(activity.startTime).format(
+                                          "HH:mm"
+                                        )}{" "}
+                                        -{" "}
+                                        {moment(activity.endTime).format(
+                                          "HH:mm"
+                                        )}
                                       </span>
                                     )}
                                     {activity.progress !== undefined && (
@@ -1383,30 +1416,37 @@ const ScheduleManagement = () => {
                                     </p>
                                   )}
                                 </div>
-                                {user && user.id === log.loggedById && moment(log.date).format("YYYY-MM-DD") === moment().format("YYYY-MM-DD") && (
-                                  <div className="flex gap-1">
-                                    <button
-                                      className="btn btn-xs btn-ghost"
-                                      onClick={() => handleEditActivity(activity)}
-                                    >
-                                      <MdEdit />
-                                    </button>
-                                    <button
-                                      className="btn btn-xs btn-ghost text-error"
-                                      onClick={() =>
-                                        handleDeleteActivity(activity.id)
-                                      }
-                                    >
-                                      <MdDelete />
-                                    </button>
-                                  </div>
-                                )}
+                                {user &&
+                                  user.id === log.loggedById &&
+                                  moment(log.date).format("YYYY-MM-DD") ===
+                                    moment().format("YYYY-MM-DD") && (
+                                    <div className="flex gap-1">
+                                      <button
+                                        className="btn btn-xs btn-ghost"
+                                        onClick={() =>
+                                          handleEditActivity(activity)
+                                        }
+                                      >
+                                        <MdEdit />
+                                      </button>
+                                      <button
+                                        className="btn btn-xs btn-ghost text-error"
+                                        onClick={() =>
+                                          handleDeleteActivity(activity.id)
+                                        }
+                                      >
+                                        <MdDelete />
+                                      </button>
+                                    </div>
+                                  )}
                               </div>
                             ))}
                           </div>
                         ) : (
                           <div className="text-center py-4 text-base-content/60">
-                            <p className="text-sm">No activities recorded for this log.</p>
+                            <p className="text-sm">
+                              No activities recorded for this log.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1517,7 +1557,8 @@ const ScheduleManagement = () => {
                       // Don't show self as parent
                       if (phase.id === editingPhase?.id) return false;
                       // Don't show child phases of current phase to avoid circular dependency
-                      if (editingPhase && phase.parentId === editingPhase.id) return false;
+                      if (editingPhase && phase.parentId === editingPhase.id)
+                        return false;
                       return true;
                     })
                     .map((phase) => (
@@ -1528,7 +1569,8 @@ const ScheduleManagement = () => {
                 </select>
                 {phaseForm.parentId && (
                   <div className="text-xs text-base-content/60 mt-1">
-                    This phase will be displayed as a sub-phase of the selected parent.
+                    This phase will be displayed as a sub-phase of the selected
+                    parent.
                   </div>
                 )}
               </div>
@@ -1682,7 +1724,10 @@ const ScheduleManagement = () => {
                     className="select select-bordered"
                     value={eventForm.type}
                     onChange={(e) =>
-                      setEventForm((prev) => ({ ...prev, type: e.target.value as typeof eventForm.type }))
+                      setEventForm((prev) => ({
+                        ...prev,
+                        type: e.target.value as typeof eventForm.type,
+                      }))
                     }
                   >
                     <option value="MEETING">Meeting</option>
@@ -1701,7 +1746,10 @@ const ScheduleManagement = () => {
                     className="select select-bordered"
                     value={eventForm.priority}
                     onChange={(e) =>
-                      setEventForm((prev) => ({ ...prev, priority: e.target.value as typeof eventForm.priority }))
+                      setEventForm((prev) => ({
+                        ...prev,
+                        priority: e.target.value as typeof eventForm.priority,
+                      }))
                     }
                   >
                     <option value="LOW">Low</option>
@@ -1756,7 +1804,10 @@ const ScheduleManagement = () => {
                   className="input input-bordered"
                   value={eventForm.location}
                   onChange={(e) =>
-                    setEventForm((prev) => ({ ...prev, location: e.target.value }))
+                    setEventForm((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1831,99 +1882,142 @@ const ScheduleManagement = () => {
           <div className="modal-box max-w-2xl">
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
               <span className="text-2xl">
-                {selectedEvent.type === "MEETING" ? "🤝" : 
-                 selectedEvent.type === "TASK" ? "📋" :
-                 selectedEvent.type === "MILESTONE" ? "🎯" :
-                 selectedEvent.type === "INSPECTION" ? "🔍" :
-                 selectedEvent.type === "DELIVERY" ? "📦" : "📅"}
+                {selectedEvent.type === "MEETING"
+                  ? "🤝"
+                  : selectedEvent.type === "TASK"
+                  ? "📋"
+                  : selectedEvent.type === "MILESTONE"
+                  ? "🎯"
+                  : selectedEvent.type === "INSPECTION"
+                  ? "🔍"
+                  : selectedEvent.type === "DELIVERY"
+                  ? "📦"
+                  : "📅"}
               </span>
               {selectedEvent.title}
             </h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">Type</label>
+                  <label className="text-sm font-medium text-base-content/70">
+                    Type
+                  </label>
                   <div className="text-base-content">{selectedEvent.type}</div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">Priority</label>
-                  <div className={`badge ${
-                    selectedEvent.priority === "CRITICAL" ? "badge-error" :
-                    selectedEvent.priority === "HIGH" ? "badge-warning" :
-                    selectedEvent.priority === "MEDIUM" ? "badge-info" :
-                    "badge-ghost"
-                  }`}>
+                  <label className="text-sm font-medium text-base-content/70">
+                    Priority
+                  </label>
+                  <div
+                    className={`badge ${
+                      selectedEvent.priority === "CRITICAL"
+                        ? "badge-error"
+                        : selectedEvent.priority === "HIGH"
+                        ? "badge-warning"
+                        : selectedEvent.priority === "MEDIUM"
+                        ? "badge-info"
+                        : "badge-ghost"
+                    }`}
+                  >
                     {selectedEvent.priority}
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">Start Date</label>
+                  <label className="text-sm font-medium text-base-content/70">
+                    Start Date
+                  </label>
                   <div className="text-base-content">
-                    {moment(selectedEvent.startDate).format("MMM DD, YYYY h:mm A")}
+                    {moment(selectedEvent.startDate).format(
+                      "MMM DD, YYYY h:mm A"
+                    )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">End Date</label>
+                  <label className="text-sm font-medium text-base-content/70">
+                    End Date
+                  </label>
                   <div className="text-base-content">
-                    {selectedEvent.endDate ? 
-                      moment(selectedEvent.endDate).format("MMM DD, YYYY h:mm A") : 
-                      "No end date"
-                    }
+                    {selectedEvent.endDate
+                      ? moment(selectedEvent.endDate).format(
+                          "MMM DD, YYYY h:mm A"
+                        )
+                      : "No end date"}
                   </div>
                 </div>
               </div>
-              
+
               {selectedEvent.location && (
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">Location</label>
-                  <div className="text-base-content">{selectedEvent.location}</div>
+                  <label className="text-sm font-medium text-base-content/70">
+                    Location
+                  </label>
+                  <div className="text-base-content">
+                    {selectedEvent.location}
+                  </div>
                 </div>
               )}
-              
+
               {selectedEvent.description && (
                 <div>
-                  <label className="text-sm font-medium text-base-content/70">Description</label>
-                  <div className="text-base-content">{selectedEvent.description}</div>
+                  <label className="text-sm font-medium text-base-content/70">
+                    Description
+                  </label>
+                  <div className="text-base-content">
+                    {selectedEvent.description}
+                  </div>
                 </div>
               )}
-              
+
               <div>
-                <label className="text-sm font-medium text-base-content/70">Status</label>
-                <div className={`badge ${
-                  selectedEvent.status === "Completed" ? "badge-success" :
-                  selectedEvent.status === "In Progress" ? "badge-warning" :
-                  selectedEvent.status === "Cancelled" ? "badge-error" :
-                  "badge-ghost"
-                }`}>
+                <label className="text-sm font-medium text-base-content/70">
+                  Status
+                </label>
+                <div
+                  className={`badge ${
+                    selectedEvent.status === "Completed"
+                      ? "badge-success"
+                      : selectedEvent.status === "In Progress"
+                      ? "badge-warning"
+                      : selectedEvent.status === "Cancelled"
+                      ? "badge-error"
+                      : "badge-ghost"
+                  }`}
+                >
                   {selectedEvent.status}
                 </div>
               </div>
-              
-              {selectedEvent.assignees && selectedEvent.assignees.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-base-content/70">Assignees</label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {selectedEvent.assignees.map((assignee) => (
-                      <div key={assignee.id} className="badge badge-outline">
-                        {assignee.firstName} {assignee.lastName}
-                      </div>
-                    ))}
+
+              {selectedEvent.assignees &&
+                selectedEvent.assignees.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-base-content/70">
+                      Assignees
+                    </label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedEvent.assignees.map((assignee) => (
+                        <div key={assignee.id} className="badge badge-outline">
+                          {assignee.firstName} {assignee.lastName}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              
+                )}
+
               <div>
-                <label className="text-sm font-medium text-base-content/70">Created By</label>
+                <label className="text-sm font-medium text-base-content/70">
+                  Created By
+                </label>
                 <div className="text-base-content">
-                  {selectedEvent.createdBy.firstName} {selectedEvent.createdBy.lastName}
+                  {selectedEvent.createdBy.firstName}{" "}
+                  {selectedEvent.createdBy.lastName}
                 </div>
               </div>
             </div>
-            
+
             <div className="modal-action">
               <button
                 type="button"
@@ -1980,7 +2074,9 @@ const ScheduleManagement = () => {
                 />
                 <div className="label">
                   <span className="label-text-alt text-info">
-                    {editingLog ? "Log date cannot be changed" : "Date is automatically set to today and cannot be changed"}
+                    {editingLog
+                      ? "Log date cannot be changed"
+                      : "Date is automatically set to today and cannot be changed"}
                   </span>
                 </div>
               </div>
@@ -1995,7 +2091,10 @@ const ScheduleManagement = () => {
                     className="input input-bordered"
                     value={logForm.weather}
                     onChange={(e) =>
-                      setLogForm((prev) => ({ ...prev, weather: e.target.value }))
+                      setLogForm((prev) => ({
+                        ...prev,
+                        weather: e.target.value,
+                      }))
                     }
                     placeholder="e.g., Sunny, Rainy, Cloudy"
                   />
@@ -2010,7 +2109,10 @@ const ScheduleManagement = () => {
                     className="input input-bordered"
                     value={logForm.workHours}
                     onChange={(e) =>
-                      setLogForm((prev) => ({ ...prev, workHours: parseInt(e.target.value) || 0 }))
+                      setLogForm((prev) => ({
+                        ...prev,
+                        workHours: parseInt(e.target.value) || 0,
+                      }))
                     }
                     min="0"
                     max="24"
@@ -2028,7 +2130,10 @@ const ScheduleManagement = () => {
                   className="input input-bordered"
                   value={logForm.workersPresent}
                   onChange={(e) =>
-                    setLogForm((prev) => ({ ...prev, workersPresent: parseInt(e.target.value) || 0 }))
+                    setLogForm((prev) => ({
+                      ...prev,
+                      workersPresent: parseInt(e.target.value) || 0,
+                    }))
                   }
                   min="0"
                 />
@@ -2071,9 +2176,12 @@ const ScheduleManagement = () => {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={createLogMutation.isPending || updateLogMutation.isPending}
+                  disabled={
+                    createLogMutation.isPending || updateLogMutation.isPending
+                  }
                 >
-                  {createLogMutation.isPending || updateLogMutation.isPending ? (
+                  {createLogMutation.isPending ||
+                  updateLogMutation.isPending ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : editingLog ? (
                     <>
@@ -2103,7 +2211,8 @@ const ScheduleManagement = () => {
               {moment(logToDelete.date).format("MMMM DD, YYYY")}?
             </p>
             <p className="text-sm text-base-content/70 mb-4">
-              This action cannot be undone and will also delete all associated activities.
+              This action cannot be undone and will also delete all associated
+              activities.
             </p>
             <div className="modal-action">
               <button
@@ -2153,7 +2262,10 @@ const ScheduleManagement = () => {
                   className="input input-bordered"
                   value={activityForm.activity}
                   onChange={(e) =>
-                    setActivityForm((prev) => ({ ...prev, activity: e.target.value }))
+                    setActivityForm((prev) => ({
+                      ...prev,
+                      activity: e.target.value,
+                    }))
                   }
                   placeholder="Describe the activity..."
                   required
@@ -2170,7 +2282,10 @@ const ScheduleManagement = () => {
                     className="input input-bordered"
                     value={activityForm.startTime}
                     onChange={(e) =>
-                      setActivityForm((prev) => ({ ...prev, startTime: e.target.value }))
+                      setActivityForm((prev) => ({
+                        ...prev,
+                        startTime: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -2184,7 +2299,10 @@ const ScheduleManagement = () => {
                     className="input input-bordered"
                     value={activityForm.endTime}
                     onChange={(e) =>
-                      setActivityForm((prev) => ({ ...prev, endTime: e.target.value }))
+                      setActivityForm((prev) => ({
+                        ...prev,
+                        endTime: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -2200,7 +2318,10 @@ const ScheduleManagement = () => {
                     className="input input-bordered"
                     value={activityForm.progress}
                     onChange={(e) =>
-                      setActivityForm((prev) => ({ ...prev, progress: parseInt(e.target.value) || 0 }))
+                      setActivityForm((prev) => ({
+                        ...prev,
+                        progress: parseInt(e.target.value) || 0,
+                      }))
                     }
                     min="0"
                     max="100"
@@ -2215,9 +2336,14 @@ const ScheduleManagement = () => {
                     className="select select-bordered"
                     value={activityForm.status}
                     onChange={(e) =>
-                      setActivityForm((prev) => ({ 
-                        ...prev, 
-                        status: e.target.value as 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED'
+                      setActivityForm((prev) => ({
+                        ...prev,
+                        status: e.target.value as
+                          | "NOT_STARTED"
+                          | "IN_PROGRESS"
+                          | "COMPLETED"
+                          | "ON_HOLD"
+                          | "CANCELLED",
                       }))
                     }
                   >
@@ -2238,7 +2364,10 @@ const ScheduleManagement = () => {
                   className="textarea textarea-bordered"
                   value={activityForm.notes}
                   onChange={(e) =>
-                    setActivityForm((prev) => ({ ...prev, notes: e.target.value }))
+                    setActivityForm((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
                   }
                   rows={3}
                   placeholder="Additional notes about this activity..."
@@ -2269,9 +2398,13 @@ const ScheduleManagement = () => {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={createActivityMutation.isPending || updateActivityMutation.isPending}
+                  disabled={
+                    createActivityMutation.isPending ||
+                    updateActivityMutation.isPending
+                  }
                 >
-                  {createActivityMutation.isPending || updateActivityMutation.isPending ? (
+                  {createActivityMutation.isPending ||
+                  updateActivityMutation.isPending ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : editingActivity ? (
                     <>

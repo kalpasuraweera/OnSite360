@@ -52,7 +52,11 @@ const Communication = () => {
   const { user: currentUser } = useAuthStore();
 
   // API hooks
-  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads();
+  const {
+    data: threads = [],
+    isLoading: threadsLoading,
+    error: threadsError,
+  } = useThreads();
   const { data: projects = [] } = useUserProjects(currentUser?.id || "");
   const { data: users = [], isLoading: usersLoading } = useUsers();
   const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
@@ -290,6 +294,8 @@ const Communication = () => {
         return "badge-warning";
       case "Resolved":
         return "badge-success";
+      case "Answered":
+        return "badge-success";
       default:
         return "badge-neutral";
     }
@@ -519,7 +525,7 @@ const Communication = () => {
                             {thread.title}
                           </div>
                           {thread.project && (
-                            <span className="badge badge-info badge-sm">
+                            <span className="badge badge-neutral badge-sm">
                               {thread.project.name}
                             </span>
                           )}
@@ -529,25 +535,25 @@ const Communication = () => {
                             {thread.description}
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-2">
-                          <span className="text-xs text-gray-400">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className="text-xs text-accent">
                             Created:{" "}
                             {new Date(thread.createdAt).toLocaleString()}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs badge badge-success text-base-200 font-medium">
                             Participants: {thread.users.length}
                           </span>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-4 lg:mt-0">
                         <button
-                          className="btn btn-info btn-sm"
+                          className="btn btn-primary btn-sm"
                           onClick={() => handleSelectThread(thread)}
                         >
                           Join Chat
                         </button>
                         <button
-                          className="btn btn-primary btn-sm"
+                          className="btn btn-soft btn-sm"
                           onClick={() => handleEditThread(thread)}
                         >
                           Edit
@@ -911,7 +917,7 @@ const Communication = () => {
                         <div className="flex gap-2">
                           {rfi.threadId && (
                             <button
-                              className="btn btn-info btn-sm"
+                              className="btn btn-primary btn-sm"
                               onClick={() => {
                                 const thread = threads.find(
                                   (t) => t.id === rfi.threadId
@@ -925,7 +931,7 @@ const Communication = () => {
                             </button>
                           )}
                           <button
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-soft btn-sm"
                             onClick={() => handleEditRFI(rfi)}
                           >
                             Edit
@@ -967,7 +973,7 @@ const Communication = () => {
                     trends
                   </p>
                 </div>
-                <div className="badge badge-info badge-lg">Last 30 Days</div>
+                <div className="badge badge-neutral badge-lg">Last 30 Days</div>
               </div>
 
               {/* KPI Cards */}
@@ -1670,7 +1676,7 @@ const Communication = () => {
 
       {/* Edit RFI Modal */}
       {showEditRFIModal && editingRFI && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Edit RFI</h3>
 
@@ -1928,7 +1934,7 @@ const Communication = () => {
 
       {/* Update Thread Modal */}
       {showEditThreadModal && editingThread && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Update Thread</h3>
 
@@ -2098,7 +2104,7 @@ const Communication = () => {
 
       {/* Delete RFI Confirmation Modal */}
       {showDeleteRFIModal && deletingRFI && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
             <p className="text-gray-700 mb-4">
