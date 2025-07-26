@@ -16,15 +16,16 @@ import {
   useProject, 
   useProjectStatistics, 
   useProjectIssues,
-  useProjectAttendanceHistory
+  useProjectAttendanceHistory,
+  type Issue,
+  type CrewMember
 } from "../hooks/useProjects";
 import { useTextGeneration } from "../hooks/useCopilot";
-import type { Issue } from "../hooks/useProjects";
 import { useUserProjects } from "../hooks/useUsers";
 import { useDailyLogsByDate } from "../hooks/useSchedule";
 import { useThreads } from "../hooks/useCommunication";
 
-// Define interfaces for API responses
+// Define interfaces for API responses that are not in useProjects.ts
 interface DailyActivity {
   activity: string;
   location?: string;
@@ -35,14 +36,49 @@ interface DailyActivity {
   notes?: string;
 }
 
+// Extended attendance interfaces (these add to the base types from useProjects.ts)
+interface CrewAttendance {
+  id: string;
+  projectAttendanceId: string;
+  crewMemberId: string;
+  status: 'Present' | 'Absent' | 'Half Day' | 'Late' | 'Early Leave';
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  breakDuration: number | null;
+  totalHours: number | null;
+  scheduledHours: number | null;
+  leaveType: string | null;
+  isApproved: boolean;
+  workLocation: string | null;
+  tasks: unknown[];
+  notes: string;
+  crewMember: CrewMember;
+}
+
+interface MarkedBy {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface AttendanceRecord {
+  id: string;
+  projectId: string;
   date: string;
-  isWorkDay: boolean;
-  workersPresent?: number;
+  actualStartTime: string | null;
   workDelayed: boolean;
-  delayReason?: string;
-  actualStartTime?: string;
-  notes?: string;
+  delayReason: string | null;
+  delayDuration: number | null;
+  markedById: string;
+  dayType: 'WORKDAY' | 'HOLIDAY' | 'WEEKEND';
+  dayTypeReason: string | null;
+  isWorkDay: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  markedBy: MarkedBy;
+  crewAttendance: CrewAttendance[];
 }
 
 interface ThreadUser {
@@ -244,30 +280,85 @@ Please provide:
 
       case 'attendance': {
         // Use pre-fetched attendance data for July
-        if (attendanceHistory && attendanceHistory.length > 0) {
+        if (attendanceHistory) {
           const attendanceData = Array.isArray(attendanceHistory) ? attendanceHistory : attendanceHistory.data || [];
           const totalWorkDays = attendanceData.filter((record: AttendanceRecord) => record.isWorkDay).length;
           const delayedDays = attendanceData.filter((record: AttendanceRecord) => record.workDelayed).length;
-          const averageWorkers = attendanceData.reduce((sum: number, record: AttendanceRecord) => 
-            sum + (record.workersPresent || 0), 0) / attendanceData.length;
+          
+          // Calculate crew attendance statistics
+          let totalPresentDays = 0;
+          let totalAbsentDays = 0;
+          let totalHalfDays = 0;
+          const crewMemberStats = new Map<string, { name: string; role: string; present: number; absent: number; halfDay: number; total: number }>();
+
+          attendanceData.forEach((record: AttendanceRecord) => {
+            record.crewAttendance.forEach((crew: CrewAttendance) => {
+              const key = crew.crewMember.id;
+              if (!crewMemberStats.has(key)) {
+                crewMemberStats.set(key, {
+                  name: crew.crewMember.name,
+                  role: crew.crewMember.role,
+                  present: 0,
+                  absent: 0,
+                  halfDay: 0,
+                  total: 0
+                });
+              }
+              const stats = crewMemberStats.get(key)!;
+              stats.total++;
+              
+              switch (crew.status) {
+                case 'Present':
+                  stats.present++;
+                  totalPresentDays++;
+                  break;
+                case 'Absent':
+                  stats.absent++;
+                  totalAbsentDays++;
+                  break;
+                case 'Half Day':
+                  stats.halfDay++;
+                  totalHalfDays++;
+                  break;
+              }
+            });
+          });
+
+          const uniqueCrewMembers = crewMemberStats.size;
+          const averageAttendanceRate = uniqueCrewMembers > 0 ? 
+            ((totalPresentDays + totalHalfDays * 0.5) / (totalPresentDays + totalAbsentDays + totalHalfDays) * 100) : 0;
 
           context = `
 ## July 2025 Attendance Summary
 **Total recorded days:** ${attendanceData.length}
 **Work days:** ${totalWorkDays}
 **Days with delays:** ${delayedDays}
-**Average workers present:** ${averageWorkers.toFixed(1)}
+**Unique crew members:** ${uniqueCrewMembers}
+**Overall attendance rate:** ${averageAttendanceRate.toFixed(1)}%
+
+## Crew Member Performance
+${Array.from(crewMemberStats.entries()).map(([, stats]) => `
+**${stats.name} (${stats.role})**
+- Present: ${stats.present} days
+- Absent: ${stats.absent} days
+- Half days: ${stats.halfDay} days
+- Attendance rate: ${((stats.present + stats.halfDay * 0.5) / stats.total * 100).toFixed(1)}%
+`).join('\n')}
 
 ## Daily Breakdown
-${attendanceData.slice(0, 10).map((record: AttendanceRecord) => `
+${attendanceData.slice(0, 8).map((record: AttendanceRecord) => `
 **${new Date(record.date).toLocaleDateString()}**
 - Work day: ${record.isWorkDay ? 'Yes' : 'No'}
-- Workers present: ${record.workersPresent || 'Not recorded'}
+- Crew attendance: ${record.crewAttendance.length} members tracked
+- Present: ${record.crewAttendance.filter(c => c.status === 'Present').length}
+- Absent: ${record.crewAttendance.filter(c => c.status === 'Absent').length}
+- Half day: ${record.crewAttendance.filter(c => c.status === 'Half Day').length}
 - Work delayed: ${record.workDelayed ? 'Yes' : 'No'}
 - Delay reason: ${record.delayReason || 'N/A'}
 - Start time: ${record.actualStartTime || 'Not recorded'}
 - Notes: ${record.notes || 'No notes'}
-`).join('\n')}${attendanceData.length > 10 ? '\n... and more days' : ''}`;
+- Marked by: ${record.markedBy.firstName} ${record.markedBy.lastName}
+`).join('\n')}${attendanceData.length > 8 ? '\n... and more days' : ''}`;
         } else {
           context = 'No attendance data found for July 2025.';
         }
