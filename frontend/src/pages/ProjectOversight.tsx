@@ -481,13 +481,40 @@ const ProjectOversight = () => {
                       className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
                     >
                       <div className="flex-1">
-                        <div className="font-semibold text-lg">
-                          {project.name}
+                        <div className="flex justify-between items-center gap-4">
+                          <div className="flex gap-5">
+                            {/* project name and id */}
+                            <div className="font-semibold text-xl">
+                              {project.name}
+                            </div>
+                            <div className="badge badge-neutral">
+                              {project.id}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-4 lg:mt-0">
+                            <button
+                              className="btn btn-primary btn-md"
+                              onClick={() => handleViewProject(project)}
+                            >
+                              View Details
+                            </button>
+                            <button
+                              className="btn btn-md btn-soft"
+                              onClick={() => handleEditProject(project)}
+                            >
+                              Edit
+                            </button>
+                          </div>
                         </div>
-                        <div className="text-gray-500 text-sm mb-2">
-                          {project.description || "No description provided"}
+
+                        <div className="text-gray-500 text-sm my-4">
+                          {project.description
+                            ? project.description.length > 100
+                              ? `${project.description.substring(0, 300)}...`
+                              : project.description
+                            : "No description provided"}
                         </div>
-                        <div className="flex flex-wrap gap-2 mb-2">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           <span className="badge badge-neutral">
                             {project.type || "Unknown Type"}
                           </span>
@@ -495,63 +522,58 @@ const ProjectOversight = () => {
                             {project.location || "No location"}
                           </span>
                           {project.coordinates && (
-                            <span className="badge badge-info">📍 Located</span>
-                          )}
-                          {project._count && (
-                            <>
-                              <span className="badge badge-outline">
-                                📋 {project._count.tasks} Tasks
-                              </span>
-                              <span className="badge badge-outline">
-                                📄 {project._count.documents} Docs
-                              </span>
-                              <span className="badge badge-outline">
-                                💬 {project._count.threads} Threads
-                              </span>
-                              <span className="badge badge-outline">
-                                ⚠️ {project._count.issue} Issues
-                              </span>
-                            </>
+                            <span className="badge badge-success text-base-200">
+                              📍 Located
+                            </span>
                           )}
                         </div>
-                        <div className="flex gap-4 text-sm text-gray-600">
+                        <div className="">
                           {project.budget && (
-                            <span>
+                            <span className="font-semibold text-lg bg-base-200 p-2 rounded-xl">
                               Budget: {formatCurrency(project.budget)}
                             </span>
                           )}
-                          {project.squareFeet && (
-                            <span>
-                              Size: {project.squareFeet.toLocaleString()} sq ft
-                            </span>
-                          )}
-                          {project.startDate && (
-                            <span>
-                              Start:{" "}
-                              {new Date(project.startDate).toLocaleDateString()}
-                            </span>
-                          )}
-                          {project.endDate && (
-                            <span>
-                              End:{" "}
-                              {new Date(project.endDate).toLocaleDateString()}
-                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-4 text-sm text-gray-600">
+                            {project.squareFeet && (
+                              <span>
+                                Size: {project.squareFeet.toLocaleString()} sq
+                                ft
+                              </span>
+                            )}
+                            {project.startDate && (
+                              <span>
+                                Start:{" "}
+                                {new Date(
+                                  project.startDate
+                                ).toLocaleDateString()}
+                              </span>
+                            )}
+                            {project.endDate && (
+                              <span>
+                                End:{" "}
+                                {new Date(project.endDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          {project._count && (
+                            <div className="flex gap-2 font-medium">
+                              <span className="badge bg-info/10 p-6">
+                                📋 {project._count.tasks} Tasks
+                              </span>
+                              <span className="badge bg-secondary/10 p-6">
+                                📄 {project._count.documents} Docs
+                              </span>
+                              <span className="badge bg-success/10 p-6">
+                                💬 {project._count.threads} Threads
+                              </span>
+                              <span className="badge bg-error/10 p-6">
+                                ⚠️ {project._count.issue} Issues
+                              </span>
+                            </div>
                           )}
                         </div>
-                      </div>
-                      <div className="flex gap-2 mt-4 lg:mt-0">
-                        <button
-                          className="btn btn-soft btn-accent btn-sm"
-                          onClick={() => handleViewProject(project)}
-                        >
-                          View Details
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline btn-primary"
-                          onClick={() => handleEditProject(project)}
-                        >
-                          Edit
-                        </button>
                       </div>
                     </div>
                   ))
@@ -594,7 +616,7 @@ const ProjectOversight = () => {
                   {selectedProject.budget && (
                     <div className="stat bg-base-100 rounded-xl shadow">
                       <div className="stat-title">Budget</div>
-                      <div className="stat-value text-sm">
+                      <div className="stat-value ">
                         {formatCurrency(selectedProject.budget)}
                       </div>
                       <div className="stat-desc">Total allocated</div>
@@ -604,7 +626,7 @@ const ProjectOversight = () => {
                   {selectedProject.squareFeet && (
                     <div className="stat bg-base-100 rounded-xl shadow">
                       <div className="stat-title">Size</div>
-                      <div className="stat-value text-sm">
+                      <div className="stat-value ">
                         {selectedProject.squareFeet.toLocaleString()}
                       </div>
                       <div className="stat-desc">Square feet</div>
@@ -614,9 +636,7 @@ const ProjectOversight = () => {
                   {selectedProject.type && (
                     <div className="stat bg-base-100 rounded-xl shadow">
                       <div className="stat-title">Type</div>
-                      <div className="stat-value text-sm">
-                        {selectedProject.type}
-                      </div>
+                      <div className="stat-value ">{selectedProject.type}</div>
                       <div className="stat-desc">Project category</div>
                     </div>
                   )}
@@ -711,7 +731,7 @@ const ProjectOversight = () => {
                       Project Details
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between bg-base-200 p-2 rounded-xl">
                         <span>Location:</span>
                         <span className="font-medium">
                           {selectedProject.location || "Not specified"}
@@ -721,7 +741,7 @@ const ProjectOversight = () => {
                             )}, ${selectedProject.coordinates.lng.toFixed(5)})`}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between gap-2 bg-base-200 p-2 rounded-xl">
                         <span>Description:</span>
                         <span className="font-medium">
                           {selectedProject.description ||
@@ -732,12 +752,12 @@ const ProjectOversight = () => {
                         selectedProject.userProjects.length > 0 && (
                           <div>
                             <span>Team Members:</span>
-                            <div className="mt-2">
+                            <div className="flex flex-wrap gap-2 mt-2">
                               {selectedProject.userProjects.map(
                                 (userProject) => (
                                   <div
                                     key={userProject.id}
-                                    className="badge badge-outline mr-2 mb-2"
+                                    className="badge bg-primary/50 p-2"
                                   >
                                     {userProject.user.firstName}{" "}
                                     {userProject.user.lastName} (
