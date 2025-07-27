@@ -612,11 +612,11 @@ const Communication = () => {
         />
         {activeTab === "chat" && selectedThread && (
           <div className="tab-content p-5 w-full">
-            <div className="flex flex-col lg:flex-row gap-3 w-full">
+            <div className="flex flex-col lg:flex-row gap-3 w-full h-[calc(100vh-300px)]">
               {/* Thread Information Panel */}
               <div
                 id="thread-info"
-                className={`bg-base-200 border border-base-300 rounded-2xl p-4 lg:w-1/3 w-full transition-all duration-300 ${
+                className={`bg-base-200 border border-base-300 rounded-2xl p-4 lg:w-1/3 w-full transition-all duration-300 flex flex-col ${
                   showThreadInfo ? "block" : "hidden"
                 }`}
               >
@@ -630,7 +630,7 @@ const Communication = () => {
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 overflow-y-auto flex-1">
                   {/* Thread Details */}
                   <div className="bg-base-100 p-4 rounded-xl">
                     <h3 className="font-bold text-lg mb-2">{selectedThread.title}</h3>
@@ -678,12 +678,10 @@ const Communication = () => {
                     <div className="space-y-2">
                       {selectedThread.users.map((user) => (
                         <div key={user.id} className="flex items-center gap-2">
-                          <div className="avatar placeholder">
-                            <div className="bg-neutral text-neutral-content rounded-full w-8">
-                              <span className="text-xs">
-                                {user.firstName?.[0]}{user.lastName?.[0]}
-                              </span>
-                            </div>
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-xs font-medium text-primary">
+                              {user.firstName.charAt(0)}
+                            </span>
                           </div>
                           <div className="text-sm">
                             <div className="font-medium">{user.firstName} {user.lastName}</div>
@@ -696,7 +694,7 @@ const Communication = () => {
                 </div>
               </div>
               {/* Chat Screen */}
-              <div className={`bg-base-200 border border-base-300 rounded-2xl overflow-hidden transition-all duration-300 ${
+              <div className={`bg-base-200 border border-base-300 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col ${
                 showThreadInfo ? 'lg:w-2/3 w-full' : 'w-full'
               }`}>
                 <div className="bg-primary p-4 border-b border-base-300">
@@ -794,7 +792,7 @@ const Communication = () => {
                   </div>
                 )}
 
-                <div className="h-64 sm:h-80 lg:h-96 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       No messages yet. Start the conversation!
