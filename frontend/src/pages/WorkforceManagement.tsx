@@ -5,7 +5,6 @@ import {
   MdDelete,
   MdFileDownload,
   MdUpload,
-  MdAnalytics,
   MdPeople,
   MdSchedule,
   MdSave,
