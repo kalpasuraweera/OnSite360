@@ -35,6 +35,7 @@ import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { IoClose } from "react-icons/io5";
 import { IoAttach } from "react-icons/io5";
 import { IoCamera } from "react-icons/io5";
+import { IoInformationCircle } from "react-icons/io5";
 
 ChartJS.register(
   CategoryScale,
@@ -97,8 +98,8 @@ const Communication = () => {
     string[]
   >([]);
 
-  // Attach section state
-  const [showAttach, setShowAttach] = useState(false);
+  // Thread info section state
+  const [showThreadInfo, setShowThreadInfo] = useState(false);
 
   // Delete confirmation state
   const [showDeleteRFIModal, setShowDeleteRFIModal] = useState(false);
@@ -611,75 +612,133 @@ const Communication = () => {
         />
         {activeTab === "chat" && selectedThread && (
           <div className="tab-content p-5 w-full">
-            <div className="flex gap-3 w-full">
-              {/* Document or Photos to attach */}
+            <div className="flex flex-col lg:flex-row gap-3 w-full">
+              {/* Thread Information Panel */}
               <div
-                id="attach"
-                className={`bg-base-200 border border-base-300 rounded-2xl p-4 w-1/3 transition-all duration-300 ${
-                  showAttach ? "block" : "hidden"
+                id="thread-info"
+                className={`bg-base-200 border border-base-300 rounded-2xl p-4 lg:w-1/3 w-full transition-all duration-300 ${
+                  showThreadInfo ? "block" : "hidden"
                 }`}
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Attach Documents</h2>
+                  <h2 className="text-lg font-bold">Thread Information</h2>
                   <button
                     className="btn btn-circle"
-                    onClick={() => setShowAttach(false)}
+                    onClick={() => setShowThreadInfo(false)}
                   >
                     <IoClose size={15} />
                   </button>
                 </div>
 
-                <div className="bg-base-100 text-center border-2 border-dashed rounded-2xl p-4">
-                  <p className="text-sm text-gray-500  mb-4">
-                    Upload documents or photos to share in this chat.
-                  </p>
-                  <input
-                    type="file"
-                    className="file-input file-input-bordered w-full"
-                    multiple
-                  />
-                </div>
-
-                <div className="space-y-4 mt-4">
-                  <button
-                    className="btn btn-primary w-full"
-                    onClick={() => setShowAttach(false)}
-                  >
-                    Done
-                  </button>
-                </div>
-                <div className="flex flex-col p-1 rounded-xl bg-base-100 gap-2 my-2">
-                  <div className="p-3 bg-base-200 rounded-xl">
-                    <h1 className="font-bold">File Name</h1>
-                    <p className="text-sm">File meta data</p>
+                <div className="space-y-4">
+                  {/* Thread Details */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="font-bold text-lg mb-2">{selectedThread.title}</h3>
+                    {selectedThread.description && (
+                      <p className="text-sm text-gray-600 mb-3">{selectedThread.description}</p>
+                    )}
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Type:</span>
+                        <span>General</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Status:</span>
+                        <span className="badge badge-sm badge-success">
+                          Active
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Privacy:</span>
+                        <span>Public</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Messages:</span>
+                        <span>{messages.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(selectedThread.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-3 bg-base-100 rounded-xl">
-                    <h1 className="font-bold">File Name</h1>
-                    <p className="text-sm">File meta data</p>
+
+                  {/* Project Info */}
+                  {selectedThread.project && (
+                    <div className="bg-base-100 p-4 rounded-xl">
+                      <h4 className="font-bold mb-2">Project</h4>
+                      <p className="text-sm">{selectedThread.project.name}</p>
+                    </div>
+                  )}
+
+                  {/* Participants */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h4 className="font-bold mb-2">Participants ({selectedThread.users.length})</h4>
+                    <div className="space-y-2">
+                      {selectedThread.users.map((user) => (
+                        <div key={user.id} className="flex items-center gap-2">
+                          <div className="avatar placeholder">
+                            <div className="bg-neutral text-neutral-content rounded-full w-8">
+                              <span className="text-xs">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-sm">
+                            <div className="font-medium">{user.firstName} {user.lastName}</div>
+                            <div className="text-gray-500 text-xs">{user.email}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
               {/* Chat Screen */}
-              <div className="bg-base-200 border border-base-300 rounded-2xl overflow-hidden w-full">
+              <div className={`bg-base-200 border border-base-300 rounded-2xl overflow-hidden transition-all duration-300 ${
+                showThreadInfo ? 'lg:w-2/3 w-full' : 'w-full'
+              }`}>
                 <div className="bg-primary p-4 border-b border-base-300">
-                  <div className="flex justify-between text-primary-content items-center">
-                    <div>
-                      <h2 className="text-xl font-bold">
-                        {selectedThread.title}
-                      </h2>
-                      <p className="text-sm">
-                        Participants:{" "}
-                        {selectedThread.users
-                          .map((u) => `${u.firstName} ${u.lastName}`)
-                          .join(", ")}
-                      </p>
+                  <div className="flex flex-col sm:flex-row justify-between text-primary-content items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <div className="flex-1 sm:flex-initial">
+                        <button
+                          className="text-lg sm:text-xl font-bold hover:underline cursor-pointer text-left"
+                          onClick={() => setShowThreadInfo(!showThreadInfo)}
+                          title="Click to view thread information"
+                        >
+                          {selectedThread.title}
+                        </button>
+                        <p className="text-xs sm:text-sm">
+                          Participants:{" "}
+                          <span className="hidden sm:inline">
+                            {selectedThread.users
+                              .map((u) => `${u.firstName} ${u.lastName}`)
+                              .join(", ")}
+                          </span>
+                          <span className="sm:hidden">
+                            {selectedThread.users.length} member{selectedThread.users.length !== 1 ? 's' : ''}
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        className="btn btn-ghost btn-circle btn-sm"
+                        onClick={() => setShowThreadInfo(!showThreadInfo)}
+                        title="Thread Information"
+                      >
+                        <IoInformationCircle size={20} />
+                      </button>
                     </div>
-                    <button
-                      className="btn btn-active btn-md"
-                      onClick={() => setActiveTab("threads")}
-                    >
-                      Export Thread
-                    </button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button
+                        className="btn btn-active btn-sm sm:btn-md w-full sm:w-auto"
+                        onClick={() => setActiveTab("threads")}
+                      >
+                        <span className="hidden sm:inline">Export Thread</span>
+                        <span className="sm:hidden">Export</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -735,7 +794,7 @@ const Communication = () => {
                   </div>
                 )}
 
-                <div className="h-96 overflow-y-auto p-4 space-y-4">
+                <div className="h-64 sm:h-80 lg:h-96 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       No messages yet. Start the conversation!
@@ -751,13 +810,18 @@ const Communication = () => {
                             isCurrentUser ? "chat-end" : "chat-start"
                           }`}
                         >
-                          <div className="chat-header">
-                            {message.sender.firstName} {message.sender.lastName}
+                          <div className="chat-header text-xs sm:text-sm">
+                            <span className="hidden sm:inline">
+                              {message.sender.firstName} {message.sender.lastName}
+                            </span>
+                            <span className="sm:hidden">
+                              {message.sender.firstName}
+                            </span>
                             <time className="text-xs opacity-50 ml-2">
                               {formatTime(message.createdAt)}
                             </time>
                           </div>
-                          <div className="chat-bubble bg-neutral text-neutral-content">
+                          <div className="chat-bubble bg-neutral text-neutral-content text-sm sm:text-base max-w-xs sm:max-w-md">
                             {message.content}
                           </div>
                         </div>
@@ -768,37 +832,35 @@ const Communication = () => {
 
                 <form
                   onSubmit={handleSendMessage}
-                  className="p-4 border-t border-base-300 bg-base-300"
+                  className="p-3 sm:p-4 border-t border-base-300 bg-base-300"
                 >
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-end">
                     {/* File and Camera Actions */}
-                    <div className="dropdown dropdown-top">
-                      <div className="flex items-center mt-3 gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-circle bg-base-200 rounded-full p-1"
-                          onClick={handleFileUpload}
-                          title="Upload Documents"
-                        >
-                          <div className="flex items-center justify-center">
-                            <IoAttach size={20} />
-                          </div>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-circle bg-base-200 rounded-full p-1"
-                          onClick={handleCameraCapture}
-                          title="Take Photo"
-                        >
-                          <div className="flex items-center justify-center">
-                            <IoCamera size={20} />
-                          </div>
-                        </button>
-                      </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-1">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-circle btn-sm sm:btn-md bg-base-200 rounded-full p-1"
+                        onClick={handleFileUpload}
+                        title="Upload Documents"
+                      >
+                        <div className="flex items-center justify-center">
+                          <IoAttach size={18} />
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-circle btn-sm sm:btn-md bg-base-200 rounded-full p-1"
+                        onClick={handleCameraCapture}
+                        title="Take Photo"
+                      >
+                        <div className="flex items-center justify-center">
+                          <IoCamera size={18} />
+                        </div>
+                      </button>
                     </div>
                     <input
                       type="text"
-                      className="input input-bordered flex-1"
+                      className="input input-bordered input-sm sm:input-md flex-1"
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
@@ -806,7 +868,7 @@ const Communication = () => {
                     />
                     <button
                       type="submit"
-                      className="btn btn-primary"
+                      className="btn btn-primary btn-sm sm:btn-md"
                       disabled={
                         sendMessageMutation.isPending || !newMessage.trim()
                       }
@@ -814,8 +876,9 @@ const Communication = () => {
                       {sendMessageMutation.isPending ? (
                         <span className="loading loading-spinner loading-sm"></span>
                       ) : (
-                        "Send"
+                        <span className="hidden sm:inline">Send</span>
                       )}
+                      <span className="sm:hidden">📤</span>
                     </button>
                   </div>
                 </form>
