@@ -8,7 +8,6 @@ import {
   MdViewColumn,
   MdViewList,
   MdFilterList,
-  MdClose,
   MdSend,
   MdAttachFile,
   MdCalendarToday,
