@@ -34,6 +34,7 @@ import {
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { IoClose } from "react-icons/io5";
 import { IoAttach } from "react-icons/io5";
+import { IoCamera } from "react-icons/io5";
 
 ChartJS.register(
   CategoryScale,
@@ -340,6 +341,39 @@ const Communication = () => {
         }
       );
     }
+  };
+
+  // File and Camera handlers
+  const handleFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif';
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        // Handle file upload logic here
+        console.log('Selected files:', files);
+        // You can process the files here or pass them to a state
+      }
+    };
+    input.click();
+  };
+
+  const handleCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera by default
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        // Handle camera capture logic here
+        console.log('Captured image:', files[0]);
+        // You can process the captured image here or pass it to a state
+      }
+    };
+    input.click();
   };
 
   // Create RFI handlers
@@ -737,41 +771,30 @@ const Communication = () => {
                   className="p-4 border-t border-base-300 bg-base-300"
                 >
                   <div className="flex gap-2 items-center">
-                    {/* User Profile Dropdown */}
+                    {/* File and Camera Actions */}
                     <div className="dropdown dropdown-top">
                       <div className="flex items-center mt-3 gap-2">
-                        <label
-                          tabIndex={0}
-                          className="btn btn-ghost btn-circle avatar bg-base-200 rounded-full p-1"
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-circle bg-base-200 rounded-full p-1"
+                          onClick={handleFileUpload}
+                          title="Upload Documents"
                         >
                           <div className="flex items-center justify-center">
                             <IoAttach size={20} />
                           </div>
-                        </label>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-circle bg-base-200 rounded-full p-1"
+                          onClick={handleCameraCapture}
+                          title="Take Photo"
+                        >
+                          <div className="flex items-center justify-center">
+                            <IoCamera size={20} />
+                          </div>
+                        </button>
                       </div>
-
-                      {/* User drop down */}
-                      <ul
-                        tabIndex={0}
-                        className="menu menu-compact dropdown-content mt-3 p-4 shadow bg-base-200 rounded-box w-48"
-                      >
-                        <li className="text-base-content mt-2">
-                          <button
-                            className="flex gap-2 items-center"
-                            onClick={() => setShowAttach(true)}
-                          >
-                            Documents
-                          </button>
-                        </li>
-                        <li className="text-base-content mt-2">
-                          <button
-                            className="flex gap-2 items-center"
-                            onClick={() => setShowAttach(true)}
-                          >
-                            Photos
-                          </button>
-                        </li>
-                      </ul>
                     </div>
                     <input
                       type="text"
