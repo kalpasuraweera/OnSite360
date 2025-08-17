@@ -1976,5 +1976,386 @@ export default ProjectOversight;
           </div>
         )}
 
+        {activeTab === "edit_project" && (
+          <div className="tab-content p-5">
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+              {selectedProject ? (
+                <form
+                  className="space-y-6"
+                  onSubmit={handleUpdateProject}
+                  encType="multipart/form-data"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold">Edit Project</h2>
+                      <p className="text-neutral-500">
+                        Modify project details and settings.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setActiveTab("projects")}
+                    >
+                      ← Back to Projects
+                    </button>
+                  </div>
+
+                  {/* Basic Information Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Basic Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            Project Name
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full"
+                          name="projectName"
+                          defaultValue={selectedProject.name}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Type</span>
+                        </label>
+                        <select
+                          className="select select-bordered w-full"
+                          name="type"
+                          defaultValue={selectedProject.type || ""}
+                          required
+                        >
+                          <option value="">Select type</option>
+                          <option value="Commercial">Commercial</option>
+                          <option value="Residential">Residential</option>
+                          <option value="Industrial">Industrial</option>
+                          <option value="Mixed Use">Mixed Use</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label className="label">
+                        <span className="label-text font-medium">
+                          Description
+                        </span>
+                      </label>
+                      <textarea
+                        className="textarea textarea-bordered w-full"
+                        name="description"
+                        defaultValue={selectedProject.description || ""}
+                        rows={3}
+                        placeholder="Enter project description..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Project Details Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Project Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Budget</span>
+                        </label>
+                        <input
+                          type="number"
+                          className="input input-bordered w-full"
+                          name="budget"
+                          defaultValue={selectedProject.budget}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            Square Feet
+                          </span>
+                        </label>
+                        <input
+                          type="number"
+                          className="input input-bordered w-full"
+                          name="squareFeet"
+                          defaultValue={selectedProject.squareFeet || 0}
+                          min={0}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timeline Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Timeline</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            Start Date
+                          </span>
+                        </label>
+                        <input
+                          type="date"
+                          className="input input-bordered w-full"
+                          name="startDate"
+                          defaultValue={
+                            selectedProject.startDate
+                              ? new Date(selectedProject.startDate)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : ""
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            End Date
+                          </span>
+                        </label>
+                        <input
+                          type="date"
+                          className="input input-bordered w-full"
+                          name="endDate"
+                          defaultValue={
+                            selectedProject.endDate
+                              ? new Date(selectedProject.endDate)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : ""
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Members Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Team Members</h3>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setShowUserModal(true)}
+                      >
+                        Add Team Member
+                      </button>
+                    </div>
+
+                    {selectedUsers.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="table w-full">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Role</th>
+                              <th>Access Level</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedUsers.map((user) => (
+                              <tr key={user.userId}>
+                                <td className="font-medium">{user.userName}</td>
+                                <td>
+                                  <span className="badge badge-outline">
+                                    {user.projectRole}
+                                  </span>
+                                </td>
+                                <td>
+                                  <select
+                                    className="select select-bordered select-sm w-full"
+                                    value={user.accessLevel}
+                                    onChange={(e) =>
+                                      handleUpdateUserRole(
+                                        user.userId,
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                  >
+                                    {accessLevelOptions.map((level) => (
+                                      <option
+                                        key={level.value}
+                                        value={level.value}
+                                      >
+                                        {level.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btn btn-error btn-xs"
+                                    onClick={() =>
+                                      handleRemoveUser(user.userId)
+                                    }
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        No team members assigned yet. Click "Add Team Member" to
+                        get started.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Location Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Location</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            Coordinates
+                          </span>
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm flex-1"
+                            onClick={handlePickLocation}
+                          >
+                            Pick Location on Map
+                          </button>
+                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            {locationCoords
+                              ? `${locationCoords.lat.toFixed(
+                                  5
+                                )}, ${locationCoords.lng.toFixed(5)}`
+                              : selectedProject.coordinates
+                              ? `${selectedProject.coordinates.lat.toFixed(
+                                  5
+                                )}, ${selectedProject.coordinates.lng.toFixed(
+                                  5
+                                )}`
+                              : "No coordinates"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            Address/Description
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full"
+                          name="locationText"
+                          placeholder="Enter address or description"
+                          value={locationText}
+                          onChange={(e) => setLocationText(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Media Upload Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Media</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Project Image</span>
+                        </label>
+                        <div
+                          className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
+                          onDrop={handleImageDrop}
+                          onDragOver={preventDefault}
+                          onDragEnter={preventDefault}
+                          onClick={() => imageInputRef.current?.click()}
+                          style={{ minHeight: 120 }}
+                        >
+                          {imagePreview ? (
+                            <img
+                              src={imagePreview}
+                              alt="Image Preview"
+                              className="max-h-24 object-contain mb-2"
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <svg
+                                className="w-8 h-8 mx-auto mb-2 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                />
+                              </svg>
+                              <span className="text-gray-400 text-sm">
+                                Drag & drop an image here, or click to select
+                              </span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            name="image"
+                            accept="image/*"
+                            ref={imageInputRef}
+                            onChange={handleImageChange}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description Section */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="text-lg font-semibold mb-4">Description</h3>
+                    <textarea
+                      className="textarea textarea-bordered w-full"
+                      rows={4}
+                      name="description"
+                      defaultValue={selectedProject.description}
+                      required
+                    ></textarea>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setActiveTab("projects")}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <h2 className="text-xl font-semibold text-base-content text-center">
+                  Select a project to edit
+                </h2>
+              )}
+            </div>
+          </div>
+        )}
+
 
 
