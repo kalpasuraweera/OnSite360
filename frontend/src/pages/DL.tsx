@@ -5055,6 +5055,27 @@ export default Communication;
           </div>
         </div>
 
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to delete this RFI? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowDeleteRFIModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-error" onClick={confirmDeleteRFI}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
 
    
 }
