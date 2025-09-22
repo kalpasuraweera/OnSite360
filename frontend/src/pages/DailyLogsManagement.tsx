@@ -11,6 +11,8 @@ import {
   MdNotes,
   MdPeople,
   MdWbSunny,
+  MdLocationOn,
+  MdImage,
 } from "react-icons/md";
 import moment from "moment";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -31,6 +33,8 @@ import {
   type CreateDailyActivityDto,
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
+import LocationPicker from "../components/LocationPicker";
+import ImageUpload from "../components/ImageUpload";
 
 type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
@@ -67,6 +71,9 @@ export default function DailyLogsManagement() {
     notes: "",
     workHours: 0,
     workersPresent: 0,
+    location: "",
+    coordinates: undefined,
+    images: [],
   });
 
   // Activity form state
@@ -83,6 +90,9 @@ export default function DailyLogsManagement() {
       | "ON_HOLD"
       | "CANCELLED",
     notes: "",
+    location: "",
+    coordinates: undefined as { latitude: number; longitude: number } | undefined,
+    images: [] as string[],
   });
 
   // Get auth user
@@ -169,6 +179,9 @@ export default function DailyLogsManagement() {
         notes: "",
         workHours: 0,
         workersPresent: 0,
+        location: "",
+        coordinates: undefined,
+        images: [],
       });
       setEditingLog(null);
       setActiveTab("view_all");
@@ -187,6 +200,9 @@ export default function DailyLogsManagement() {
       notes: log.notes || "",
       workHours: log.workHours || 0,
       workersPresent: log.workersPresent || 0,
+      location: log.location || "",
+      coordinates: log.coordinates,
+      images: log.images || [],
     });
     setActiveTab("add_log");
   };
@@ -233,6 +249,9 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
+          location: activityForm.location || undefined,
+          coordinates: activityForm.coordinates,
+          images: activityForm.images,
         };
         await updateActivityMutation.mutateAsync({
           id: editingActivity.id,
@@ -248,6 +267,9 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
+          location: activityForm.location || undefined,
+          coordinates: activityForm.coordinates,
+          images: activityForm.images,
         };
         await createActivityMutation.mutateAsync(activityData);
       }
@@ -263,6 +285,9 @@ export default function DailyLogsManagement() {
         progress: 0,
         status: "NOT_STARTED",
         notes: "",
+        location: "",
+        coordinates: undefined,
+        images: [],
       });
     } catch (error) {
       console.error("Error saving activity:", error);
@@ -280,6 +305,9 @@ export default function DailyLogsManagement() {
       progress: 0,
       status: "NOT_STARTED",
       notes: "",
+      location: "",
+      coordinates: undefined,
+      images: [],
     });
     setShowActivityModal(true);
   };
@@ -302,6 +330,9 @@ export default function DailyLogsManagement() {
       progress: activity.progress || 0,
       status: activity.status,
       notes: activity.notes || "",
+      location: activity.location || "",
+      coordinates: activity.coordinates,
+      images: activity.images || [],
     });
     setShowActivityModal(true);
   };
@@ -345,19 +376,22 @@ export default function DailyLogsManagement() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-end justify-between">
+    <div className="mobile-container min-h-screen bg-base-200 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 lg:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Daily Logs Management</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="mobile-heading text-primary">Daily Logs Management</h1>
+          <p className="mobile-text text-base-content/70 mt-1">
             Track and manage daily project activities and work progress.
           </p>
         </div>
         {/* Project selection */}
-        <div className="flex items-center justify-end mb-1">
-          <div className="flex gap-4 items-center">
+        <div className="flex items-center justify-start lg:justify-end">
+          <div className="w-full sm:w-auto">
+            <label className="label label-text font-medium mb-1 lg:hidden">
+              Project:
+            </label>
             <select
-              className="select select-bordered"
+              className="select select-bordered w-full sm:w-auto mobile-input"
               value={selectedProject}
               onChange={(e) => handleProjectChange(e.target.value)}
               disabled={projectsLoading}
@@ -378,26 +412,30 @@ export default function DailyLogsManagement() {
         </div>
       </div>
 
-      {/* Tabs for log management */}
-      <div className="tabs tabs-border mt-6">
+      {/* Tabs for log management - Mobile-first responsive */}
+      <div className="tabs tabs-boxed mt-6 bg-base-100 overflow-x-auto">
         <button
-          className={`tab text-base ${
+          className={`tab mobile-text whitespace-nowrap ${
             activeTab === "view_all" ? "tab-active font-bold" : ""
           }`}
           onClick={() => setActiveTab("view_all")}
         >
-          All Logs
+          <MdVisibility className="mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">All Logs</span>
+          <span className="sm:hidden">All</span>
         </button>
         <button
-          className={`tab text-base ${
+          className={`tab mobile-text whitespace-nowrap ${
             activeTab === "view_specific" ? "tab-active font-bold" : ""
           }`}
           onClick={() => setActiveTab("view_specific")}
         >
-          By Date
+          <MdSearch className="mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">By Date</span>
+          <span className="sm:hidden">Date</span>
         </button>
         <button
-          className={`tab text-base ${
+          className={`tab mobile-text whitespace-nowrap ${
             activeTab === "add_log" ? "tab-active font-bold" : ""
           }`}
           onClick={() => {
@@ -410,26 +448,33 @@ export default function DailyLogsManagement() {
               notes: "",
               workHours: 0,
               workersPresent: 0,
+              location: "",
+              coordinates: undefined,
+              images: [],
             });
           }}
         >
-          Add Log
+          <MdAdd className="mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Add Log</span>
+          <span className="sm:hidden">Add</span>
         </button>
         {selectedLogForDetails && (
           <button
-            className={`tab text-base ${
+            className={`tab mobile-text whitespace-nowrap ${
               activeTab === "view_details" ? "tab-active font-bold" : ""
             }`}
             onClick={() => setActiveTab("view_details")}
           >
-            Log Details
+            <MdVisibility className="mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Log Details</span>
+            <span className="sm:hidden">Details</span>
           </button>
         )}
       </div>
 
       <div
         id="tab-navigation"
-        className="bg-base-200 border border-base-300 p-6 rounded-2xl min-h-[400px]"
+        className="bg-base-100 border border-base-300 mobile-card min-h-[400px] mt-4 sm:mt-6"
       >
         {/* Tab Content */}
         {activeTab === "view_all" && (
@@ -869,6 +914,47 @@ export default function DailyLogsManagement() {
                 />
               </div>
 
+              {/* Location Section */}
+              <div className="bg-base-100 rounded-xl p-6 border border-base-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <MdLocationOn className="text-primary text-xl" />
+                  <h3 className="text-lg font-semibold">Location Information</h3>
+                </div>
+                <LocationPicker
+                  location={logForm.location || ""}
+                  coordinates={logForm.coordinates}
+                  onLocationChange={(location, coordinates) => {
+                    setLogForm(prev => ({
+                      ...prev,
+                      location,
+                      coordinates
+                    }));
+                  }}
+                  placeholder="Enter work site location or use GPS"
+                  className="mobile-card"
+                />
+              </div>
+
+              {/* Images Section */}
+              <div className="bg-base-100 rounded-xl p-6 border border-base-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <MdImage className="text-primary text-xl" />
+                  <h3 className="text-lg font-semibold">Daily Log Photos</h3>
+                </div>
+                <ImageUpload
+                  images={logForm.images || []}
+                  onImagesChange={(images) => {
+                    setLogForm(prev => ({
+                      ...prev,
+                      images
+                    }));
+                  }}
+                  maxImages={10}
+                  allowCamera={true}
+                  className="mobile-card"
+                />
+              </div>
+
               <div className="flex gap-4">
                 <button
                   type="submit"
@@ -901,6 +987,9 @@ export default function DailyLogsManagement() {
                         notes: "",
                         workHours: 0,
                         workersPresent: 0,
+                        location: "",
+                        coordinates: undefined,
+                        images: [],
                       });
                     }}
                   >
@@ -1368,6 +1457,46 @@ export default function DailyLogsManagement() {
                   />
                 </div>
 
+                {/* Location Section for Activity */}
+                <div className="bg-base-100 rounded-lg p-4 border border-base-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MdLocationOn className="text-primary text-lg" />
+                    <h4 className="font-semibold">Activity Location</h4>
+                  </div>
+                  <LocationPicker
+                    location={activityForm.location || ""}
+                    coordinates={activityForm.coordinates}
+                    onLocationChange={(location, coordinates) => {
+                      setActivityForm(prev => ({
+                        ...prev,
+                        location,
+                        coordinates
+                      }));
+                    }}
+                    placeholder="Specific area where this activity is performed"
+                    showManualEntry={true}
+                  />
+                </div>
+
+                {/* Images Section for Activity */}
+                <div className="bg-base-100 rounded-lg p-4 border border-base-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MdImage className="text-primary text-lg" />
+                    <h4 className="font-semibold">Activity Photos</h4>
+                  </div>
+                  <ImageUpload
+                    images={activityForm.images || []}
+                    onImagesChange={(images) => {
+                      setActivityForm(prev => ({
+                        ...prev,
+                        images
+                      }));
+                    }}
+                    maxImages={5}
+                    allowCamera={true}
+                  />
+                </div>
+
                 <div className="flex gap-4 justify-end pt-4 border-t">
                   <button
                     type="button"
@@ -1384,6 +1513,9 @@ export default function DailyLogsManagement() {
                         progress: 0,
                         status: "NOT_STARTED",
                         notes: "",
+                        location: "",
+                        coordinates: undefined,
+                        images: [],
                       });
                     }}
                   >

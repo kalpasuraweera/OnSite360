@@ -73,6 +73,12 @@ export interface DailyLog {
   summary: string;
   issues?: string;
   notes?: string;
+  location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
   loggedById: string;
   workersPresent?: number;
   createdAt: string;
@@ -96,6 +102,11 @@ export interface DailyActivity {
   dailyLogId: string;
   activity: string;
   location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
   startTime?: string;
   endTime?: string;
   progress?: number;
@@ -164,6 +175,12 @@ export interface CreateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
+  location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
 }
 
 export interface UpdateDailyLogDto {
@@ -173,6 +190,12 @@ export interface UpdateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
+  location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
 }
 
 export interface CreateDailyActivityDto {
@@ -183,6 +206,12 @@ export interface CreateDailyActivityDto {
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
+  location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
 }
 
 export interface UpdateDailyActivityDto {
@@ -193,6 +222,12 @@ export interface UpdateDailyActivityDto {
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
+  location?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  images?: string[];
 }
 
 // PROJECT PHASE HOOKS

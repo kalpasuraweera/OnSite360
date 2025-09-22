@@ -257,6 +257,31 @@ export class CreateDailyLogDto {
   @IsOptional()
   @Min(0)
   workersPresent?: number;
+
+  @ApiPropertyOptional({
+    description: 'Location where the work is being performed',
+    example: 'Building A - Foundation Area',
+    maxLength: 200,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  location?: string;
+
+  @ApiPropertyOptional({
+    description: 'Geographic coordinates as JSON object',
+    example: '{"latitude": 40.7128, "longitude": -74.0060}',
+  })
+  @IsOptional()
+  coordinates?: any;
+
+  @ApiPropertyOptional({
+    description: 'Array of image URLs for the daily log',
+    example: '["image1.jpg", "image2.jpg"]',
+    type: [String],
+  })
+  @IsOptional()
+  images?: string[];
 }
 
 export class CreateDailyActivityDto {
@@ -330,4 +355,29 @@ export class CreateDailyActivityDto {
   @IsOptional()
   @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Specific location for this activity',
+    example: 'Section A - East Wing Foundation',
+    maxLength: 200,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  location?: string;
+
+  @ApiPropertyOptional({
+    description: 'Geographic coordinates as JSON object',
+    example: '{"latitude": 40.7128, "longitude": -74.0060}',
+  })
+  @IsOptional()
+  coordinates?: any;
+
+  @ApiPropertyOptional({
+    description: 'Array of image URLs for this activity',
+    example: '["activity1.jpg", "activity2.jpg"]',
+    type: [String],
+  })
+  @IsOptional()
+  images?: string[];
 }
