@@ -25,6 +25,7 @@ export interface Project {
   description?: string;
   type?: string;
   budget?: number;
+  budgetThreshold?: number; // Budget alert threshold (percentage)
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };
@@ -349,6 +350,7 @@ export interface CreateProjectDto {
   description?: string;
   type?: string;
   budget?: number;
+  budgetThreshold?: number; // Budget alert threshold (percentage)
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };
@@ -368,6 +370,7 @@ export interface UpdateProjectDto {
   description?: string;
   type?: string;
   budget?: number;
+  budgetThreshold?: number; // Budget alert threshold (percentage)
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };

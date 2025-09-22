@@ -118,6 +118,7 @@ const ProjectOversight = () => {
       description: formData.get("description") as string,
       type: formData.get("type") as string,
       budget: Number(formData.get("budget")) || undefined,
+      budgetThreshold: Number(formData.get("budgetThreshold")) || undefined,
       squareFeet: Number(formData.get("squareFeet")) || undefined,
       location: locationText || undefined,
       coordinates: locationCoords || undefined,
@@ -160,6 +161,7 @@ const ProjectOversight = () => {
       description: formData.get("description") as string,
       type: formData.get("type") as string,
       budget: Number(formData.get("budget")) || undefined,
+      budgetThreshold: Number(formData.get("budgetThreshold")) || undefined,
       squareFeet: Number(formData.get("squareFeet")) || undefined,
       location: locationText || undefined,
       coordinates: locationCoords || undefined,
@@ -848,7 +850,7 @@ const ProjectOversight = () => {
                   <h3 className="text-lg font-semibold mb-4">
                     Project Details
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="label">
                         <span className="label-text font-medium">Budget</span>
@@ -861,6 +863,22 @@ const ProjectOversight = () => {
                         required
                         min={0}
                       />
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-medium">Budget Alert Threshold (%)</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="input input-bordered w-full"
+                        name="budgetThreshold"
+                        placeholder="e.g., 80 for 80%"
+                        min={1}
+                        max={100}
+                      />
+                      <div className="label">
+                        <span className="label-text-alt">Alert when budget usage exceeds this percentage</span>
+                      </div>
                     </div>
                     <div>
                       <label className="label">
@@ -1264,7 +1282,7 @@ const ProjectOversight = () => {
                     <h3 className="text-lg font-semibold mb-4">
                       Project Details
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="label">
                           <span className="label-text font-medium">Budget</span>
@@ -1276,6 +1294,23 @@ const ProjectOversight = () => {
                           defaultValue={selectedProject.budget}
                           required
                         />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-medium">Budget Alert Threshold (%)</span>
+                        </label>
+                        <input
+                          type="number"
+                          className="input input-bordered w-full"
+                          name="budgetThreshold"
+                          defaultValue={selectedProject.budgetThreshold}
+                          placeholder="e.g., 80 for 80%"
+                          min={1}
+                          max={100}
+                        />
+                        <div className="label">
+                          <span className="label-text-alt">Alert when budget usage exceeds this percentage</span>
+                        </div>
                       </div>
                       <div>
                         <label className="label">

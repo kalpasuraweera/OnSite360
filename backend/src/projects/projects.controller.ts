@@ -27,6 +27,10 @@ import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto'
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
+import { CreateBudgetEntryDto } from './dto/create-budget-entry.dto';
+import { UpdateBudgetEntryDto } from './dto/update-budget-entry.dto';
+import { CreateRiskAssessmentDto } from './dto/create-risk-assessment.dto';
+import { UpdateRiskAssessmentDto } from './dto/update-risk-assessment.dto';
 import {
   ApiBearerAuth,
   ApiTags,
@@ -1034,6 +1038,296 @@ export class ProjectsController {
       console.error('Error deleting project attendance:', error);
       throw new HttpException(
         'Failed to delete project attendance',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Budget Management Endpoints
+
+  @ApiOperation({ summary: 'Create a budget entry for a project' })
+  @ApiResponse({ status: 201, description: 'Budget entry created successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Post(':id/budget')
+  async createBudgetEntry(
+    @Param('id') projectId: string,
+    @Body() createBudgetEntryDto: CreateBudgetEntryDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    try {
+      const budgetEntry = await this.projectsService.createBudgetEntry(
+        projectId,
+        createBudgetEntryDto,
+        req.user.id,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Budget entry created successfully',
+        data: budgetEntry,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error creating budget entry:', error);
+      throw new HttpException(
+        'Failed to create budget entry',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get all budget entries for a project' })
+  @ApiResponse({ status: 200, description: 'Budget entries retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/budget')
+  async getProjectBudgetEntries(@Param('id') projectId: string) {
+    try {
+      const budgetEntries = await this.projectsService.getProjectBudgetEntries(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Budget entries retrieved successfully',
+        data: budgetEntries,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving budget entries:', error);
+      throw new HttpException(
+        'Failed to retrieve budget entries',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get budget analytics for a project' })
+  @ApiResponse({ status: 200, description: 'Budget analytics retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/budget/analytics')
+  async getProjectBudgetAnalytics(@Param('id') projectId: string) {
+    try {
+      const analytics = await this.projectsService.getProjectBudgetAnalytics(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Budget analytics retrieved successfully',
+        data: analytics,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving budget analytics:', error);
+      throw new HttpException(
+        'Failed to retrieve budget analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Update a budget entry' })
+  @ApiResponse({ status: 200, description: 'Budget entry updated successfully' })
+  @ApiResponse({ status: 404, description: 'Budget entry not found' })
+  @ApiBearerAuth()
+  @Patch(':id/budget/:entryId')
+  async updateBudgetEntry(
+    @Param('id') projectId: string,
+    @Param('entryId') entryId: string,
+    @Body() updateBudgetEntryDto: UpdateBudgetEntryDto,
+  ) {
+    try {
+      const budgetEntry = await this.projectsService.updateBudgetEntry(
+        projectId,
+        entryId,
+        updateBudgetEntryDto,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Budget entry updated successfully',
+        data: budgetEntry,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error updating budget entry:', error);
+      throw new HttpException(
+        'Failed to update budget entry',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete a budget entry' })
+  @ApiResponse({ status: 200, description: 'Budget entry deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Budget entry not found' })
+  @ApiBearerAuth()
+  @Delete(':id/budget/:entryId')
+  async deleteBudgetEntry(
+    @Param('id') projectId: string,
+    @Param('entryId') entryId: string,
+  ) {
+    try {
+      await this.projectsService.deleteBudgetEntry(projectId, entryId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Budget entry deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error deleting budget entry:', error);
+      throw new HttpException(
+        'Failed to delete budget entry',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Risk Management Endpoints
+
+  @ApiOperation({ summary: 'Create a risk assessment for a project' })
+  @ApiResponse({ status: 201, description: 'Risk assessment created successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Post(':id/risks')
+  async createRiskAssessment(
+    @Param('id') projectId: string,
+    @Body() createRiskAssessmentDto: CreateRiskAssessmentDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    try {
+      const riskAssessment = await this.projectsService.createRiskAssessment(
+        projectId,
+        createRiskAssessmentDto,
+        req.user.id,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Risk assessment created successfully',
+        data: riskAssessment,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error creating risk assessment:', error);
+      throw new HttpException(
+        'Failed to create risk assessment',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get all risk assessments for a project' })
+  @ApiResponse({ status: 200, description: 'Risk assessments retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/risks')
+  async getProjectRiskAssessments(@Param('id') projectId: string) {
+    try {
+      const riskAssessments = await this.projectsService.getProjectRiskAssessments(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Risk assessments retrieved successfully',
+        data: riskAssessments,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving risk assessments:', error);
+      throw new HttpException(
+        'Failed to retrieve risk assessments',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get risk analytics for a project' })
+  @ApiResponse({ status: 200, description: 'Risk analytics retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/risks/analytics')
+  async getProjectRiskAnalytics(@Param('id') projectId: string) {
+    try {
+      const analytics = await this.projectsService.getProjectRiskAnalytics(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Risk analytics retrieved successfully',
+        data: analytics,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error retrieving risk analytics:', error);
+      throw new HttpException(
+        'Failed to retrieve risk analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Update a risk assessment' })
+  @ApiResponse({ status: 200, description: 'Risk assessment updated successfully' })
+  @ApiResponse({ status: 404, description: 'Risk assessment not found' })
+  @ApiBearerAuth()
+  @Patch(':id/risks/:riskId')
+  async updateRiskAssessment(
+    @Param('id') projectId: string,
+    @Param('riskId') riskId: string,
+    @Body() updateRiskAssessmentDto: UpdateRiskAssessmentDto,
+  ) {
+    try {
+      const riskAssessment = await this.projectsService.updateRiskAssessment(
+        projectId,
+        riskId,
+        updateRiskAssessmentDto,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Risk assessment updated successfully',
+        data: riskAssessment,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error updating risk assessment:', error);
+      throw new HttpException(
+        'Failed to update risk assessment',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete a risk assessment' })
+  @ApiResponse({ status: 200, description: 'Risk assessment deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Risk assessment not found' })
+  @ApiBearerAuth()
+  @Delete(':id/risks/:riskId')
+  async deleteRiskAssessment(
+    @Param('id') projectId: string,
+    @Param('riskId') riskId: string,
+  ) {
+    try {
+      await this.projectsService.deleteRiskAssessment(projectId, riskId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Risk assessment deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error deleting risk assessment:', error);
+      throw new HttpException(
+        'Failed to delete risk assessment',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

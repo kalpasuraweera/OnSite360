@@ -39,6 +39,8 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useState } from "react";
+import { useProjects } from "../hooks/useProjects";
+import { useProjectBudgetAnalytics, useProjectRiskAnalytics } from "../hooks/useBudgetRisk";
 
 ChartJS.register(
   CategoryScale,
@@ -58,6 +60,15 @@ const Dashboard = () => {
     lat: number;
     lng: number;
   } | null>(null);
+
+  // Fetch projects data to get budget and risk analytics
+  const { data: projects = [] } = useProjects();
+  const activeProjects = projects.filter((p: any) => p.startDate && new Date(p.startDate) <= new Date());
+  
+  // Get budget analytics for the first active project (or you could aggregate across all projects)
+  const firstActiveProject = activeProjects[0];
+  const { data: budgetAnalytics } = useProjectBudgetAnalytics(firstActiveProject?.id || "");
+  const { data: riskAnalytics } = useProjectRiskAnalytics(firstActiveProject?.id || "");
 
   // Map click handler component
   function LocationMarker({
@@ -384,6 +395,38 @@ const Dashboard = () => {
       value: 11,
       label: "Milestones",
     },
+    {
+      id: "budget-utilization",
+      icon: <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />,
+      value: budgetAnalytics?.summary.spentPercentage ? `${budgetAnalytics.summary.spentPercentage.toFixed(1)}%` : "86%",
+      label: "Budget Used",
+    },
+    {
+      id: "budget-remaining",
+      icon: <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />,
+      value: budgetAnalytics?.summary.remainingBudget ? `$${(budgetAnalytics.summary.remainingBudget / 1000).toFixed(0)}K` : "$15K",
+      label: "Budget Remaining",
+    },
+    {
+      id: "high-risks",
+      icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
+      value: riskAnalytics?.summary.highRisks || 7,
+      label: "High Risks",
+    },
+    {
+      id: "total-risks",
+      icon: <HiOutlineChartBar className="inline w-7 h-7 text-secondary" />,
+      value: riskAnalytics?.summary.totalRisks || 23,
+      label: "Total Risks",
+    },
+    {
+      id: "risk-mitigation-rate",
+      icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
+      value: riskAnalytics?.summary.totalRisks 
+        ? `${Math.round((riskAnalytics.summary.closedRisks / riskAnalytics.summary.totalRisks) * 100)}%`
+        : "74%",
+      label: "Risks Mitigated",
+    },
   ];
 
   // Additional charts data for various roles
@@ -458,6 +501,89 @@ const Dashboard = () => {
         backgroundColor: "rgba(59,130,246,0.7)",
         borderColor: "#2563eb",
         borderWidth: 2,
+      },
+    ],
+  };
+
+  // Budget and Risk Management Chart Data
+  const budgetBreakdownData = {
+    labels: budgetAnalytics?.categoryBreakdown.map(c => c.category) || ["Labor", "Materials", "Equipment", "Other"],
+    datasets: [
+      {
+        label: "Spent",
+        data: budgetAnalytics?.categoryBreakdown.map(c => c.spent) || [45000, 25000, 15000, 8000],
+        backgroundColor: "#EF4444",
+        borderWidth: 1,
+      },
+      {
+        label: "Budgeted", 
+        data: budgetAnalytics?.categoryBreakdown.map(c => c.budgeted) || [50000, 30000, 18000, 10000],
+        backgroundColor: "#10B981",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const budgetUtilizationData = {
+    labels: ["Used", "Remaining"],
+    datasets: [
+      {
+        data: [
+          budgetAnalytics?.summary.totalSpent || 93000,
+          budgetAnalytics?.summary.remainingBudget || 15000
+        ],
+        backgroundColor: [
+          budgetAnalytics?.summary.isOverBudget ? "#EF4444" : 
+          budgetAnalytics?.summary.isApproachingLimit ? "#F59E0B" : "#10B981",
+          "#E5E7EB"
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const riskCategoryData = {
+    labels: riskAnalytics?.categoryBreakdown.map(c => c.category) || ["Safety", "Financial", "Schedule", "Quality"],
+    datasets: [
+      {
+        label: "High Risk",
+        data: riskAnalytics?.categoryBreakdown.map(c => c.high) || [2, 1, 3, 1],
+        backgroundColor: "#EF4444",
+        borderWidth: 1,
+      },
+      {
+        label: "Medium Risk", 
+        data: riskAnalytics?.categoryBreakdown.map(c => c.medium) || [3, 2, 2, 3],
+        backgroundColor: "#F59E0B",
+        borderWidth: 1,
+      },
+      {
+        label: "Low Risk",
+        data: riskAnalytics?.categoryBreakdown.map(c => c.low) || [1, 4, 1, 2],
+        backgroundColor: "#10B981",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const riskTrendData = {
+    labels: riskAnalytics?.riskTrend.map(r => r.month) || ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    datasets: [
+      {
+        label: "Risks Identified",
+        data: riskAnalytics?.riskTrend.map(r => r.created) || [3, 2, 4, 1, 5, 2],
+        borderColor: "#EF4444",
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: "Risks Mitigated",
+        data: riskAnalytics?.riskTrend.map(r => r.closed) || [2, 1, 3, 2, 3, 4],
+        borderColor: "#10B981",
+        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        fill: true,
+        tension: 0.4,
       },
     ],
   };
@@ -573,6 +699,80 @@ const Dashboard = () => {
         />
       ),
     },
+    {
+      key: "budget-breakdown",
+      title: "Budget Breakdown by Category",
+      chart: (
+        <Bar
+          data={budgetBreakdownData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { position: "bottom" as const },
+            },
+            scales: {
+              y: { beginAtZero: true },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "budget-utilization",
+      title: "Budget Utilization",
+      chart: (
+        <Doughnut
+          data={budgetUtilizationData}
+          options={{
+            ...doughnutOptions,
+            plugins: {
+              ...doughnutOptions.plugins,
+              legend: { position: "bottom" as const },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "risk-categories",
+      title: "Risk Assessment by Category",
+      chart: (
+        <Bar
+          data={riskCategoryData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { position: "bottom" as const },
+            },
+            scales: {
+              y: { beginAtZero: true },
+              x: { stacked: true },
+            },
+          }}
+        />
+      ),
+    },
+    {
+      key: "risk-trend",
+      title: "Risk Management Trend",
+      chart: (
+        <Line
+          data={riskTrendData}
+          options={{
+            ...chartOptions,
+            plugins: {
+              ...chartOptions.plugins,
+              legend: { position: "bottom" as const },
+            },
+            scales: {
+              y: { beginAtZero: true },
+            },
+          }}
+        />
+      ),
+    },
   ];
 
   // Last chart for performance overview
@@ -634,7 +834,7 @@ const Dashboard = () => {
         "completion-rate",
         "overall-progress",
       ],
-      chartKeys: ["cost-breakdown", "rfi-response-time"],
+      chartKeys: ["cost-breakdown", "budget-breakdown", "risk-trend"],
     },
     {
       role: "Executive Admin",
@@ -645,11 +845,11 @@ const Dashboard = () => {
       role: "Project Director",
       statCardIds: [
         "overall-progress",
-        "budget-status",
-        "timeline",
-        "milestones",
+        "budget-utilization",
+        "high-risks",
+        "risk-mitigation-rate",
       ],
-      chartKeys: ["monthly-activity", "cost-breakdown", "performance-overview"],
+      chartKeys: ["budget-breakdown", "risk-trend", "budget-utilization"],
     },
   ];
 

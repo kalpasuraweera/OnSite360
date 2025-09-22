@@ -30,6 +30,10 @@ export class CreateProjectDto {
 
   @IsNumber()
   @IsOptional()
+  budgetThreshold?: number; // Budget alert threshold (percentage)
+
+  @IsNumber()
+  @IsOptional()
   squareFeet?: number;
 
   @IsString()

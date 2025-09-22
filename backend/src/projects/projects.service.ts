@@ -21,6 +21,10 @@ import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto'
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
+import { CreateBudgetEntryDto } from './dto/create-budget-entry.dto';
+import { UpdateBudgetEntryDto } from './dto/update-budget-entry.dto';
+import { CreateRiskAssessmentDto } from './dto/create-risk-assessment.dto';
+import { UpdateRiskAssessmentDto } from './dto/update-risk-assessment.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -1448,5 +1452,450 @@ export class ProjectsService {
         },
       },
     });
+  }
+
+  // Budget Management Methods
+
+  // Create a budget entry
+  async createBudgetEntry(
+    projectId: string,
+    createBudgetEntryDto: CreateBudgetEntryDto,
+    createdBy?: string,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return this.prisma.budgetEntry.create({
+      data: {
+        ...createBudgetEntryDto,
+        projectId,
+        createdBy,
+        date: createBudgetEntryDto.date
+          ? new Date(createBudgetEntryDto.date)
+          : new Date(),
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            budget: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Get all budget entries for a project
+  async getProjectBudgetEntries(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return this.prisma.budgetEntry.findMany({
+      where: { projectId },
+      orderBy: { date: 'desc' },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            budget: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Get budget analytics for a project
+  async getProjectBudgetAnalytics(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        budget: true,
+        budgetThreshold: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Get budget entries grouped by category
+    const budgetEntries = await this.prisma.budgetEntry.findMany({
+      where: { projectId },
+    });
+
+    // Calculate totals by category
+    const categoryTotals = budgetEntries.reduce((acc, entry) => {
+      if (!acc[entry.category]) {
+        acc[entry.category] = { spent: 0, budgeted: 0, count: 0 };
+      }
+      acc[entry.category].spent += entry.amount;
+      acc[entry.category].budgeted += entry.budgeted || 0;
+      acc[entry.category].count += 1;
+      return acc;
+    }, {} as Record<string, { spent: number; budgeted: number; count: number }>);
+
+    const totalSpent = budgetEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    const totalBudgeted = project.budget || 0;
+    const spentPercentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+    const remainingBudget = totalBudgeted - totalSpent;
+    const isOverBudget = totalSpent > totalBudgeted;
+    const isApproachingLimit = project.budgetThreshold
+      ? spentPercentage >= project.budgetThreshold
+      : false;
+
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        totalBudget: totalBudgeted,
+        budgetThreshold: project.budgetThreshold,
+      },
+      summary: {
+        totalSpent,
+        totalBudgeted,
+        remainingBudget,
+        spentPercentage: Math.round(spentPercentage * 100) / 100,
+        isOverBudget,
+        isApproachingLimit,
+      },
+      categoryBreakdown: Object.entries(categoryTotals).map(([category, data]) => ({
+        category,
+        ...data,
+        percentage: totalSpent > 0 ? Math.round((data.spent / totalSpent) * 10000) / 100 : 0,
+      })),
+    };
+  }
+
+  // Update a budget entry
+  async updateBudgetEntry(
+    projectId: string,
+    entryId: string,
+    updateBudgetEntryDto: UpdateBudgetEntryDto,
+  ) {
+    // Check if entry exists and belongs to the project
+    const existingEntry = await this.prisma.budgetEntry.findFirst({
+      where: {
+        id: entryId,
+        projectId,
+      },
+    });
+
+    if (!existingEntry) {
+      throw new NotFoundException(
+        `Budget entry with ID ${entryId} not found in project ${projectId}`,
+      );
+    }
+
+    return this.prisma.budgetEntry.update({
+      where: { id: entryId },
+      data: {
+        ...updateBudgetEntryDto,
+        date: updateBudgetEntryDto.date
+          ? new Date(updateBudgetEntryDto.date)
+          : undefined,
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            budget: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Delete a budget entry
+  async deleteBudgetEntry(projectId: string, entryId: string) {
+    // Check if entry exists and belongs to the project
+    const existingEntry = await this.prisma.budgetEntry.findFirst({
+      where: {
+        id: entryId,
+        projectId,
+      },
+    });
+
+    if (!existingEntry) {
+      throw new NotFoundException(
+        `Budget entry with ID ${entryId} not found in project ${projectId}`,
+      );
+    }
+
+    return this.prisma.budgetEntry.delete({
+      where: { id: entryId },
+    });
+  }
+
+  // Risk Management Methods
+
+  // Create a risk assessment
+  async createRiskAssessment(
+    projectId: string,
+    createRiskAssessmentDto: CreateRiskAssessmentDto,
+    identifiedBy?: string,
+  ) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Calculate risk score based on probability and impact
+    const probabilityScore = this.getProbabilityScore(createRiskAssessmentDto.probability);
+    const impactScore = this.getImpactScore(createRiskAssessmentDto.impact);
+    const riskScore = probabilityScore * impactScore;
+
+    return this.prisma.riskAssessment.create({
+      data: {
+        ...createRiskAssessmentDto,
+        projectId,
+        identifiedBy,
+        riskScore,
+        dueDate: createRiskAssessmentDto.dueDate
+          ? new Date(createRiskAssessmentDto.dueDate)
+          : undefined,
+        reviewDate: createRiskAssessmentDto.reviewDate
+          ? new Date(createRiskAssessmentDto.reviewDate)
+          : undefined,
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Get all risk assessments for a project
+  async getProjectRiskAssessments(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    return this.prisma.riskAssessment.findMany({
+      where: { projectId },
+      orderBy: [{ riskScore: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Get risk analytics for a project
+  async getProjectRiskAnalytics(projectId: string) {
+    // Check if project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Get all risk assessments
+    const risks = await this.prisma.riskAssessment.findMany({
+      where: { projectId },
+    });
+
+    // Calculate analytics
+    const totalRisks = risks.length;
+    const openRisks = risks.filter(r => r.status === 'Open').length;
+    const highRisks = risks.filter(r => r.riskScore >= 9).length; // High impact + High probability = 9
+    const mediumRisks = risks.filter(r => r.riskScore >= 4 && r.riskScore < 9).length;
+    const lowRisks = risks.filter(r => r.riskScore < 4).length;
+
+    // Group by category
+    const categoryBreakdown = risks.reduce((acc, risk) => {
+      if (!acc[risk.category]) {
+        acc[risk.category] = { total: 0, open: 0, high: 0, medium: 0, low: 0 };
+      }
+      acc[risk.category].total += 1;
+      if (risk.status === 'Open') acc[risk.category].open += 1;
+      if (risk.riskScore >= 9) acc[risk.category].high += 1;
+      else if (risk.riskScore >= 4) acc[risk.category].medium += 1;
+      else acc[risk.category].low += 1;
+      return acc;
+    }, {} as Record<string, { total: number; open: number; high: number; medium: number; low: number }>);
+
+    // Calculate potential cost and schedule impact
+    const totalCostImpact = risks.reduce((sum, risk) => sum + (risk.cost || 0), 0);
+    const totalScheduleImpact = risks.reduce((sum, risk) => sum + (risk.schedule || 0), 0);
+
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+      },
+      summary: {
+        totalRisks,
+        openRisks,
+        closedRisks: totalRisks - openRisks,
+        highRisks,
+        mediumRisks,
+        lowRisks,
+        totalCostImpact,
+        totalScheduleImpact,
+      },
+      categoryBreakdown: Object.entries(categoryBreakdown).map(([category, data]) => ({
+        category,
+        ...data,
+      })),
+      riskTrend: this.calculateRiskTrend(risks),
+    };
+  }
+
+  // Update a risk assessment
+  async updateRiskAssessment(
+    projectId: string,
+    riskId: string,
+    updateRiskAssessmentDto: UpdateRiskAssessmentDto,
+  ) {
+    // Check if risk exists and belongs to the project
+    const existingRisk = await this.prisma.riskAssessment.findFirst({
+      where: {
+        id: riskId,
+        projectId,
+      },
+    });
+
+    if (!existingRisk) {
+      throw new NotFoundException(
+        `Risk assessment with ID ${riskId} not found in project ${projectId}`,
+      );
+    }
+
+    // Recalculate risk score if probability or impact changed
+    let riskScore = existingRisk.riskScore;
+    if (updateRiskAssessmentDto.probability || updateRiskAssessmentDto.impact) {
+      const probability = updateRiskAssessmentDto.probability || existingRisk.probability;
+      const impact = updateRiskAssessmentDto.impact || existingRisk.impact;
+      const probabilityScore = this.getProbabilityScore(probability);
+      const impactScore = this.getImpactScore(impact);
+      riskScore = probabilityScore * impactScore;
+    }
+
+    return this.prisma.riskAssessment.update({
+      where: { id: riskId },
+      data: {
+        ...updateRiskAssessmentDto,
+        riskScore,
+        dueDate: updateRiskAssessmentDto.dueDate
+          ? new Date(updateRiskAssessmentDto.dueDate)
+          : undefined,
+        reviewDate: updateRiskAssessmentDto.reviewDate
+          ? new Date(updateRiskAssessmentDto.reviewDate)
+          : undefined,
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Delete a risk assessment
+  async deleteRiskAssessment(projectId: string, riskId: string) {
+    // Check if risk exists and belongs to the project
+    const existingRisk = await this.prisma.riskAssessment.findFirst({
+      where: {
+        id: riskId,
+        projectId,
+      },
+    });
+
+    if (!existingRisk) {
+      throw new NotFoundException(
+        `Risk assessment with ID ${riskId} not found in project ${projectId}`,
+      );
+    }
+
+    return this.prisma.riskAssessment.delete({
+      where: { id: riskId },
+    });
+  }
+
+  // Helper methods for risk scoring
+  private getProbabilityScore(probability: string): number {
+    switch (probability.toLowerCase()) {
+      case 'low': return 1;
+      case 'medium': return 2;
+      case 'high': return 3;
+      default: return 1;
+    }
+  }
+
+  private getImpactScore(impact: string): number {
+    switch (impact.toLowerCase()) {
+      case 'low': return 1;
+      case 'medium': return 2;
+      case 'high': return 3;
+      case 'critical': return 4;
+      default: return 1;
+    }
+  }
+
+  private calculateRiskTrend(risks: any[]): any {
+    // Group risks by creation month for trend analysis
+    const monthlyData = risks.reduce((acc, risk) => {
+      const month = new Date(risk.createdAt).toISOString().substring(0, 7); // YYYY-MM
+      if (!acc[month]) {
+        acc[month] = { created: 0, closed: 0 };
+      }
+      acc[month].created += 1;
+      if (risk.status !== 'Open') {
+        acc[month].closed += 1;
+      }
+      return acc;
+    }, {} as Record<string, { created: number; closed: number }>);
+
+    return Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        ...data,
+        net: data.created - data.closed,
+      }));
   }
 }

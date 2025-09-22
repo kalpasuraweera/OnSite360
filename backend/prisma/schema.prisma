@@ -91,6 +91,7 @@ model Project {
   description         String?
   type                String? // e.g., "Residential", "Commercial", "Industrial"
   budget              Float? // Project budget amount
+  budgetThreshold     Float? // Budget alert threshold (percentage, e.g., 80 for 80%)
   squareFeet          Float? // Square footage of the project
   location            String? // Address or description of location
   coordinates         Json? // Stores latitude/longitude as JSON: { "lat": 40.7128, "lng": -74.0060 }
@@ -114,6 +115,8 @@ model Project {
   EquipmentAssignment EquipmentAssignment[]
   RFI                 RFI[]
   attendance          ProjectAttendance[]
+  riskAssessments     RiskAssessment[]
+  budgetEntries       BudgetEntry[]
 }
 
 // Junction table for many-to-many relationship between User and Project
@@ -584,4 +587,44 @@ model MaintenanceLog {
   notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// Budget tracking for projects
+model BudgetEntry {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  category    String   // e.g., "Labor", "Materials", "Equipment", "Permits", "Other"
+  amount      Float    // Actual spent amount
+  budgeted    Float?   // Budgeted amount for this category
+  description String?
+  date        DateTime @default(now())
+  createdBy   String?  // User who created this entry
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Risk assessment and management
+model RiskAssessment {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  title        String   // Risk title/name
+  description  String   // Detailed risk description
+  category     String   // e.g., "Safety", "Financial", "Schedule", "Quality", "Weather", "Regulatory"
+  probability  String   // "Low", "Medium", "High"
+  impact       String   // "Low", "Medium", "High", "Critical"
+  riskScore    Float    // Calculated risk score (probability * impact)
+  status       String   @default("Open") // "Open", "Mitigated", "Accepted", "Closed"
+  owner        String?  // Person responsible for managing this risk
+  mitigation   String?  // Mitigation strategy
+  contingency  String?  // Contingency plan
+  dueDate      DateTime? // Date by which mitigation should be completed
+  reviewDate   DateTime? // Next review date
+  cost         Float?   // Potential cost impact
+  schedule     Int?     // Potential schedule impact (days)
+  identifiedBy String?  // User who identified the risk
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

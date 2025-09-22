@@ -38,11 +38,29 @@ const TopNav = ({
     {
       id: 2,
       title: "Budget Overrun Alert",
-      description: "This is a small description about the alert",
-      time: "2 mins ago",
+      description: "Project ABC has exceeded 85% of budget allocation",
+      time: "5 mins ago",
     },
     {
       id: 3,
+      title: "High Risk Identified",
+      description: "New critical safety risk identified in Project XYZ",
+      time: "10 mins ago",
+    },
+    {
+      id: 4,
+      title: "Budget Threshold Reached",
+      description: "Project DEF has reached 90% of budget threshold",
+      time: "15 mins ago",
+    },
+    {
+      id: 5,
+      title: "Risk Mitigation Required",
+      description: "3 high-priority risks require immediate attention",
+      time: "20 mins ago",
+    },
+    {
+      id: 6,
       title: "New Document Uploaded",
       description: "A new document was uploaded to your project.",
       time: "just now",
