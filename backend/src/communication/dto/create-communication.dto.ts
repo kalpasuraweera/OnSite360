@@ -28,6 +28,10 @@ export class CreateMessageDto {
 
   @IsUUID()
   threadId: string;
+
+  @IsString()
+  @IsOptional()
+  attachment?: string; // URL for single attachment (for compatibility)
 }
 
 export class CreateRFIDto {

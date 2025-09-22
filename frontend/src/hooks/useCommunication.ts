@@ -33,6 +33,7 @@ export interface Message {
   senderId: string;
   createdAt: string;
   updatedAt: string;
+  attachment?: string; // URL for attachment
   sender: {
     id: string;
     firstName: string;
@@ -109,6 +110,7 @@ export interface AddUserToThreadDto {
 export interface CreateMessageDto {
   content: string;
   threadId: string;
+  attachment?: string; // Optional attachment URL
 }
 
 export interface UpdateMessageDto {
@@ -305,6 +307,45 @@ export const useSendMessage = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["thread-messages", variables.threadId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["threads"] }); // Update last message in threads list
+    },
+  });
+};
+
+// Send message with file attachments
+export const useSendMessageWithAttachments = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      message, 
+      files 
+    }: { 
+      message: CreateMessageDto; 
+      files: File[] 
+    }) => {
+      const formData = new FormData();
+      formData.append("content", message.content);
+      formData.append("threadId", message.threadId);
+      
+      // Add files to form data
+      files.forEach((file) => {
+        formData.append("attachments", file);
+      });
+
+      const { data } = await instance.post(
+        "/communication/messages/with-attachments",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["thread-messages", variables.message.threadId],
       });
       queryClient.invalidateQueries({ queryKey: ["threads"] }); // Update last message in threads list
     },

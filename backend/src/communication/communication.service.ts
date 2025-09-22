@@ -292,6 +292,61 @@ export class CommunicationService {
         content: createMessageDto.content,
         threadId: createMessageDto.threadId,
         senderId: userId,
+        attachment: createMessageDto.attachment, // Support for single attachment
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        thread: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Send message with multiple attachments
+  async sendMessageWithAttachments(
+    createMessageDto: CreateMessageDto,
+    files: Express.Multer.File[],
+    userId: string,
+  ) {
+    // Check if thread exists and user is a participant
+    const thread = await this.prisma.thread.findFirst({
+      where: {
+        id: createMessageDto.threadId,
+        users: {
+          some: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found or access denied');
+    }
+
+    // Process attachments - store relative paths
+    const attachmentUrls = files.map((file) => `/uploads/messages/${file.filename}`);
+    
+    // For now, store the first attachment in the attachment field for backward compatibility
+    const primaryAttachment = attachmentUrls.length > 0 ? attachmentUrls[0] : undefined;
+
+    return this.prisma.message.create({
+      data: {
+        content: createMessageDto.content,
+        threadId: createMessageDto.threadId,
+        senderId: userId,
+        attachment: primaryAttachment,
       },
       include: {
         sender: {

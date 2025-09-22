@@ -5,6 +5,7 @@ import {
   useUpdateThread,
   useThreadMessages,
   useSendMessage,
+  useSendMessageWithAttachments,
   useRFIs,
   useCreateRFI,
   useUpdateRFI,
@@ -36,6 +37,7 @@ import { IoClose } from "react-icons/io5";
 import { IoAttach } from "react-icons/io5";
 import { IoCamera } from "react-icons/io5";
 import { IoInformationCircle } from "react-icons/io5";
+import { IoDocument, IoImage, IoTrash } from "react-icons/io5";
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +68,7 @@ const Communication = () => {
   const createThreadMutation = useCreateThread();
   const updateThreadMutation = useUpdateThread();
   const sendMessageMutation = useSendMessage();
+  const sendMessageWithAttachmentsMutation = useSendMessageWithAttachments();
   const createRFIMutation = useCreateRFI();
   const updateRFIMutation = useUpdateRFI();
   const deleteRFIMutation = useDeleteRFI();
@@ -104,6 +107,9 @@ const Communication = () => {
   // Delete confirmation state
   const [showDeleteRFIModal, setShowDeleteRFIModal] = useState(false);
   const [deletingRFI, setDeletingRFI] = useState<RFI | null>(null);
+
+  // File attachment state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   // Get messages for selected thread
   const { data: messages = [] } = useThreadMessages(selectedThread?.id || "");
@@ -326,21 +332,44 @@ const Communication = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && selectedThread) {
-      sendMessageMutation.mutate(
-        {
-          content: newMessage,
-          threadId: selectedThread.id,
-        },
-        {
-          onSuccess: () => {
-            setNewMessage("");
+    if ((newMessage.trim() || selectedFiles.length > 0) && selectedThread) {
+      if (selectedFiles.length > 0) {
+        // Send message with attachments
+        sendMessageWithAttachmentsMutation.mutate(
+          {
+            message: {
+              content: newMessage || " ", // Ensure content is not empty
+              threadId: selectedThread.id,
+            },
+            files: selectedFiles,
           },
-          onError: (error) => {
-            console.error("Failed to send message:", error);
+          {
+            onSuccess: () => {
+              setNewMessage("");
+              setSelectedFiles([]);
+            },
+            onError: (error) => {
+              console.error("Failed to send message with attachments:", error);
+            },
+          }
+        );
+      } else {
+        // Send regular message
+        sendMessageMutation.mutate(
+          {
+            content: newMessage,
+            threadId: selectedThread.id,
           },
-        }
-      );
+          {
+            onSuccess: () => {
+              setNewMessage("");
+            },
+            onError: (error) => {
+              console.error("Failed to send message:", error);
+            },
+          }
+        );
+      }
     }
   };
 
@@ -353,9 +382,8 @@ const Communication = () => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        // Handle file upload logic here
-        console.log('Selected files:', files);
-        // You can process the files here or pass them to a state
+        const fileArray = Array.from(files);
+        setSelectedFiles(prev => [...prev, ...fileArray]);
       }
     };
     input.click();
@@ -369,12 +397,36 @@ const Communication = () => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files[0]) {
-        // Handle camera capture logic here
-        console.log('Captured image:', files[0]);
-        // You can process the captured image here or pass it to a state
+        setSelectedFiles(prev => [...prev, files[0]]);
       }
     };
     input.click();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Helper functions for file handling
+  const isImageFile = (filename: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  };
+
+  const getFileIcon = (filename: string) => {
+    if (isImageFile(filename)) {
+      return <IoImage className="text-blue-500" />;
+    }
+    return <IoDocument className="text-gray-500" />;
+  };
+
+  const getAttachmentUrl = (attachment: string): string => {
+    // If attachment starts with http, it's already a full URL
+    if (attachment.startsWith('http')) {
+      return attachment;
+    }
+    // Otherwise, construct the URL using the backend base URL
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${attachment}`;
   };
 
   // Create RFI handlers
@@ -821,12 +873,76 @@ const Communication = () => {
                           </div>
                           <div className="chat-bubble bg-neutral text-neutral-content text-sm sm:text-base max-w-xs sm:max-w-md">
                             {message.content}
+                            {message.attachment && (
+                              <div className="mt-2">
+                                {isImageFile(message.attachment) ? (
+                                  <img
+                                    src={getAttachmentUrl(message.attachment)}
+                                    alt="Attachment"
+                                    className="max-w-full h-auto rounded-lg cursor-pointer"
+                                    onClick={() => window.open(getAttachmentUrl(message.attachment!), '_blank')}
+                                  />
+                                ) : (
+                                  <a
+                                    href={getAttachmentUrl(message.attachment)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+                                  >
+                                    {getFileIcon(message.attachment)}
+                                    <span className="text-xs">
+                                      {message.attachment.split('/').pop()}
+                                    </span>
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })
                   )}
                 </div>
+
+                {/* Attachment Preview */}
+                {selectedFiles.length > 0 && (
+                  <div className="px-3 sm:px-4 py-2 bg-base-200 border-t border-base-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-600">
+                        {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFiles([])}
+                        className="btn btn-ghost btn-xs"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm"
+                        >
+                          <div className="flex items-center gap-1">
+                            {getFileIcon(file.name)}
+                            <span className="text-xs max-w-20 truncate">
+                              {file.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(index)}
+                            className="btn btn-ghost btn-circle btn-xs text-red-500 hover:bg-red-100"
+                          >
+                            <IoTrash size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <form
                   onSubmit={handleSendMessage}
@@ -862,16 +978,18 @@ const Communication = () => {
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      disabled={sendMessageMutation.isPending}
+                      disabled={sendMessageMutation.isPending || sendMessageWithAttachmentsMutation.isPending}
                     />
                     <button
                       type="submit"
                       className="btn btn-primary btn-sm sm:btn-md"
                       disabled={
-                        sendMessageMutation.isPending || !newMessage.trim()
+                        sendMessageMutation.isPending || 
+                        sendMessageWithAttachmentsMutation.isPending || 
+                        (!newMessage.trim() && selectedFiles.length === 0)
                       }
                     >
-                      {sendMessageMutation.isPending ? (
+                      {(sendMessageMutation.isPending || sendMessageWithAttachmentsMutation.isPending) ? (
                         <span className="loading loading-spinner loading-sm"></span>
                       ) : (
                         <span className="hidden sm:inline">Send</span>
