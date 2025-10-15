@@ -14,12 +14,28 @@ import { DocumentsModule } from './documents/documents.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CopilotModule } from './copilot/copilot.module';
+import { Response } from 'express';
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '../../uploads'),
       serveRoot: '/uploads',
+      serveStaticOptions: {
+        setHeaders: (res: Response) => {
+          // allow your frontend origin(s)
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
+          res.setHeader(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization',
+          );
+          // allow cross-origin use of the resource (needed so <img> can render)
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          // optional: help caches vary by origin
+          res.setHeader('Vary', 'Origin');
+        },
+      },
     }),
     AuthModule,
     UsersModule,
