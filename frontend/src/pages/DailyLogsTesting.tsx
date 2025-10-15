@@ -238,3 +238,206 @@ export default function DailyLogsManagement() {
       return <MdFilePresent className="text-gray-500" />;
     }
   };
+  // Function to format file URL for display and download
+    const getFileUrl = (fileUrl: string) => {
+      return `${import.meta.env.VITE_DOCUMENTS_URL}${fileUrl}`;
+    };
+  
+    // Handle form submit for adding/editing log
+    const handleLogSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedProject) return;
+  
+      try {
+        if (editingLog) {
+          // Update existing log - don't include files
+          const updateData: UpdateDailyLogDto = {
+            date: logForm.date as string,
+            weather: (logForm.weather as string) || undefined,
+            notes: (logForm.notes as string) || undefined,
+            coordinates: logForm.coordinates || undefined,
+          };
+          await updateLogMutation.mutateAsync({
+            id: editingLog.id,
+            log: updateData,
+          });
+        } else {
+          // Create new log - include files
+          await createLogMutation.mutateAsync({
+            ...logForm as CreateDailyLogDto,
+            files: logFiles, // Pass files for upload
+          });
+        }
+  
+        // Reset form
+        setLogForm({
+          date: moment().format("YYYY-MM-DD"),
+          projectId: selectedProject,
+          weather: "",
+          notes: "",
+          coordinates: null,
+        });
+        setLogFiles([]);
+        setEditingLog(null);
+        setActiveTab("view_all");
+      } catch (error) {
+        console.error("Error saving log:", error);
+      }
+    };
+  
+    // Handle edit log
+    const handleEditLog = (log: DailyLog) => {
+      setEditingLog(log);
+      setLogForm({
+        date: moment(log.date).format("YYYY-MM-DD"),
+        projectId: log.projectId,
+        weather: log.weather || "",
+        notes: log.notes || "",
+        coordinates: log.coordinates || null,
+      });
+      setLogFiles([]);
+      setActiveTab("add_log");
+    };
+  
+    // Handle delete log
+    const handleDeleteLog = (log: DailyLog) => {
+      setLogToDelete(log);
+      setShowDeleteModal(true);
+    };
+  
+    const confirmDeleteLog = async () => {
+      if (!logToDelete) return;
+  
+      try {
+        await deleteLogMutation.mutateAsync(logToDelete.id);
+        setShowDeleteModal(false);
+        setLogToDelete(null);
+      } catch (error) {
+        console.error("Error deleting log:", error);
+      }
+    };
+  
+    // Activity handling functions
+    const handleActivitySubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedLogForActivity) return;
+  
+      try {
+        // Helper function to combine date with time
+        const combineDateTime = (time: string): string | undefined => {
+          if (!time) return undefined;
+          const logDate = moment(selectedLogForActivity.date).format(
+            "YYYY-MM-DD"
+          );
+          return `${logDate}T${time}:00`;
+        };
+  
+        if (editingActivity) {
+          // Update existing activity - don't include files
+          const activityData: UpdateDailyActivityDto = {
+            activity: activityForm.activity || undefined,
+            startTime: combineDateTime(activityForm.startTime),
+            endTime: combineDateTime(activityForm.endTime),
+            progress: activityForm.progress || undefined,
+            status: activityForm.status,
+            notes: activityForm.notes || undefined,
+            taskId: activityForm.taskId || undefined,
+            coordinates: activityForm.coordinates || undefined,
+          };
+          await updateActivityMutation.mutateAsync({
+            id: editingActivity.id,
+            activity: activityData,
+          });
+        } else {
+          // Create new activity - include files
+          const activityData: CreateDailyActivityDto = {
+            activity: activityForm.activity,
+            dailyLogId: selectedLogForActivity.id,
+            startTime: combineDateTime(activityForm.startTime),
+            endTime: combineDateTime(activityForm.endTime),
+            progress: activityForm.progress || undefined,
+            status: activityForm.status,
+            notes: activityForm.notes || undefined,
+            taskId: activityForm.taskId || undefined,
+            coordinates: activityForm.coordinates || undefined,
+          };
+          await createActivityMutation.mutateAsync({
+            ...activityData,
+            files: activityFiles, // Pass files for upload
+          });
+        }
+  
+        setShowActivityModal(false);
+        setEditingActivity(null);
+        setSelectedLogForActivity(null);
+        setActivityFiles([]);
+        setActivityForm({
+          activity: "",
+          dailyLogId: "",
+          startTime: "",
+          endTime: "",
+          progress: 0,
+          status: "NOT_STARTED",
+          notes: "",
+          taskId: "",
+          coordinates: null,
+          files: [],
+        });
+      } catch (error) {
+        console.error("Error saving activity:", error);
+      }
+    };
+  
+    const handleAddActivity = (log: DailyLog) => {
+      setSelectedLogForActivity(log);
+      setEditingActivity(null);
+      setActivityForm({
+        activity: "",
+        dailyLogId: log.id,
+        startTime: "",
+        endTime: "",
+        progress: 0,
+        status: "NOT_STARTED",
+        notes: "",
+        taskId: "",
+        coordinates: coordinates, // Include current coordinates
+        files: [],
+      });
+      setShowActivityModal(true);
+    };
+  
+    const handleEditActivity = (activity: DailyActivity) => {
+      setEditingActivity(activity);
+      setSelectedLogForActivity(activity.dailyLog || null);
+  
+      // Helper function to extract time from datetime
+      const extractTime = (dateTime: string | null | undefined): string => {
+        if (!dateTime) return "";
+        return moment(dateTime).format("HH:mm");
+      };
+  
+      setActivityForm({
+        activity: activity.activity,
+        dailyLogId: activity.dailyLogId,
+        startTime: extractTime(activity.startTime),
+        endTime: extractTime(activity.endTime),
+        progress: activity.progress || 0,
+        status: activity.status,
+        notes: activity.notes || "",
+        taskId: activity.taskId || (activity.task ? activity.task.id : "") || "",
+        coordinates: activity.coordinates || coordinates,
+        files: [], // Set existing files
+      });
+      setActivityFiles([]);
+      setShowActivityModal(true);
+    };
+  
+    const handleDeleteActivity = async (activityId: string) => {
+      if (window.confirm("Are you sure you want to delete this activity?")) {
+        try {
+          await deleteActivityMutation.mutateAsync(activityId);
+        } catch (error) {
+          console.error("Error deleting activity:", error);
+        }
+      }
+    };
