@@ -426,7 +426,7 @@ const Communication = () => {
       return attachment;
     }
     // Otherwise, construct the URL using the backend base URL
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${attachment}`;
+    return `${import.meta.env.VITE_DOCUMENTS_URL || 'http://localhost:3000'}${attachment}`;
   };
 
   // Create RFI handlers
