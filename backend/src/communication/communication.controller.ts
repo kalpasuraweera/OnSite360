@@ -7,7 +7,16 @@ import {
   Param,
   Delete,
   Request,
+  UseInterceptors,
+  UploadedFiles,
+  ParseFilePipe,
+  MaxFileSizeValidator,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
+import * as fs from 'fs';
 import { CommunicationService } from './communication.service';
 import {
   CreateThreadDto,
@@ -20,7 +29,7 @@ import {
   UpdateMessageDto,
   UpdateRFIDto,
 } from './dto/update-communication.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '../auth/auth.guard';
 
 @Controller('communication')
@@ -103,6 +112,81 @@ export class CommunicationController {
   ) {
     return this.communicationService.sendMessage(
       createMessageDto,
+      req.user.sub,
+    );
+  }
+
+  @Post('messages/with-attachments')
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Send message with file attachments',
+    schema: {
+      type: 'object',
+      properties: {
+        content: { type: 'string' },
+        threadId: { type: 'string' },
+        attachments: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FilesInterceptor('attachments', 5, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/messages';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB max file size
+      },
+      fileFilter: (req, file, cb) => {
+        // Accept images, documents, and common file types
+        const allowed = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
+  async sendMessageWithAttachments(
+    @Body() createMessageDto: CreateMessageDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+        ],
+        fileIsRequired: false, // Attachments are optional
+      }),
+    )
+    files: Express.Multer.File[],
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.communicationService.sendMessageWithAttachments(
+      createMessageDto,
+      files || [],
       req.user.sub,
     );
   }
