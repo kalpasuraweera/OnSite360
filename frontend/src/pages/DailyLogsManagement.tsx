@@ -14,6 +14,7 @@ import {
   MdLocationOn,
   MdImage,
 } from "react-icons/md";
+import { IoAttach, IoCamera, IoTrash, IoDocument, IoImage } from "react-icons/io5";
 import moment from "moment";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useUserProjects } from "../hooks/useUsers";
@@ -34,7 +35,6 @@ import {
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
 import LocationPicker from "../components/LocationPicker";
-import ImageUpload from "../components/ImageUpload";
 
 type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
@@ -76,6 +76,9 @@ export default function DailyLogsManagement() {
     images: [],
   });
 
+  // File attachment state for logs
+  const [selectedLogFiles, setSelectedLogFiles] = useState<File[]>([]);
+
   // Activity form state
   const [activityForm, setActivityForm] = useState({
     activity: "",
@@ -94,6 +97,9 @@ export default function DailyLogsManagement() {
     coordinates: undefined as { latitude: number; longitude: number } | undefined,
     images: [] as string[],
   });
+
+  // File attachment state for activities
+  const [selectedActivityFiles, setSelectedActivityFiles] = useState<File[]>([]);
 
   // Get auth user
   const { user } = useAuthStore();
@@ -183,6 +189,7 @@ export default function DailyLogsManagement() {
         coordinates: undefined,
         images: [],
       });
+      setSelectedLogFiles([]);
       setEditingLog(null);
       setActiveTab("view_all");
     } catch (error) {
@@ -289,6 +296,7 @@ export default function DailyLogsManagement() {
         coordinates: undefined,
         images: [],
       });
+      setSelectedActivityFiles([]);
     } catch (error) {
       console.error("Error saving activity:", error);
     }
@@ -309,6 +317,7 @@ export default function DailyLogsManagement() {
       coordinates: undefined,
       images: [],
     });
+    setSelectedActivityFiles([]);
     setShowActivityModal(true);
   };
 
@@ -351,6 +360,83 @@ export default function DailyLogsManagement() {
   const handleViewLogDetails = (log: DailyLog) => {
     setSelectedLogForDetails(log);
     setActiveTab("view_details");
+  };
+
+  // File and Camera handlers for logs
+  const handleLogFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        const fileArray = Array.from(files);
+        setSelectedLogFiles(prev => [...prev, ...fileArray]);
+      }
+    };
+    input.click();
+  };
+
+  const handleLogCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera by default
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        setSelectedLogFiles(prev => [...prev, files[0]]);
+      }
+    };
+    input.click();
+  };
+
+  const handleRemoveLogFile = (index: number) => {
+    setSelectedLogFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // File and Camera handlers for activities
+  const handleActivityFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        const fileArray = Array.from(files);
+        setSelectedActivityFiles(prev => [...prev, ...fileArray]);
+      }
+    };
+    input.click();
+  };
+
+  const handleActivityCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera by default
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        setSelectedActivityFiles(prev => [...prev, files[0]]);
+      }
+    };
+    input.click();
+  };
+
+  const handleRemoveActivityFile = (index: number) => {
+    setSelectedActivityFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Helper function for file icons
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+      return <IoImage className="text-blue-500" />;
+    }
+    return <IoDocument className="text-gray-500" />;
   };
 
   // Check if projects is available and is an array
@@ -452,6 +538,7 @@ export default function DailyLogsManagement() {
               coordinates: undefined,
               images: [],
             });
+            setSelectedLogFiles([]);
           }}
         >
           <MdAdd className="mr-1 sm:mr-2" />
@@ -941,18 +1028,58 @@ export default function DailyLogsManagement() {
                   <MdImage className="text-primary text-xl" />
                   <h3 className="text-lg font-semibold">Daily Log Photos</h3>
                 </div>
-                <ImageUpload
-                  images={logForm.images || []}
-                  onImagesChange={(images) => {
-                    setLogForm(prev => ({
-                      ...prev,
-                      images
-                    }));
-                  }}
-                  maxImages={10}
-                  allowCamera={true}
-                  className="mobile-card"
-                />
+                
+                {/* Upload Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={handleLogFileUpload}
+                    className="btn btn-outline btn-primary mobile-button gap-2 w-full"
+                  >
+                    <IoAttach className="text-lg" />
+                    <span className="mobile-text">Choose Photos</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={handleLogCameraCapture}
+                    className="btn btn-outline btn-secondary mobile-button gap-2 w-full"
+                  >
+                    <IoCamera className="text-lg" />
+                    <span className="mobile-text">Take Photo</span>
+                  </button>
+                </div>
+
+                {/* Selected Files Preview */}
+                {selectedLogFiles.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="mobile-subheading mb-3">
+                      Selected Images ({selectedLogFiles.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedLogFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-base-300"
+                        >
+                          <div className="flex items-center gap-1">
+                            {getFileIcon(file.name)}
+                            <span className="text-xs max-w-20 truncate">
+                              {file.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLogFile(index)}
+                            className="btn btn-ghost btn-circle btn-xs text-red-500 hover:bg-red-100"
+                          >
+                            <IoTrash size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4">
@@ -991,6 +1118,7 @@ export default function DailyLogsManagement() {
                         coordinates: undefined,
                         images: [],
                       });
+                      setSelectedLogFiles([]);
                     }}
                   >
                     Cancel Edit
@@ -1484,17 +1612,58 @@ export default function DailyLogsManagement() {
                     <MdImage className="text-primary text-lg" />
                     <h4 className="font-semibold">Activity Photos</h4>
                   </div>
-                  <ImageUpload
-                    images={activityForm.images || []}
-                    onImagesChange={(images) => {
-                      setActivityForm(prev => ({
-                        ...prev,
-                        images
-                      }));
-                    }}
-                    maxImages={5}
-                    allowCamera={true}
-                  />
+                  
+                  {/* Upload Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <button
+                      type="button"
+                      onClick={handleActivityFileUpload}
+                      className="btn btn-outline btn-primary btn-sm gap-2 w-full"
+                    >
+                      <IoAttach className="text-lg" />
+                      <span className="text-xs">Choose Photos</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={handleActivityCameraCapture}
+                      className="btn btn-outline btn-secondary btn-sm gap-2 w-full"
+                    >
+                      <IoCamera className="text-lg" />
+                      <span className="text-xs">Take Photo</span>
+                    </button>
+                  </div>
+
+                  {/* Selected Files Preview */}
+                  {selectedActivityFiles.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="text-sm font-semibold mb-2">
+                        Selected Images ({selectedActivityFiles.length})
+                      </h5>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedActivityFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-base-300"
+                          >
+                            <div className="flex items-center gap-1">
+                              {getFileIcon(file.name)}
+                              <span className="text-xs max-w-20 truncate">
+                                {file.name}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveActivityFile(index)}
+                              className="btn btn-ghost btn-circle btn-xs text-red-500 hover:bg-red-100"
+                            >
+                              <IoTrash size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4 justify-end pt-4 border-t">
@@ -1517,6 +1686,7 @@ export default function DailyLogsManagement() {
                         coordinates: undefined,
                         images: [],
                       });
+                      setSelectedActivityFiles([]);
                     }}
                   >
                     Cancel
