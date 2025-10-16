@@ -6,6 +6,7 @@ import {
 import { FiSidebar } from "react-icons/fi";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useSystemStore } from "../stores/useSystemStore";
+import { useUserNotifications } from "../hooks/useUsers";
 
 const TopNav = ({
   onLogout,
@@ -15,9 +16,6 @@ const TopNav = ({
   onNavigate: (path: string) => void;
 }) => {
   const user = useAuthStore((state) => state.user);
-  console.log("====================================");
-  console.log("user", user);
-  console.log("====================================");
   const toggleSidebar = useSystemStore((state) => state.toggleSidebar);
   const theme = useSystemStore((state) => state.theme);
   const setTheme = useSystemStore((state) => state.setTheme);
@@ -27,27 +25,15 @@ const TopNav = ({
     setTheme(theme === "bumblebee" ? "halloween" : "bumblebee");
   };
 
-  // Notifications array
-  const notifications = [
-    {
-      id: 1,
-      title: "System Maintenance Alert",
-      description: "This is a small description about the alert",
-      time: "2 mins ago",
-    },
-    {
-      id: 2,
-      title: "Budget Overrun Alert",
-      description: "This is a small description about the alert",
-      time: "2 mins ago",
-    },
-    {
-      id: 3,
-      title: "New Document Uploaded",
-      description: "A new document was uploaded to your project.",
-      time: "just now",
-    },
-  ];
+  // Replace static notifications with real unread notifications
+  const userId = user?.id || "";
+  const { data: notifications = [] } = useUserNotifications(userId);
+  const unreadNotifications = (notifications || []).filter((n) => !n.isRead);
+  const unreadCount = unreadNotifications.length;
+  const visibleNotifications = unreadNotifications.slice(0, 3);
+
+  const formatTime = (iso?: string) =>
+    iso ? new Date(iso).toLocaleString(undefined, { hour12: true }) : "";
 
   return (
     <div className="navbar flex justify-between items-center gap-2 sm:gap-4 bg-base-100 py-2 px-3 sm:px-5">
@@ -91,7 +77,7 @@ const TopNav = ({
           <button tabIndex={0} className="btn btn-circle relative">
             <HiOutlineBell className="w-5 h-5 sm:w-6 sm:h-6" />
             <span className="badge badge-success badge-xs absolute -top-1 -right-1">
-              {notifications.length}
+              {unreadCount}
             </span>
           </button>
 
@@ -100,20 +86,47 @@ const TopNav = ({
             tabIndex={0}
             className="menu menu-compact dropdown-content mt-3 shadow-lg shadow-neutral/10 bg-base-200 rounded-box w-80 sm:w-90 max-w-[calc(100vw-2rem)]"
           >
-            {notifications.map((notif, idx) => (
-              <li key={notif.id} onClick={() => onNavigate("/notifications")}>
-                <div className="flex flex-col items-start text-base-content p-3">
-                  <p className="font-bold text-sm sm:text-base">{notif.title}</p>
-                  <p className="text-xs sm:text-sm">{notif.description}</p>
-                  <p className="text-secondary-content/70 text-xs">
-                    {notif.time}
-                  </p>
-                </div>
-                {idx < notifications.length - 1 && (
-                  <hr className="text-neutral/20 my-2" />
-                )}
+            {userId === "" ? (
+              <li>
+                <div className="p-3 text-sm text-gray-500">Sign in to see notifications</div>
               </li>
-            ))}
+            ) : visibleNotifications.length === 0 ? (
+              <li>
+                <div className="p-3 text-center text-sm text-gray-500">
+                  No unread notifications
+                </div>
+              </li>
+            ) : (
+              visibleNotifications.map((notif, idx) => (
+                <li key={notif.id} onClick={() => onNavigate("/notifications")}>
+                  <div className="flex flex-col items-start text-base-content p-3">
+                    <p className="font-bold text-sm sm:text-base">{notif.title}</p>
+                    {notif.description && (
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">
+                        {notif.description}
+                      </p>
+                    )}
+                    <p className="text-secondary-content/70 text-xs mt-1">
+                      {formatTime(notif.time || notif.createdAt)}
+                    </p>
+                  </div>
+                  {/* separator */}
+                  {idx < visibleNotifications.length - 1 && (
+                    <hr className="text-neutral/20 my-2" />
+                  )}
+                </li>
+              ))
+            )}
+
+            {/* Link to full notifications screen */}
+            <li>
+              <div
+                className="p-3 text-center text-sm text-primary hover:bg-base-300 cursor-pointer"
+                onClick={() => onNavigate("/notifications")}
+              >
+                View all notifications
+              </div>
+            </li>
           </ul>
         </div>
 
