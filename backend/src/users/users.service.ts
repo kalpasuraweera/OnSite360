@@ -3,17 +3,21 @@ import { User, Notification } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(user: CreateUserDto): Promise<Omit<User, 'password'>> {
     // Hash password before storing
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(user.password, saltRounds);
 
-    return this.prisma.user.create({
+    const created = await this.prisma.user.create({
       omit: {
         password: true,
       },
@@ -40,6 +44,24 @@ export class UsersService {
         },
       },
     });
+
+    // New: create a welcome notification for the new user (non-blocking)
+    try {
+      await this.notifications.sendNotification(
+        // created.id exists on user record
+        created.id,
+        'Welcome to OnSite360',
+        `Welcome ${created.firstName || ''}! Your account has been created.`,
+        { sendEmail: true },
+      );
+    } catch (err) {
+      console.error('Failed to send welcome notification:', err);
+      // do not block user creation on notification failures
+      // log via Prisma errors or application logger in real implementation
+      // swallow silently here to avoid exposing errors to clients
+    }
+
+    return created;
   }
 
   async findOne(email: string): Promise<Omit<User, 'password'> | null> {
