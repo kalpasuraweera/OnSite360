@@ -126,10 +126,9 @@ export default function DailyLogsManagement() {
   const deleteActivityMutation = useDeleteDailyActivity();
 
   // Fetch project tasks for optional related task selection in activity modal
-  const {
-    data: projectTasks = [],
-    isLoading: projectTasksLoading,
-  } = useTasks(selectedProject ? { projectId: selectedProject } : undefined);
+  const { data: projectTasks = [], isLoading: projectTasksLoading } = useTasks(
+    selectedProject ? { projectId: selectedProject } : undefined
+  );
 
   // Weather options (label used as the weather string)
   const weatherOptions = [
@@ -158,8 +157,7 @@ export default function DailyLogsManagement() {
 
     setLogForm((prev) => ({
       ...prev,
-      [name]:
-        name === "workersPresent" ? Number(value) : value,
+      [name]: name === "workersPresent" ? Number(value) : value,
     }));
   };
 
@@ -336,7 +334,7 @@ export default function DailyLogsManagement() {
       progress: activity.progress || 0,
       status: activity.status,
       notes: activity.notes || "",
-      taskId: (activity as any).taskId || (activity.task ? activity.task.id : "") || "",
+      taskId: activity.taskId || (activity.task ? activity.task.id : "") || "",
     });
     setShowActivityModal(true);
   };
@@ -854,7 +852,9 @@ export default function DailyLogsManagement() {
                         type="button"
                         key={key}
                         className={`btn btn-sm btn-ghost rounded-md flex items-center gap-2 ${
-                          logForm.weather === key ? "bg-primary/10 border-primary" : ""
+                          logForm.weather === key
+                            ? "bg-primary/10 border-primary"
+                            : ""
                         }`}
                         onClick={() =>
                           setLogForm((prev) => ({ ...prev, weather: key }))
@@ -1119,13 +1119,17 @@ export default function DailyLogsManagement() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           {/* Show related task if available */}
-                          {((activity as any).task || activity.taskId) && (
+                          {(activity.task || activity.taskId) && (
                             <div className="mb-2">
-                              <span className="text-sm text-base-content/60">Related task: </span>
+                              <span className="text-sm text-base-content/60">
+                                Related task:{" "}
+                              </span>
                               <span className="font-medium text-sm">
-                                { (activity as any).task?.title ||
-                                  projectTasks.find(t => t.id === (activity as any).taskId)?.title ||
-                                  `Task (${(activity as any).taskId})` }
+                                {activity.task?.title ||
+                                  projectTasks.find(
+                                    (t) => t.id === activity.taskId
+                                  )?.title ||
+                                  `Task (${activity.taskId})`}
                               </span>
                             </div>
                           )}
@@ -1327,13 +1331,18 @@ export default function DailyLogsManagement() {
                 {/* Related Task select */}
                 <div className="form-control">
                   <label className="label">
-                    <span className="label-text font-medium">Related Task (optional)</span>
+                    <span className="label-text font-medium">
+                      Related Task (optional)
+                    </span>
                   </label>
                   <select
                     className="select select-bordered"
                     value={activityForm.taskId || ""}
                     onChange={(e) =>
-                      setActivityForm((prev) => ({ ...prev, taskId: e.target.value }))
+                      setActivityForm((prev) => ({
+                        ...prev,
+                        taskId: e.target.value,
+                      }))
                     }
                     disabled={!selectedProject || projectTasksLoading}
                   >

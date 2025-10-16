@@ -104,6 +104,12 @@ export interface DailyActivity {
   createdAt: string;
   updatedAt: string;
   dailyLog?: DailyLog;
+  taskId?: string; // NEW: optional related task id
+  task?: {
+    id: string;
+    title: string;
+    status: string;
+  };
 }
 
 // DTOs
