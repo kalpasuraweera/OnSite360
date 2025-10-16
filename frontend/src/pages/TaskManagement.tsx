@@ -36,6 +36,7 @@ import {
   type TaskPriority,
   type Task as ApiTask,
 } from "../hooks/useTasks";
+import { useProjectPhases, type ProjectPhase } from "../hooks/useSchedule";
 import { useUserProjects } from "../hooks/useUsers";
 import { useProject, type Project } from "../hooks/useProjects";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -55,6 +56,8 @@ interface TaskCard extends Card {
     lastName?: string;
     email: string;
   };
+  projectPhaseId?: string; // NEW
+  projectPhase?: { id: string; name: string } | null; // optional phase details
   dueDate?: string;
   description?: string;
   tags: string[];
@@ -118,6 +121,9 @@ const AddTaskModal = ({
 }) => {
   const createTaskMutation = useCreateTask();
 
+  // Fetch project phases for the selected project
+  const { data: projectPhases = [], isLoading: phasesLoading } = useProjectPhases(selectedProject);
+
   const [newTask, setNewTask] = useState<CreateTaskDto>({
     title: "",
     description: "",
@@ -129,6 +135,7 @@ const AddTaskModal = ({
     estimatedHours: undefined,
     dueDate: "",
     tags: [],
+    projectPhaseId: undefined, // NEW
   });
 
   // Transform tags array to simple string array for react-tag-input-component
@@ -151,6 +158,7 @@ const AddTaskModal = ({
         estimatedHours: undefined,
         dueDate: "",
         tags: [],
+        projectPhaseId: undefined,
       });
       setTags([]); // Reset tags
       setSubmitSuccess(false); // Reset success state
@@ -177,6 +185,7 @@ const AddTaskModal = ({
         dueDate: newTask.dueDate || undefined,
         estimatedHours: newTask.estimatedHours || undefined,
         tags: tags, // Use tags directly from react-tag-input-component
+        projectPhaseId: newTask.projectPhaseId || undefined, // NEW
       };
 
       await createTaskMutation.mutateAsync(taskData);
@@ -384,6 +393,31 @@ const AddTaskModal = ({
             />
           </div>
 
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Phase (optional)</span>
+            </label>
+            <select
+              className="select select-bordered"
+              value={newTask.projectPhaseId || ""}
+              onChange={(e) =>
+                setNewTask((t) => ({ ...t, projectPhaseId: e.target.value || undefined }))
+              }
+              disabled={isSubmitting || phasesLoading}
+            >
+              <option value="">No phase</option>
+              {phasesLoading ? (
+                <option>Loading phases...</option>
+              ) : (
+                projectPhases.map((phase: ProjectPhase) => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
           <div className="modal-action">
             <button
               type="button"
@@ -442,6 +476,9 @@ const EditTaskModal = ({
 }) => {
   const updateTaskMutation = useUpdateTask();
 
+  // Fetch project phases for the task's project
+  const { data: projectPhases = [], isLoading: phasesLoading } = useProjectPhases(selectedTask?.projectId || "");
+
   const [editTask, setEditTask] = useState({
     title: "",
     description: "",
@@ -453,6 +490,7 @@ const EditTaskModal = ({
     actualHours: undefined as number | undefined,
     dueDate: "",
     tags: [] as string[],
+    projectPhaseId: undefined as string | undefined, // NEW
   });
 
   // Transform tags array to simple string array for react-tag-input-component
@@ -475,6 +513,7 @@ const EditTaskModal = ({
         actualHours: selectedTask.actualHours,
         dueDate: selectedTask.dueDate || "",
         tags: selectedTask.tags || [],
+        projectPhaseId: selectedTask.projectPhaseId || undefined, // populate phase
       });
       setTags(selectedTask.tags || []); // Set tags
       setSubmitSuccess(false); // Reset success state
@@ -504,6 +543,7 @@ const EditTaskModal = ({
         actualHours: editTask.actualHours || undefined,
         dueDate: editTask.dueDate || undefined,
         tags: tags,
+        projectPhaseId: editTask.projectPhaseId || undefined, // NEW
       };
 
       await updateTaskMutation.mutateAsync({
@@ -734,6 +774,31 @@ const EditTaskModal = ({
               placeholder="Enter tags"
               disabled={isSubmitting}
             />
+          </div>
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Phase (optional)</span>
+            </label>
+            <select
+              className="select select-bordered"
+              value={editTask.projectPhaseId || ""}
+              onChange={(e) =>
+                setEditTask((t) => ({ ...t, projectPhaseId: e.target.value || undefined }))
+              }
+              disabled={isSubmitting || phasesLoading}
+            >
+              <option value="">No phase</option>
+              {phasesLoading ? (
+                <option>Loading phases...</option>
+              ) : (
+                projectPhases.map((phase: ProjectPhase) => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
 
           <div className="modal-action">
@@ -1174,6 +1239,10 @@ const TaskManagement = () => {
       projectId: task.projectId,
       assigneeId: task.assigneeId,
       assignee: task.assignee,
+      projectPhaseId: (task as any).projectPhaseId || undefined, // map phase id
+      projectPhase: (task as any).projectPhase
+        ? { id: (task as any).projectPhase.id, name: (task as any).projectPhase.name }
+        : undefined,
       dueDate: task.dueDate ? task.dueDate.split("T")[0] : undefined,
       description: task.description,
       tags: task.tags || [],

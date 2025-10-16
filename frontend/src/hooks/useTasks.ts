@@ -104,6 +104,7 @@ export interface CreateTaskDto {
   completedAt?: string;
   tags?: string[];
   attachments?: string[];
+  projectPhaseId?: string; // NEW: optional phase id
 }
 
 export interface UpdateTaskDto {
@@ -121,6 +122,7 @@ export interface UpdateTaskDto {
   completedAt?: string;
   tags?: string[];
   attachments?: string[];
+  projectPhaseId?: string; // NEW: optional phase id
 }
 
 export interface CreateCommentDto {
