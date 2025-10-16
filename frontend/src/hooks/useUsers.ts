@@ -170,3 +170,43 @@ export const useUserProjects = (userId: string) => {
     enabled: !!userId, // Only run the query if we have a user ID
   });
 };
+
+// New: Notification interface and hooks
+export interface Notification {
+  id: string;
+  userId?: string;
+  title: string;
+  description?: string | null;
+  time: string; // ISO string from backend
+  isRead: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Get notifications for a user
+export const useUserNotifications = (userId: string) => {
+  return useQuery({
+    queryKey: ["users", userId, "notifications"],
+    queryFn: async () => {
+      const { data } = await instance.get(`/users/${userId}/notifications`);
+      return data as Notification[];
+    },
+    enabled: !!userId,
+  });
+};
+
+// Mark a notification as read
+export const useMarkNotificationRead = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, notificationId }: { userId: string; notificationId: string; }) => {
+      const { data } = await instance.patch(`/users/${userId}/notifications/${notificationId}/read`);
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate notifications for the user so UI refreshes
+      queryClient.invalidateQueries({ queryKey: ["users", variables.userId, "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["users", variables.userId] });
+    },
+  });
+};

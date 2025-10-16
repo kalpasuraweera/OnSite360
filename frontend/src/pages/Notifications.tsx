@@ -1,80 +1,92 @@
-import React, { useState } from "react";
-
-const sampleNotifications = [
-  {
-    id: 1,
-    title: "New Message",
-    description: "You have a new message from John Doe.",
-    time: "2 minutes ago",
-    type: "info",
-  },
-  {
-    id: 2,
-    title: "Report Approved",
-    description: "Your report has been approved.",
-    time: "1 hour ago",
-    type: "success",
-  },
-  {
-    id: 3,
-    title: "System Maintenance",
-    description: "System maintenance scheduled for tomorrow at 2:00 PM.",
-    time: "Yesterday",
-    type: "warning",
-  },
-];
-
-const recentNotifications = sampleNotifications.filter(
-  (n) => n.time === "2 minutes ago" || n.time === "1 hour ago"
-);
-
-const oldNotifications = [
-  {
-    id: 4,
-    title: "Password Changed",
-    description: "Your password was changed successfully.",
-    time: "2 days ago",
-    type: "info",
-  },
-  {
-    id: 5,
-    title: "Welcome!",
-    description: "Welcome to OnSite360.",
-    time: "1 week ago",
-    type: "success",
-  },
-];
-
-const allNotifications = [...sampleNotifications, ...oldNotifications];
+import React, { useState, useMemo } from "react";
+import { useAuthStore } from "../stores/useAuthStore";
+import {
+  useUserNotifications,
+  useMarkNotificationRead,
+  type Notification,
+} from "../hooks/useUsers";
 
 const Notifications: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"recent" | "all">("recent");
+  const { user: currentUser } = useAuthStore();
+  const userId = currentUser?.id || "";
+
+  const {
+    data: notifications = [],
+    isLoading,
+    isError,
+  } = useUserNotifications(userId);
+
+  const markReadMutation = useMarkNotificationRead();
+
+  const [activeTab, setActiveTab] = useState<"unread" | "read">("unread");
+
+  const unreadNotifications = useMemo(
+    () => notifications.filter((n) => !n.isRead),
+    [notifications]
+  );
+  const readNotifications = useMemo(
+    () => notifications.filter((n) => !!n.isRead),
+    [notifications]
+  );
 
   const notificationsToShow =
-    activeTab === "recent" ? recentNotifications : allNotifications;
+    activeTab === "unread" ? unreadNotifications : readNotifications;
+
+  const handleMarkRead = async (notification: Notification) => {
+    if (!userId) return;
+    try {
+      await markReadMutation.mutateAsync({
+        userId,
+        notificationId: notification.id,
+      });
+    } catch (err) {
+      // swallow - UI will refresh via invalidation
+      console.error("Failed to mark notification read", err);
+    }
+  };
+
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, { hour12: true });
 
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-1">Notifications</h1>
-      <p className="text-gray-500 mb-6">
-        View recent alerts and system notifications
-      </p>
+      <p className="text-gray-500 mb-6">Unread and read notifications</p>
 
-      {/* Tab navigation */}
+      {!userId ? (
+        <div className="text-gray-500">
+          Please sign in to view notifications.
+        </div>
+      ) : isLoading ? (
+        <div className="flex justify-center py-8">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      ) : isError ? (
+        <div className="text-error">Failed to load notifications.</div>
+      ) : (
+        <>
+          <div className="tabs mb-4">
+            <button
+              className={`tab ${activeTab === "unread" ? "tab-active" : ""}`}
+              onClick={() => setActiveTab("unread")}
+            >
+              Unread ({unreadNotifications.length})
+            </button>
+            <button
+              className={`tab ${activeTab === "read" ? "tab-active" : ""}`}
+              onClick={() => setActiveTab("read")}
+            >
+              Read ({readNotifications.length})
+            </button>
+          </div>
 
-      <div className="tabs tabs-border">
-        <input
-          type="radio"
-          name="user_tab_group"
-          className="tab"
-          aria-label="Recent"
-          checked={activeTab === "recent"}
-          onChange={() => setActiveTab("recent")}
-        />
-        {activeTab === "recent" && (
-          <div className="tab-content bg-base-200 border border-base-300 p-6 rounded-2xl">
+          <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
             <div className="space-y-4">
-              {notificationsToShow.length > 0 ? (
+              {notificationsToShow.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  No notifications in this tab.
+                </div>
+              ) : (
                 notificationsToShow.map((notif) => (
                   <div
                     key={notif.id}
@@ -82,60 +94,44 @@ const Notifications: React.FC = () => {
                   >
                     <div>
                       <div className="font-semibold">{notif.title}</div>
-                      <div className="text-gray-500 text-sm">
-                        {notif.description}
-                      </div>
+                      {notif.description && (
+                        <div className="text-gray-500 text-sm">
+                          {notif.description}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-gray-400 mt-2 md:mt-0">
-                      {notif.time}
+
+                    <div className="flex items-center gap-3 mt-3 md:mt-0">
+                      <div className="text-xs text-gray-400">
+                        {formatTime(
+                          notif.time ||
+                            notif.createdAt ||
+                            notif.updatedAt ||
+                            new Date().toISOString()
+                        )}
+                      </div>
+
+                      {!notif.isRead && activeTab === "unread" && (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => handleMarkRead(notif)}
+                          disabled={markReadMutation.isLoading}
+                        >
+                          {markReadMutation.isLoading ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            "Mark read"
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  No notifications at this time.
-                </div>
               )}
             </div>
           </div>
-        )}
-        <input
-          type="radio"
-          name="user_tab_group"
-          className="tab"
-          aria-label="All"
-          checked={activeTab === "all"}
-          onChange={() => setActiveTab("all")}
-        />
-        {activeTab === "all" && (
-          <div className="tab-content bg-base-200 border border-base-300 p-6 rounded-2xl">
-            <div className="space-y-4">
-              {notificationsToShow.length > 0 ? (
-                notificationsToShow.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
-                  >
-                    <div>
-                      <div className="font-semibold">{notif.title}</div>
-                      <div className="text-gray-500 text-sm">
-                        {notif.description}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-2 md:mt-0">
-                      {notif.time}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  No notifications at this time.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };
