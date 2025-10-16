@@ -44,6 +44,11 @@ export interface Task {
   _count?: {
     comments: number;
   };
+  projectPhaseId?: string; // NEW: optional phase id
+  projectPhase?: {
+    id: string;
+    name: string;
+  };
 }
 
 // Comment interfaces

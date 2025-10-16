@@ -124,7 +124,8 @@ const AddTaskModal = ({
   const createTaskMutation = useCreateTask();
 
   // Fetch project phases for the selected project
-  const { data: projectPhases = [], isLoading: phasesLoading } = useProjectPhases(selectedProject);
+  const { data: projectPhases = [], isLoading: phasesLoading } =
+    useProjectPhases(selectedProject);
 
   const [newTask, setNewTask] = useState<CreateTaskDto>({
     title: "",
@@ -137,7 +138,7 @@ const AddTaskModal = ({
     estimatedHours: undefined,
     dueDate: "",
     tags: [],
-    projectPhaseId: undefined, // NEW
+    projectPhaseId: undefined,
   });
 
   // Transform tags array to simple string array for react-tag-input-component
@@ -146,13 +147,16 @@ const AddTaskModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // NEW: phase validation error state
+  const [phaseError, setPhaseError] = useState<string>("");
+
   // Reset form when modal opens/closes or project changes
   useEffect(() => {
     if (showAddModal) {
       setNewTask({
         title: "",
         description: "",
-        projectId: selectedProject, // Use the selected project ID
+        projectId: selectedProject,
         assigneeId: "",
         status: "Pending",
         priority: "Medium",
@@ -164,6 +168,7 @@ const AddTaskModal = ({
       });
       setTags([]); // Reset tags
       setSubmitSuccess(false); // Reset success state
+      setPhaseError(""); // Clear phase error when opening
     }
   }, [showAddModal, selectedProject]);
 
@@ -175,6 +180,7 @@ const AddTaskModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setPhaseError("");
 
     try {
       // Ensure we're using the current selected project ID
@@ -187,8 +193,15 @@ const AddTaskModal = ({
         dueDate: newTask.dueDate || undefined,
         estimatedHours: newTask.estimatedHours || undefined,
         tags: tags, // Use tags directly from react-tag-input-component
-        projectPhaseId: newTask.projectPhaseId || undefined, // NEW
+        projectPhaseId: newTask.projectPhaseId || undefined,
       };
+
+      // Validation: require phase if the project has phases
+      if (projectPhases && projectPhases.length > 0 && !taskData.projectPhaseId) {
+        setPhaseError("Please select a project phase.");
+        setIsSubmitting(false);
+        return;
+      }
 
       await createTaskMutation.mutateAsync(taskData);
 
@@ -208,7 +221,32 @@ const AddTaskModal = ({
     }
   };
 
+  // NEW: If modal not shown, nothing to render
   if (!showAddModal) return null;
+
+  // NEW: If phases finished loading and there are no phases, show explanatory modal
+  const hasPhases = Array.isArray(projectPhases) && projectPhases.length > 0;
+  if (!phasesLoading && !hasPhases) {
+    return (
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-md">
+          <h3 className="font-bold text-lg mb-2">Cannot create task</h3>
+          <p className="text-sm text-base-content/70 mb-4">
+            This project has no defined phases. Tasks must be assigned to a project phase.
+            Please create project phases first in the Schedule / Phases section before adding tasks.
+          </p>
+          <div className="modal-action">
+            <button
+              className="btn"
+              onClick={() => setShowAddModal(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal modal-open">
@@ -397,15 +435,20 @@ const AddTaskModal = ({
 
           <div className="form-control">
             <label className="label">
-              <span className="label-text">Phase (optional)</span>
+              <span className="label-text">Phase <span className="text-error">*</span></span>
             </label>
             <select
               className="select select-bordered"
               value={newTask.projectPhaseId || ""}
-              onChange={(e) =>
-                setNewTask((t) => ({ ...t, projectPhaseId: e.target.value || undefined }))
-              }
+              onChange={(e) => {
+                setNewTask((t) => ({
+                  ...t,
+                  projectPhaseId: e.target.value || undefined,
+                }));
+                if (phaseError) setPhaseError("");
+              }}
               disabled={isSubmitting || phasesLoading}
+              required={projectPhases && projectPhases.length > 0}
             >
               <option value="">No phase</option>
               {phasesLoading ? (
@@ -418,6 +461,9 @@ const AddTaskModal = ({
                 ))
               )}
             </select>
+            {phaseError && (
+              <span className="text-error text-sm mt-1">{phaseError}</span>
+            )}
           </div>
 
           <div className="modal-action">
@@ -432,7 +478,10 @@ const AddTaskModal = ({
             <button
               type="submit"
               className={`btn ${submitSuccess ? "btn-success" : "btn-primary"}`}
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (projectPhases && projectPhases.length > 0 && !newTask.projectPhaseId)
+              }
             >
               {submitSuccess ? (
                 <>
@@ -479,7 +528,8 @@ const EditTaskModal = ({
   const updateTaskMutation = useUpdateTask();
 
   // Fetch project phases for the task's project
-  const { data: projectPhases = [], isLoading: phasesLoading } = useProjectPhases(selectedTask?.projectId || "");
+  const { data: projectPhases = [], isLoading: phasesLoading } =
+    useProjectPhases(selectedTask?.projectId || "");
 
   const [editTask, setEditTask] = useState({
     title: "",
@@ -786,7 +836,10 @@ const EditTaskModal = ({
               className="select select-bordered"
               value={editTask.projectPhaseId || ""}
               onChange={(e) =>
-                setEditTask((t) => ({ ...t, projectPhaseId: e.target.value || undefined }))
+                setEditTask((t) => ({
+                  ...t,
+                  projectPhaseId: e.target.value || undefined,
+                }))
               }
               disabled={isSubmitting || phasesLoading}
             >
@@ -1247,9 +1300,9 @@ const TaskManagement = () => {
       projectId: task.projectId,
       assigneeId: task.assigneeId,
       assignee: task.assignee,
-      projectPhaseId: (task as any).projectPhaseId || undefined, // map phase id
-      projectPhase: (task as any).projectPhase
-        ? { id: (task as any).projectPhase.id, name: (task as any).projectPhase.name }
+      projectPhaseId: task.projectPhaseId || undefined, // map phase id
+      projectPhase: task.projectPhase
+        ? { id: task.projectPhase.id, name: task.projectPhase.name }
         : undefined,
       dueDate: task.dueDate ? task.dueDate.split("T")[0] : undefined,
       description: task.description,
@@ -1328,7 +1381,8 @@ const TaskManagement = () => {
     // NEW: filter by project phase id if provided
     if (appliedFilters.phaseId) {
       filtered = filtered.filter(
-        (task) => task.projectPhaseId && task.projectPhaseId === appliedFilters.phaseId
+        (task) =>
+          task.projectPhaseId && task.projectPhaseId === appliedFilters.phaseId
       );
     }
 
@@ -2126,7 +2180,14 @@ const TaskManagement = () => {
                     disabled={
                       !selectedProject ||
                       projectDataLoading ||
-                      createTaskMutation.isPending
+                      createTaskMutation.isPending ||
+                      phasesLoading ||                    // NEW: disable while phases loading
+                      (!phasesLoading && projectPhases.length === 0) // NEW: disable if no phases
+                    }
+                    title={
+                      (!phasesLoading && projectPhases.length === 0)
+                        ? "Create project phases first"
+                        : undefined
                     }
                   >
                     {createTaskMutation.isPending ? (
@@ -2137,6 +2198,7 @@ const TaskManagement = () => {
                     Add Task
                   </button>
                   <button
+
                     className="btn btn-outline flex items-center gap-2"
                     onClick={handleExport}
                     disabled={filteredTasks.length === 0}
@@ -2190,9 +2252,15 @@ const TaskManagement = () => {
                       <button
                         className="btn btn-primary"
                         onClick={() => setShowAddModal(true)}
+                        disabled={phasesLoading || (!phasesLoading && projectPhases.length === 0)}
+                        title={
+                          !phasesLoading && projectPhases.length === 0
+                            ? "Create project phases first"
+                            : undefined
+                        }
                       >
                         <MdAddTask className="mr-2" />
-                        Add First Task
+                        {!phasesLoading && projectPhases.length === 0 ? "Create Phases First" : "Add First Task"}
                       </button>
                     )}
                   </div>
@@ -2204,7 +2272,6 @@ const TaskManagement = () => {
                       renderColumnHeader={({ title, cards }) => (
                         <div
                           className={`flex justify-between items-center mb-4 p-3 rounded-xl ${
-                           
                             title === "Pending"
                               ? "bg-info "
                               : title === "In Progress"
