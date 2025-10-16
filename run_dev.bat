@@ -5,7 +5,7 @@ REM Start the backend server in a new window
 start cmd /k "cd backend && npx prisma generate && npm run start:dev"
 
 REM Start the frontend server in a new window
-start cmd /k "cd frontend && npm run dev"
+start cmd /k "cd frontend && npm run dev -- --host"
 
 echo Development servers started.
 echo - Frontend: Running on default port (http://localhost:5173)

@@ -199,6 +199,14 @@ model Task {
   tags           String[] // Array of tags
   attachments    Document[] // Array of Document IDs for attachments
   comments       Comment[] // Comments on this task
+
+  // NEW: link a task to a project phase (optional)
+  projectPhaseId String? 
+  projectPhase   ProjectPhase? @relation(fields: [projectPhaseId], references: [id])
+
+  // NEW: daily activities that reference this task
+  dailyActivities DailyActivity[] 
+
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 }
@@ -355,6 +363,11 @@ model DailyActivity {
   dailyLog    DailyLog     @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
   activity    String // Description of activity
   location    String? // Where the activity took place
+
+  // NEW: optional association to a Task
+  taskId      String?
+  task        Task?       @relation(fields: [taskId], references: [id])
+
   crewMembers CrewMember[]
   startTime   DateTime?
   endTime     DateTime?
@@ -533,6 +546,10 @@ model ProjectPhase {
   children    ProjectPhase[] @relation("PhaseHierarchy")
   color       String? // For Gantt chart display
   isActive    Boolean        @default(true)
+
+  // NEW: tasks belonging to this phase
+  tasks       Task[] 
+
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }

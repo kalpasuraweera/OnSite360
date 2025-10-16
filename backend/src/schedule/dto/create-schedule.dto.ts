@@ -330,4 +330,23 @@ export class CreateDailyActivityDto {
   @IsOptional()
   @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Associated task ID (optional)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    format: 'uuid',
+  })
+  @IsUUID()
+  @IsOptional()
+  taskId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Location where activity took place',
+    example: 'North Wing, 2nd Floor',
+    maxLength: 200,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  location?: string;
 }
