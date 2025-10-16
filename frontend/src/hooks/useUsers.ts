@@ -198,15 +198,31 @@ export const useUserNotifications = (userId: string) => {
 // Mark a notification as read
 export const useMarkNotificationRead = () => {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ userId, notificationId }: { userId: string; notificationId: string; }) => {
-      const { data } = await instance.patch(`/users/${userId}/notifications/${notificationId}/read`);
+  const mutation = useMutation({
+    mutationFn: async ({
+      userId,
+      notificationId,
+    }: {
+      userId: string;
+      notificationId: string;
+    }) => {
+      const { data } = await instance.patch(
+        `/users/${userId}/notifications/${notificationId}/read`,
+      );
       return data;
     },
     onSuccess: (_data, variables) => {
       // Invalidate notifications for the user so UI refreshes
-      queryClient.invalidateQueries({ queryKey: ["users", variables.userId, "notifications"] });
+      queryClient.invalidateQueries({
+        queryKey: ["users", variables.userId, "notifications"],
+      });
       queryClient.invalidateQueries({ queryKey: ["users", variables.userId] });
     },
   });
+
+  // Return a small, well-typed shape so callers can use loading and mutateAsync reliably
+  return {
+    mutateAsync: mutation.mutateAsync,
+    loading: (mutation as any).isLoading ?? (mutation as any).isPending ?? false,
+  };
 };

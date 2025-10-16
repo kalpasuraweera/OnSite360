@@ -16,7 +16,7 @@ const Notifications: React.FC = () => {
     isError,
   } = useUserNotifications(userId);
 
-  const markReadMutation = useMarkNotificationRead();
+  const markRead = useMarkNotificationRead();
 
   const [activeTab, setActiveTab] = useState<"unread" | "read">("unread");
 
@@ -35,12 +35,11 @@ const Notifications: React.FC = () => {
   const handleMarkRead = async (notification: Notification) => {
     if (!userId) return;
     try {
-      await markReadMutation.mutateAsync({
+      await markRead.mutateAsync({
         userId,
         notificationId: notification.id,
       });
     } catch (err) {
-      // swallow - UI will refresh via invalidation
       console.error("Failed to mark notification read", err);
     }
   };
@@ -54,15 +53,11 @@ const Notifications: React.FC = () => {
       <p className="text-gray-500 mb-6">Unread and read notifications</p>
 
       {!userId ? (
-        <div className="text-gray-500">
-          Please sign in to view notifications.
-        </div>
+        <div className="text-gray-500">Please sign in to view notifications.</div>
       ) : isLoading ? (
         <div className="flex justify-center py-8">
           <span className="loading loading-spinner loading-lg"></span>
         </div>
-      ) : isError ? (
-        <div className="text-error">Failed to load notifications.</div>
       ) : (
         <>
           <div className="tabs mb-4">
@@ -83,8 +78,20 @@ const Notifications: React.FC = () => {
           <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
             <div className="space-y-4">
               {notificationsToShow.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  No notifications in this tab.
+                <div className="text-center py-12">
+                  <div className="text-6xl text-base-content/20 mb-4">🔔</div>
+                  <h3 className="text-xl font-semibold text-base-content/70 mb-2">
+                    {isError
+                      ? "Failed to load notifications"
+                      : activeTab === "unread"
+                      ? "No unread notifications"
+                      : "No read notifications"}
+                  </h3>
+                  <p className="text-base-content/50">
+                    {isError
+                      ? "There was a problem fetching your notifications. Try again later."
+                      : "You're all caught up."}
+                  </p>
                 </div>
               ) : (
                 notificationsToShow.map((notif) => (
@@ -115,9 +122,9 @@ const Notifications: React.FC = () => {
                         <button
                           className="btn btn-sm btn-primary"
                           onClick={() => handleMarkRead(notif)}
-                          disabled={markReadMutation.isLoading}
+                          disabled={markRead.loading}
                         >
-                          {markReadMutation.isLoading ? (
+                          {markRead.loading ? (
                             <span className="loading loading-spinner loading-xs"></span>
                           ) : (
                             "Mark read"
