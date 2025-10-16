@@ -36,6 +36,7 @@ import {
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
 import { useTasks, type Task } from "../hooks/useTasks";
+import { useProjectAttendanceByDate, type AttendanceRecord } from "../hooks/useProjects";
 
 type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
@@ -65,13 +66,12 @@ export default function DailyLogsManagement() {
     useState<DailyLog | null>(null);
 
   // Form state for adding/editing logs
-  const [logForm, setLogForm] = useState<CreateDailyLogDto>({
+  // Note: workHours and workersPresent are removed; attendance counts come from workforce
+  const [logForm, setLogForm] = useState<Partial<CreateDailyLogDto>>({
     date: moment().format("YYYY-MM-DD"),
     projectId: "",
     weather: "",
     notes: "",
-    workHours: 0,
-    workersPresent: 0,
   });
 
   // Activity form state
@@ -115,6 +115,13 @@ export default function DailyLogsManagement() {
   const { data: specificDateLogs = [], isLoading: specificLogsLoading } =
     useDailyLogsByDate(selectedProject, selectedDate);
 
+  // Attendance for selected project/date (default to logForm.date or today when adding)
+  const attendanceDateForQuery = selectedDate || logForm.date || moment().format("YYYY-MM-DD");
+  const {
+    data: attendanceResponse,
+    isLoading: attendanceLoading,
+  } = useProjectAttendanceByDate(selectedProject, attendanceDateForQuery as string);
+
   // Mutations
   const createLogMutation = useCreateDailyLog();
   const updateLogMutation = useUpdateDailyLog();
@@ -144,20 +151,9 @@ export default function DailyLogsManagement() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "workHours") {
-      // Clamp work hours between 0 and 24
-      const num = Number(value) || 0;
-      const clamped = Math.max(0, Math.min(24, num));
-      setLogForm((prev) => ({
-        ...prev,
-        workHours: clamped,
-      }));
-      return;
-    }
-
     setLogForm((prev) => ({
       ...prev,
-      [name]: name === "workersPresent" ? Number(value) : value,
+      [name]: value,
     }));
   };
 
@@ -175,18 +171,17 @@ export default function DailyLogsManagement() {
     try {
       if (editingLog) {
         const updateData: UpdateDailyLogDto = {
-          date: logForm.date,
-          weather: logForm.weather,
-          notes: logForm.notes,
-          workHours: logForm.workHours,
-          workersPresent: logForm.workersPresent,
+          date: logForm.date as string,
+          weather: (logForm.weather as string) || undefined,
+          notes: (logForm.notes as string) || undefined,
         };
         await updateLogMutation.mutateAsync({
           id: editingLog.id,
           log: updateData,
         });
       } else {
-        await createLogMutation.mutateAsync(logForm);
+        // Ensure attendance exists for the date before creating
+        await createLogMutation.mutateAsync(logForm as CreateDailyLogDto);
       }
 
       // Reset form
@@ -195,8 +190,6 @@ export default function DailyLogsManagement() {
         projectId: selectedProject,
         weather: "",
         notes: "",
-        workHours: 0,
-        workersPresent: 0,
       });
       setEditingLog(null);
       setActiveTab("view_all");
@@ -213,8 +206,6 @@ export default function DailyLogsManagement() {
       projectId: log.projectId,
       weather: log.weather || "",
       notes: log.notes || "",
-      workHours: Math.max(0, Math.min(24, log.workHours || 0)), // clamp to 0-24
-      workersPresent: log.workersPresent || 0,
     });
     setActiveTab("add_log");
   };
@@ -441,8 +432,6 @@ export default function DailyLogsManagement() {
               projectId: selectedProject,
               weather: "",
               notes: "",
-              workHours: 0,
-              workersPresent: 0,
             });
           }}
         >
@@ -537,30 +526,7 @@ export default function DailyLogsManagement() {
                               <span className="text-sm">{log.weather}</span>
                             </div>
                           )}
-                          {log.workersPresent !== null &&
-                            log.workersPresent !== undefined && (
-                              <div className="flex items-center gap-2">
-                                <MdPeople className="text-blue-500" />
-                                <span className="text-sm font-medium text-gray-600">
-                                  Workers:
-                                </span>
-                                <span className="text-sm">
-                                  {log.workersPresent}
-                                </span>
-                              </div>
-                            )}
-                          {log.workHours !== null &&
-                            log.workHours !== undefined && (
-                              <div className="flex items-center gap-2">
-                                <MdAccessTime className="text-green-500" />
-                                <span className="text-sm font-medium text-gray-600">
-                                  Work Hours:
-                                </span>
-                                <span className="text-sm">
-                                  {log.workHours}h
-                                </span>
-                              </div>
-                            )}
+                          {/* Attendance/Workforce info shown from attendance data (see Add Log tab) */}
                         </div>
 
                         {log.notes && (
@@ -701,30 +667,7 @@ export default function DailyLogsManagement() {
                                   <span className="text-sm">{log.weather}</span>
                                 </div>
                               )}
-                              {log.workersPresent !== null &&
-                                log.workersPresent !== undefined && (
-                                  <div className="flex items-center gap-2">
-                                    <MdPeople className="text-blue-500" />
-                                    <span className="text-sm font-medium text-gray-600">
-                                      Workers:
-                                    </span>
-                                    <span className="text-sm">
-                                      {log.workersPresent}
-                                    </span>
-                                  </div>
-                                )}
-                              {log.workHours !== null &&
-                                log.workHours !== undefined && (
-                                  <div className="flex items-center gap-2">
-                                    <MdAccessTime className="text-green-500" />
-                                    <span className="text-sm font-medium text-gray-600">
-                                      Work Hours:
-                                    </span>
-                                    <span className="text-sm">
-                                      {log.workHours}h
-                                    </span>
-                                  </div>
-                                )}
+                              {/* Attendance/Workforce info shown from attendance data (see Add Log tab) */}
                             </div>
 
                             {log.notes && (
@@ -869,37 +812,44 @@ export default function DailyLogsManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="label">
-                    <span className="label-text font-medium">
-                      Workers Present
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    name="workersPresent"
-                    className="input input-bordered w-full"
-                    value={logForm.workersPresent}
-                    onChange={handleFormChange}
-                    min="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="label">
-                    <span className="label-text font-medium">Work Hours</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="workHours"
-                    className="input input-bordered w-full"
-                    value={logForm.workHours}
-                    onChange={handleFormChange}
-                    min="0"
-                    max="24" // enforce max in UI
-                    step="0.5"
-                  />
+              <div className="grid grid-cols-1 gap-4">
+                <label className="label">
+                  <span className="label-text font-medium">Workforce</span>
+                </label>
+                {/* Show attendance summary pulled from workforce attendance for the selected date */}
+                <div className="p-4 bg-base-100 rounded-lg border border-base-300">
+                  {attendanceLoading ? (
+                    <div className="text-sm text-gray-500">Loading attendance...</div>
+                  ) : attendanceResponse && attendanceResponse.data ? (
+                    (() => {
+                      const crew: (AttendanceRecord & { crewMemberId: string })[] =
+                        attendanceResponse.data.crewAttendance || [];
+                      const present = crew.filter((c) => c.status === "Present").length;
+                      const absent = crew.filter((c) => c.status !== "Present").length;
+                      return (
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <MdPeople className="text-blue-500" />
+                            <div>
+                              <div className="text-sm font-medium">Present</div>
+                              <div className="text-lg font-bold">{present}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MdPeople className="text-gray-400" />
+                            <div>
+                              <div className="text-sm font-medium">Absent</div>
+                              <div className="text-lg font-bold">{absent}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-yellow-600">
+                      Attendance not marked for this date. Please mark attendance in Workforce Management before creating a log.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -922,7 +872,15 @@ export default function DailyLogsManagement() {
                   type="submit"
                   className="btn btn-primary"
                   disabled={
-                    createLogMutation.isPending || updateLogMutation.isPending
+                    createLogMutation.isPending ||
+                    updateLogMutation.isPending ||
+                    // disable if attendance not present for selected date
+                    !(attendanceResponse && attendanceResponse.data)
+                  }
+                  title={
+                    !(attendanceResponse && attendanceResponse.data)
+                      ? "Attendance must be marked for the selected date"
+                      : undefined
                   }
                 >
                   {createLogMutation.isPending ||
@@ -947,8 +905,6 @@ export default function DailyLogsManagement() {
                         projectId: selectedProject,
                         weather: "",
                         notes: "",
-                        workHours: 0,
-                        workersPresent: 0,
                       });
                     }}
                   >
@@ -1029,30 +985,7 @@ export default function DailyLogsManagement() {
                     </span>
                   </div>
                 )}
-                {selectedLogForDetails.workersPresent !== null &&
-                  selectedLogForDetails.workersPresent !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <MdPeople className="text-blue-500" />
-                      <span className="text-sm font-medium text-gray-600">
-                        Workers:
-                      </span>
-                      <span className="text-sm">
-                        {selectedLogForDetails.workersPresent}
-                      </span>
-                    </div>
-                  )}
-                {selectedLogForDetails.workHours !== null &&
-                  selectedLogForDetails.workHours !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <MdAccessTime className="text-green-500" />
-                      <span className="text-sm font-medium text-gray-600">
-                        Work Hours:
-                      </span>
-                      <span className="text-sm">
-                        {selectedLogForDetails.workHours}h
-                      </span>
-                    </div>
-                  )}
+                {/* Workforce counts and hours are managed via Workforce Management and attendance data */}
               </div>
 
               {selectedLogForDetails.notes && (

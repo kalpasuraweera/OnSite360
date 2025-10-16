@@ -154,6 +154,43 @@ export interface CreateCrewMemberDto {
   hireDate?: string;
 }
 
+// Crew assignment shape returned by project crew endpoints
+export interface CrewAssignment {
+  id: string;
+  assignedDate: string;
+  createdAt: string;
+  crewMember: CrewMember;
+  crewMemberId: string;
+  endDate: string | null;
+  isActive: boolean;
+  notes?: string;
+  projectId: string;
+  updatedAt: string;
+}
+
+// Standardized attendance API response used across the frontend
+export interface AttendanceApiResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    id: string;
+    projectId: string;
+    date: string;
+    actualStartTime?: string;
+    workDelayed: boolean;
+    delayReason?: string;
+    delayDuration?: number;
+    dayType?: string;
+    dayTypeReason?: string;
+    isWorkDay: boolean;
+    notes?: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    crewAttendance?: (AttendanceRecord & { crewMemberId: string })[];
+  };
+}
+
 export interface UpdateCrewMemberDto {
   name?: string;
   role?: string;
