@@ -41,6 +41,7 @@ export class TasksService {
       dueDate?: Date;
       startedAt?: Date;
       completedAt?: Date;
+      projectPhaseId?: string;
     } = {
       title: createTaskDto.title,
       description: createTaskDto.description,
@@ -64,43 +65,46 @@ export class TasksService {
       data.completedAt = new Date(createTaskDto.completedAt);
     }
 
+    // NEW: validate projectPhaseId if provided and persist to data
+    if (createTaskDto.projectPhaseId) {
+      const phase = await this.prisma.projectPhase.findUnique({
+        where: { id: createTaskDto.projectPhaseId },
+      });
+      if (!phase) {
+        throw new NotFoundException('Project phase not found');
+      }
+      if (phase.projectId !== createTaskDto.projectId) {
+        throw new ForbiddenException(
+          'Project phase does not belong to this project',
+        );
+      }
+      data.projectPhaseId = createTaskDto.projectPhaseId;
+    }
+
     const task = await this.prisma.task.create({
       data,
       include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        project: { select: { id: true, name: true } },
         assignee: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         attachments: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            type: true,
-          },
+          select: { id: true, name: true, url: true, type: true },
         },
         comments: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            user: { select: { id: true, firstName: true, lastName: true } },
           },
-          orderBy: {
-            createdAt: 'desc',
+          orderBy: { createdAt: 'desc' },
+        },
+        // NEW: include project phase details
+        projectPhase: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            order: true,
           },
         },
       },
@@ -148,51 +152,32 @@ export class TasksService {
     return this.prisma.task.findMany({
       where,
       include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        project: { select: { id: true, name: true } },
         assignee: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         attachments: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            type: true,
-          },
+          select: { id: true, name: true, url: true, type: true },
         },
         comments: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            user: { select: { id: true, firstName: true, lastName: true } },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          orderBy: { createdAt: 'desc' },
         },
-        _count: {
+        _count: { select: { comments: true } },
+        // NEW: include project phase
+        projectPhase: {
           select: {
-            comments: true,
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            order: true,
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -200,40 +185,27 @@ export class TasksService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        project: { select: { id: true, name: true } },
         assignee: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         attachments: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            type: true,
-          },
+          select: { id: true, name: true, url: true, type: true },
         },
         comments: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            user: { select: { id: true, firstName: true, lastName: true } },
           },
-          orderBy: {
-            createdAt: 'asc',
+          orderBy: { createdAt: 'asc' },
+        },
+        // NEW: include project phase
+        projectPhase: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            order: true,
           },
         },
       },
@@ -297,6 +269,23 @@ export class TasksService {
       updateData.completedAt = new Date(updateTaskDto.completedAt);
     }
 
+    // NEW: validate projectPhaseId if provided
+    if (updateTaskDto.projectPhaseId) {
+      const phase = await this.prisma.projectPhase.findUnique({
+        where: { id: updateTaskDto.projectPhaseId },
+      });
+      if (!phase) {
+        throw new NotFoundException('Project phase not found');
+      }
+      if (phase.projectId !== task.projectId) {
+        throw new ForbiddenException(
+          'Project phase does not belong to this project',
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      updateData.projectPhaseId = updateTaskDto.projectPhaseId;
+    }
+
     // Remove attachments from data as we handle them separately
     // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment
     const { attachments, ...taskUpdateData } = updateData;
@@ -306,40 +295,27 @@ export class TasksService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       data: taskUpdateData,
       include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        project: { select: { id: true, name: true } },
         assignee: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         attachments: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            type: true,
-          },
+          select: { id: true, name: true, url: true, type: true },
         },
         comments: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            user: { select: { id: true, firstName: true, lastName: true } },
           },
-          orderBy: {
-            createdAt: 'desc',
+          orderBy: { createdAt: 'desc' },
+        },
+        // NEW: include project phase
+        projectPhase: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            order: true,
           },
         },
       },

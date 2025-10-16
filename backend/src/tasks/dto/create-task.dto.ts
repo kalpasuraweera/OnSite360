@@ -170,4 +170,12 @@ export class CreateTaskDto {
   @IsUUID(undefined, { each: true })
   @IsOptional()
   attachments?: string[];
+
+  @ApiPropertyOptional({
+    description: 'ID of the project phase this task belongs to',
+    example: '123e4567-e89b-12d3-a456-426614174004',
+  })
+  @IsOptional()
+  @IsString()
+  projectPhaseId?: string;
 }
