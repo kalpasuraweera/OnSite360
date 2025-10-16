@@ -11,6 +11,10 @@ import {
   MdNotes,
   MdPeople,
   MdWbSunny,
+  MdCloud,
+  MdOpacity,
+  MdAcUnit,
+  MdFlashOn,
 } from "react-icons/md";
 import moment from "moment";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -127,17 +131,35 @@ export default function DailyLogsManagement() {
     isLoading: projectTasksLoading,
   } = useTasks(selectedProject ? { projectId: selectedProject } : undefined);
 
+  // Weather options (label used as the weather string)
+  const weatherOptions = [
+    { key: "Sunny", Icon: MdWbSunny },
+    { key: "Cloudy", Icon: MdCloud },
+    { key: "Rain", Icon: MdOpacity },
+    { key: "Snow", Icon: MdAcUnit },
+    { key: "Thunderstorm", Icon: MdFlashOn },
+  ];
+
   // Handle form changes
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === "workHours") {
+      // Clamp work hours between 0 and 24
+      const num = Number(value) || 0;
+      const clamped = Math.max(0, Math.min(24, num));
+      setLogForm((prev) => ({
+        ...prev,
+        workHours: clamped,
+      }));
+      return;
+    }
+
     setLogForm((prev) => ({
       ...prev,
       [name]:
-        name === "workHours" || name === "workersPresent"
-          ? Number(value)
-          : value,
+        name === "workersPresent" ? Number(value) : value,
     }));
   };
 
@@ -193,7 +215,7 @@ export default function DailyLogsManagement() {
       projectId: log.projectId,
       weather: log.weather || "",
       notes: log.notes || "",
-      workHours: log.workHours || 0,
+      workHours: Math.max(0, Math.min(24, log.workHours || 0)), // clamp to 0-24
       workersPresent: log.workersPresent || 0,
     });
     setActiveTab("add_log");
@@ -824,14 +846,26 @@ export default function DailyLogsManagement() {
                   <label className="label">
                     <span className="label-text font-medium">Weather</span>
                   </label>
-                  <input
-                    type="text"
-                    name="weather"
-                    className="input input-bordered w-full"
-                    value={logForm.weather}
-                    onChange={handleFormChange}
-                    placeholder="e.g., Sunny, 72°F"
-                  />
+
+                  {/* Weather icon selector */}
+                  <div className="flex gap-2 items-center">
+                    {weatherOptions.map(({ key, Icon }) => (
+                      <button
+                        type="button"
+                        key={key}
+                        className={`btn btn-sm btn-ghost rounded-md flex items-center gap-2 ${
+                          logForm.weather === key ? "bg-primary/10 border-primary" : ""
+                        }`}
+                        onClick={() =>
+                          setLogForm((prev) => ({ ...prev, weather: key }))
+                        }
+                        title={key}
+                      >
+                        <Icon className="text-lg" />
+                        <span className="hidden sm:inline text-sm">{key}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -863,6 +897,7 @@ export default function DailyLogsManagement() {
                     value={logForm.workHours}
                     onChange={handleFormChange}
                     min="0"
+                    max="24" // enforce max in UI
                     step="0.5"
                   />
                 </div>
