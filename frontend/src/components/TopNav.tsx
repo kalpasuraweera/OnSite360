@@ -98,11 +98,13 @@ const TopNav = ({
               </li>
             ) : (
               visibleNotifications.map((notif, idx) => (
-                <li key={notif.id} onClick={() => onNavigate("/notifications")}>
-                  <div className="flex flex-col items-start text-base-content p-3">
-                    <p className="font-bold text-sm sm:text-base">{notif.title}</p>
+                <li key={notif.id} className="w-full" onClick={() => onNavigate("/notifications")}>
+                  <div className="flex flex-col items-start text-base-content p-3 min-w-0 w-full">
+                    <p className="font-bold text-sm sm:text-base truncate w-full">
+                      {notif.title}
+                    </p>
                     {notif.description && (
-                      <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      <p className="text-xs sm:text-sm text-gray-600 truncate w-full">
                         {notif.description}
                       </p>
                     )}
