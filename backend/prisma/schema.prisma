@@ -40,6 +40,7 @@ model User {
   scheduleEvents   ScheduleEvent[]     @relation("EventAssignees") // Events assigned to this user
   createdEvents    ScheduleEvent[]     @relation("EventCreator") // Events created by this user
   markedAttendance ProjectAttendance[] // Attendance records marked by this user
+  notifications     Notification[] // New: notifications for the user (title, description, time)
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -606,4 +607,17 @@ model MaintenanceLog {
   notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// New model to store user notifications
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  time        DateTime // Time of the notification (e.g., when it was generated or scheduled)
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

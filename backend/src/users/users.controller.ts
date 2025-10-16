@@ -57,4 +57,29 @@ export class UsersController {
   getUserProjects(@Param('id') id: string) {
     return this.usersService.getUserProjects(id);
   }
+
+  // New: GET /users/:id/notifications
+  @Get(':id/notifications')
+  async getNotifications(@Param('id') id: string) {
+    return this.usersService.getNotifications(id);
+  }
+
+  // New: PATCH /users/:id/notifications/:notificationId/read
+  @Patch(':id/notifications/:notificationId/read')
+  async markNotificationRead(
+    @Param('id') id: string,
+    @Param('notificationId') notificationId: string,
+  ) {
+    const updated = await this.usersService.markNotificationRead(
+      id,
+      notificationId,
+    );
+    if (!updated) {
+      return {
+        success: false,
+        message: 'Notification not found or not owned by user',
+      };
+    }
+    return { success: true, notification: updated };
+  }
 }

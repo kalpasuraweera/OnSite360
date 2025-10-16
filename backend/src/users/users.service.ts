@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import { User, Notification } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
@@ -213,5 +213,32 @@ export class UsersService {
         isActive: userProject.isActive,
       },
     }));
+  }
+
+  // New: fetch notifications for a given user, most recent first
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { time: 'desc' },
+    });
+  }
+
+  // New: mark a user's notification as read (verifies ownership)
+  async markNotificationRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<Notification | null> {
+    // Ensure the notification belongs to the user
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification || notification.userId !== userId) {
+      return null;
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true, updatedAt: new Date() },
+    });
   }
 }

@@ -1250,7 +1250,7 @@ const ScheduleManagement = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
+                  {/* <button
                     className="btn btn-primary"
                     onClick={() => {
                       setEditingLog(null);
@@ -1267,7 +1267,7 @@ const ScheduleManagement = () => {
                   >
                     <MdAdd className="mr-2" />
                     Add Log
-                  </button>
+                  </button> */}
                   {selectedDate && (
                     <div className="badge badge-primary badge-lg">
                       {dailyLogs.length} logs

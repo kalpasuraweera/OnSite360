@@ -127,14 +127,6 @@ function App() {
           ),
         },
         {
-          path: "schedule-management",
-          element: (
-            <PermissionRoute pageId="schedule-management">
-              <ScheduleManagement />
-            </PermissionRoute>
-          ),
-        },
-        {
           path: "document-management",
           element: (
             <PermissionRoute pageId="document-management">
