@@ -3,12 +3,14 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './types/auth.types';
 import { RegisterDto } from './dto/register.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private notifications: NotificationsService,
   ) {}
 
   async signIn(email: string, pass: string): Promise<any> {
@@ -17,21 +19,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
     const payload = { sub: user.id, email: user.email };
-    return {
+    const result = {
       accessToken: await this.jwtService.signAsync(
         { ...payload, type: 'access' },
         {
-          expiresIn: '1h', // Set access token expiration
+          expiresIn: '1h',
         },
       ),
       refreshToken: await this.jwtService.signAsync(
         { ...payload, type: 'refresh' },
         {
-          expiresIn: '7d', // Set refresh token expiration
+          expiresIn: '7d',
         },
       ),
       user,
     };
+
+    // Non-blocking: create a sign-in notification for the user
+    // Do not fail the sign-in flow if notification creation fails
+    this.notifications
+      .sendNotification(
+        user.id,
+        'New sign-in',
+        `A new sign-in to your OnSite360 account was detected at ${new Date().toLocaleString()}.`,
+        { sendEmail: false },
+      )
+      .catch((err) => {
+        // Minimal logging; don't surface to client
+        console.error('Failed to create sign-in notification:', err);
+      });
+
+    return result;
   }
 
   async register(user: RegisterDto): Promise<any> {
