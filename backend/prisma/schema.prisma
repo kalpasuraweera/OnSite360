@@ -347,6 +347,9 @@ model DailyLog {
   summary        String // Summary of work done
   issues         String? // Any issues encountered
   notes          String? // Additional notes
+  location       String? // Location where work is being performed
+  coordinates    Json? // Geographic coordinates as JSON: { "latitude": 40.7128, "longitude": -74.0060 }
+  images         String[] // Array of image URLs
   loggedById     String
   logger         User            @relation(fields: [loggedById], references: [id])
   activities     DailyActivity[]
@@ -363,6 +366,8 @@ model DailyActivity {
   dailyLog    DailyLog     @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
   activity    String // Description of activity
   location    String? // Where the activity took place
+  coordinates Json? // Geographic coordinates as JSON: { "latitude": 40.7128, "longitude": -74.0060 }
+  images      String[] // Array of image URLs for this activity
 
   // NEW: optional association to a Task
   taskId      String?

@@ -89,6 +89,24 @@ export class ScheduleService {
             name: true,
           },
         },
+        // NEW: include tasks for each phase
+        tasks: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            // include basic phase linkage
+            projectPhase: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
       orderBy: { order: 'asc' },
     });
@@ -102,6 +120,23 @@ export class ScheduleService {
           select: {
             id: true,
             name: true,
+          },
+        },
+        // NEW: include tasks for the phase
+        tasks: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            projectPhase: {
+              select: { id: true, name: true },
+            },
           },
         },
       },
@@ -809,6 +844,21 @@ export class ScheduleService {
       );
     }
 
+    // If a taskId is provided, validate it and ensure it's in the same project
+    let taskConnect: { connect: { id: string } } | undefined;
+    if (createDailyActivityDto.taskId) {
+      const task = await this.prisma.task.findUnique({
+        where: { id: createDailyActivityDto.taskId },
+      });
+      if (!task) {
+        throw new NotFoundException('Task not found');
+      }
+      if (task.projectId !== log.projectId) {
+        throw new ForbiddenException('Task does not belong to this project');
+      }
+      taskConnect = { connect: { id: task.id } };
+    }
+
     const { startTime, endTime, ...activityData } = createDailyActivityDto;
 
     return this.prisma.dailyActivity.create({
@@ -816,6 +866,8 @@ export class ScheduleService {
         ...activityData,
         startTime: startTime ? new Date(startTime) : undefined,
         endTime: endTime ? new Date(endTime) : undefined,
+        // persist taskId if provided
+        ...(taskConnect ? { taskId: createDailyActivityDto.taskId } : {}),
       },
       include: {
         dailyLog: {
@@ -831,6 +883,26 @@ export class ScheduleService {
                 email: true,
               },
             },
+          },
+        },
+        // NEW: include task details
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            progress: true,
+            dueDate: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            projectPhaseId: true,
           },
         },
       },
@@ -877,6 +949,26 @@ export class ScheduleService {
             },
           },
         },
+        // NEW: include task details
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            progress: true,
+            dueDate: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            projectPhaseId: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -900,6 +992,26 @@ export class ScheduleService {
                 email: true,
               },
             },
+          },
+        },
+        // NEW: include task details
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            progress: true,
+            dueDate: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            projectPhaseId: true,
           },
         },
       },
@@ -958,6 +1070,19 @@ export class ScheduleService {
       throw new ForbiddenException('Cannot edit activities from previous days');
     }
 
+    // If updating taskId, validate task belongs to same project
+    if (updateDailyActivityDto.taskId) {
+      const task = await this.prisma.task.findUnique({
+        where: { id: updateDailyActivityDto.taskId },
+      });
+      if (!task) {
+        throw new NotFoundException('Task not found');
+      }
+      if (task.projectId !== activity.dailyLog.projectId) {
+        throw new ForbiddenException('Task does not belong to this project');
+      }
+    }
+
     const { startTime, endTime, ...updateData } = updateDailyActivityDto;
 
     return this.prisma.dailyActivity.update({
@@ -981,6 +1106,26 @@ export class ScheduleService {
                 email: true,
               },
             },
+          },
+        },
+        // NEW: include task details
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            progress: true,
+            dueDate: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            projectPhaseId: true,
           },
         },
       },
