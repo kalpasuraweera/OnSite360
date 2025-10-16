@@ -31,6 +31,7 @@ import {
   type CreateDailyActivityDto,
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
+import { useTasks, type Task } from "../hooks/useTasks";
 
 type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
@@ -83,6 +84,7 @@ export default function DailyLogsManagement() {
       | "ON_HOLD"
       | "CANCELLED",
     notes: "",
+    taskId: "", // NEW: selected related task id
   });
 
   // Get auth user
@@ -118,6 +120,12 @@ export default function DailyLogsManagement() {
   const createActivityMutation = useCreateDailyActivity();
   const updateActivityMutation = useUpdateDailyActivity();
   const deleteActivityMutation = useDeleteDailyActivity();
+
+  // Fetch project tasks for optional related task selection in activity modal
+  const {
+    data: projectTasks = [],
+    isLoading: projectTasksLoading,
+  } = useTasks(selectedProject ? { projectId: selectedProject } : undefined);
 
   // Handle form changes
   const handleFormChange = (
@@ -233,6 +241,7 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
+          taskId: activityForm.taskId || undefined, // INCLUDE taskId on update
         };
         await updateActivityMutation.mutateAsync({
           id: editingActivity.id,
@@ -248,6 +257,7 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
+          taskId: activityForm.taskId || undefined, // INCLUDE taskId on create
         };
         await createActivityMutation.mutateAsync(activityData);
       }
@@ -263,6 +273,7 @@ export default function DailyLogsManagement() {
         progress: 0,
         status: "NOT_STARTED",
         notes: "",
+        taskId: "", // reset selected task
       });
     } catch (error) {
       console.error("Error saving activity:", error);
@@ -280,6 +291,7 @@ export default function DailyLogsManagement() {
       progress: 0,
       status: "NOT_STARTED",
       notes: "",
+      taskId: "", // reset selected task
     });
     setShowActivityModal(true);
   };
@@ -302,6 +314,7 @@ export default function DailyLogsManagement() {
       progress: activity.progress || 0,
       status: activity.status,
       notes: activity.notes || "",
+      taskId: (activity as any).taskId || (activity.task ? activity.task.id : "") || "",
     });
     setShowActivityModal(true);
   };
@@ -1070,6 +1083,18 @@ export default function DailyLogsManagement() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
+                          {/* Show related task if available */}
+                          {((activity as any).task || activity.taskId) && (
+                            <div className="mb-2">
+                              <span className="text-sm text-base-content/60">Related task: </span>
+                              <span className="font-medium text-sm">
+                                { (activity as any).task?.title ||
+                                  projectTasks.find(t => t.id === (activity as any).taskId)?.title ||
+                                  `Task (${(activity as any).taskId})` }
+                              </span>
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-2 mb-3">
                             <h4 className="text-lg font-semibold text-gray-800">
                               {activity.activity}
@@ -1264,6 +1289,28 @@ export default function DailyLogsManagement() {
                   />
                 </div>
 
+                {/* Related Task select */}
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">Related Task (optional)</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={activityForm.taskId || ""}
+                    onChange={(e) =>
+                      setActivityForm((prev) => ({ ...prev, taskId: e.target.value }))
+                    }
+                    disabled={!selectedProject || projectTasksLoading}
+                  >
+                    <option value="">No related task</option>
+                    {projectTasks.map((t: Task) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-control">
                     <label className="label">
@@ -1384,6 +1431,7 @@ export default function DailyLogsManagement() {
                         progress: 0,
                         status: "NOT_STARTED",
                         notes: "",
+                        taskId: "", // reset selected task
                       });
                     }}
                   >

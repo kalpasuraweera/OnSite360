@@ -183,6 +183,7 @@ export interface CreateDailyActivityDto {
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
+  taskId?: string; // NEW: optional related task id
 }
 
 export interface UpdateDailyActivityDto {
@@ -193,6 +194,7 @@ export interface UpdateDailyActivityDto {
   progress?: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
+  taskId?: string; // NEW: optional related task id
 }
 
 // PROJECT PHASE HOOKS
