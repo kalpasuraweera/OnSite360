@@ -25,6 +25,7 @@ import DailyLogsManagement from "./pages/DailyLogsManagement";
 import Notifications from "./pages/Notifications";
 import IssueReporting from "./pages/IssueReporting";
 import Copilot from "./pages/Copilot";
+import RiskManagement from "./pages/RiskManagement";
 
 const queryClient = new QueryClient();
 
@@ -154,6 +155,14 @@ function App() {
           element: (
             <PermissionRoute pageId="task-management">
               <TaskManagement />
+            </PermissionRoute>
+          ),
+        },
+        {
+          path: "risk-management",
+          element: (
+            <PermissionRoute pageId="risk-management">
+              <RiskManagement />
             </PermissionRoute>
           ),
         },
