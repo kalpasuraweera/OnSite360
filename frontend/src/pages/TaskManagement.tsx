@@ -91,6 +91,8 @@ interface TaskFilters {
     start: string;
     end: string;
   };
+  // NEW: selected project phase id (single-select)
+  phaseId?: string;
 }
 
 type MainTab = "all-tasks" | "task-details" | "analytics";
@@ -1191,11 +1193,13 @@ const TaskManagement = () => {
     statuses: [],
     assignees: [],
     dateRange: { start: "", end: "" },
+    phaseId: "", // NEW
   });
   const [appliedFilters, setAppliedFilters] = useState<TaskFilters>({
     statuses: [],
     assignees: [],
     dateRange: { start: "", end: "" },
+    phaseId: "", // NEW
   });
   const [showFilters, setShowFilters] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -1228,6 +1232,10 @@ const TaskManagement = () => {
   const deleteTaskMutation = useDeleteTask();
   const updateTaskMutation = useUpdateTask();
   const createTaskMutation = useCreateTask();
+
+  // Fetch project phases for the selected project (used by filters and modals)
+  const { data: projectPhases = [], isLoading: phasesLoading } =
+    useProjectPhases(selectedProject);
 
   // Transform API tasks to TaskCard format
   const transformApiTaskToCard = useCallback((task: ApiTask): TaskCard => {
@@ -1317,6 +1325,13 @@ const TaskManagement = () => {
       );
     }
 
+    // NEW: filter by project phase id if provided
+    if (appliedFilters.phaseId) {
+      filtered = filtered.filter(
+        (task) => task.projectPhaseId && task.projectPhaseId === appliedFilters.phaseId
+      );
+    }
+
     return filtered;
   }, [tasks, appliedFilters]);
 
@@ -1359,7 +1374,8 @@ const TaskManagement = () => {
       appliedFilters.statuses.length > 0 ||
       appliedFilters.assignees.length > 0 ||
       appliedFilters.dateRange.start !== "" ||
-      appliedFilters.dateRange.end !== ""
+      appliedFilters.dateRange.end !== "" ||
+      !!appliedFilters.phaseId // include phase filter
     );
   }, [appliedFilters]);
 
@@ -1369,11 +1385,13 @@ const TaskManagement = () => {
       statuses: [],
       assignees: [],
       dateRange: { start: "", end: "" },
+      phaseId: "", // reset phase filter
     });
     setAppliedFilters({
       statuses: [],
       assignees: [],
       dateRange: { start: "", end: "" },
+      phaseId: "", // reset phase filter
     });
   };
 
@@ -1702,6 +1720,31 @@ const TaskManagement = () => {
                 }
               />
             </div>
+          </div>
+
+          {/* NEW: Project Phase Filter */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Phase</label>
+            <select
+              className="select select-sm select-bordered w-full"
+              value={filters.phaseId || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilters((prev) => ({ ...prev, phaseId: val || "" }));
+              }}
+              disabled={phasesLoading}
+            >
+              <option value="">All Phases</option>
+              {phasesLoading ? (
+                <option>Loading phases...</option>
+              ) : (
+                projectPhases.map((phase: ProjectPhase) => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.parentId ? `└─ ${phase.name}` : phase.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
         </div>
       </div>
@@ -2161,6 +2204,7 @@ const TaskManagement = () => {
                       renderColumnHeader={({ title, cards }) => (
                         <div
                           className={`flex justify-between items-center mb-4 p-3 rounded-xl ${
+                           
                             title === "Pending"
                               ? "bg-info "
                               : title === "In Progress"
