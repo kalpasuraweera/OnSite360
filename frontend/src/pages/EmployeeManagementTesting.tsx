@@ -4318,3 +4318,108 @@ export default EmployeeManagement;
                 )}
               </div>
 
+              {/* Team Performance Metrics Chart */}
+              <div className="bg-base-100 rounded-xl p-4 mt-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  Team Performance Metrics
+                </h3>
+                {userTaskStats ? (
+                  <div className="h-80">
+                    <Line
+                      data={{
+                        labels: [
+                          "Team Completion Rate",
+                          "On-Time Performance",
+                          "Active Projects Coverage",
+                        ],
+                        datasets: [
+                          {
+                            label: "Performance %",
+                            data: [
+                              userTaskStats.totalTasks > 0
+                                ? Math.round(
+                                    (userTaskStats.completedTasks /
+                                      userTaskStats.totalTasks) *
+                                      100
+                                  )
+                                : 0,
+                              userTaskStats.totalTasks > 0
+                                ? Math.round(
+                                    ((userTaskStats.totalTasks -
+                                      userTaskStats.overdueTasks) /
+                                      userTaskStats.totalTasks) *
+                                      100
+                                  )
+                                : 0,
+                              actualProjects && employees.length > 0
+                                ? Math.round(
+                                    (employees.filter((emp) =>
+                                      actualProjects.some((project: Project) =>
+                                        project.userProjects?.some(
+                                          (up: {
+                                            userId: string;
+                                            id: string;
+                                            projectRole: string;
+                                            accessLevel: number;
+                                            isActive: boolean;
+                                            user: {
+                                              id: string;
+                                              firstName: string;
+                                              lastName: string;
+                                              email: string;
+                                            };
+                                          }) => up.userId === emp.id
+                                        )
+                                      )
+                                    ).length /
+                                      employees.length) *
+                                      100
+                                  )
+                                : 0,
+                            ],
+                            borderColor: "rgba(16, 185, 129, 1)",
+                            backgroundColor: "rgba(16, 185, 129, 0.1)",
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "rgba(16, 185, 129, 1)",
+                            pointBorderColor: "rgba(16, 185, 129, 1)",
+                            pointRadius: 6,
+                          },
+                        ],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                          title: {
+                            display: true,
+                            text: "Overall Team Performance Indicators",
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                              callback: function (value) {
+                                return value + "%";
+                              },
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-80">
+                    <span className="text-gray-500">
+                      Loading performance data...
+                    </span>
+                  </div>
+                )}
+              </div>
+
