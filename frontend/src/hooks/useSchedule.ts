@@ -170,6 +170,8 @@ export interface CreateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
+  // Geographic coordinates of the log (optional) - shape matches Prisma JSON { lat, lng }
+  coordinates?: { lat: number; lng: number } | null;
 }
 
 export interface UpdateDailyLogDto {
@@ -179,6 +181,7 @@ export interface UpdateDailyLogDto {
   notes?: string;
   workHours?: number;
   workersPresent?: number;
+  coordinates?: { lat: number; lng: number } | null;
 }
 
 export interface CreateDailyActivityDto {

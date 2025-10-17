@@ -113,7 +113,7 @@ export const useUser = (id: string) => {
 // Create a new user
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (newUser: CreateUserDto) => {
       const { data } = await instance.post("/users", newUser);
@@ -129,7 +129,7 @@ export const useCreateUser = () => {
 // Update a user
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, user }: { id: string; user: UpdateUserDto }) => {
       const { data } = await instance.patch(`/users/${id}`, user);
@@ -146,7 +146,7 @@ export const useUpdateUser = () => {
 // Delete a user
 export const useDeleteUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await instance.delete(`/users/${id}`);
@@ -207,7 +207,7 @@ export const useMarkNotificationRead = () => {
       notificationId: string;
     }) => {
       const { data } = await instance.patch(
-        `/users/${userId}/notifications/${notificationId}/read`,
+        `/users/${userId}/notifications/${notificationId}/read`
       );
       return data;
     },
@@ -223,6 +223,6 @@ export const useMarkNotificationRead = () => {
   // Return a small, well-typed shape so callers can use loading and mutateAsync reliably
   return {
     mutateAsync: mutation.mutateAsync,
-    loading: (mutation as any).isLoading ?? (mutation as any).isPending ?? false,
+    loading: mutation.isPending ?? false,
   };
 };
