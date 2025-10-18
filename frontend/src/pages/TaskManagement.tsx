@@ -731,6 +731,7 @@ const EditTaskModal = ({
                   setEditTask((t) => ({ ...t, dueDate: e.target.value }))
                 }
                 disabled={isSubmitting}
+                min={new Date().toISOString().split("T")[0]} // Prevent past dates
               />
             </div>
           </div>
@@ -1833,16 +1834,9 @@ const TaskManagement = () => {
         : 0;
 
     return (
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <MdBarChart />
-            Task Analytics
-          </h2>
-        </div>
-
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200 shadow-xl shadow-neutral-400/20">
             <div className="stat ">
               <div className="stat-figure text-primary">
                 <MdAssignment className="text-2xl" />
@@ -1852,7 +1846,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-success">
                 <MdTrendingUp className="text-2xl" />
@@ -1864,7 +1858,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-warning">
                 <MdSchedule className="text-2xl" />
@@ -1876,7 +1870,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-info">
                 <MdCalendarToday className="text-2xl" />
@@ -1888,128 +1882,129 @@ const TaskManagement = () => {
             </div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Status Distribution */}
-          <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Status Distribution</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Pending</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-neutral h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.pending / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.pending}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">In Progress</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-warning h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.inProgress / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.inProgress}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Completed</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-success h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.completed / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.completed}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Cancelled</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-error h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.cancelled / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.cancelled}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Priority Distribution */}
-          <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Priority Distribution</h3>
-            <div className="space-y-3">
-              {Object.entries(priorityCounts).map(([priority, count]) => (
-                <div
-                  key={priority}
-                  className="flex justify-between items-center"
-                >
-                  <span className="text-sm capitalize">{priority}</span>
+        <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Status Distribution */}
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Status Distribution</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Pending</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 bg-base-300 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${
-                          priority === "critical"
-                            ? "bg-error"
-                            : priority === "high"
-                            ? "bg-warning"
-                            : priority === "medium"
-                            ? "bg-info"
-                            : "bg-success"
-                        }`}
+                        className="bg-neutral h-2 rounded-full"
                         style={{
                           width: `${
-                            totalTasks > 0 ? (count / totalTasks) * 100 : 0
+                            totalTasks > 0
+                              ? (statusCounts.pending / totalTasks) * 100
+                              : 0
                           }%`,
                         }}
                       ></div>
                     </div>
-                    <span className="text-sm w-8 text-right">{count}</span>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.pending}
+                    </span>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">In Progress</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-warning h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.inProgress / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.inProgress}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Completed</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-success h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.completed / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.completed}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Cancelled</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-error h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.cancelled / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.cancelled}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Priority Distribution */}
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Priority Distribution</h3>
+              <div className="space-y-3">
+                {Object.entries(priorityCounts).map(([priority, count]) => (
+                  <div
+                    key={priority}
+                    className="flex justify-between items-center"
+                  >
+                    <span className="text-sm capitalize">{priority}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-base-300 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            priority === "critical"
+                              ? "bg-error"
+                              : priority === "high"
+                              ? "bg-warning"
+                              : priority === "medium"
+                              ? "bg-info"
+                              : "bg-success"
+                          }`}
+                          style={{
+                            width: `${
+                              totalTasks > 0 ? (count / totalTasks) * 100 : 0
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm w-8 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
