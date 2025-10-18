@@ -7,6 +7,16 @@ import {
   MdAdd,
   MdEdit,
   MdDelete,
+  MdAttachFile,
+  MdNotes,
+  MdLocationOn,
+  MdPhoto,
+  MdPictureAsPdf,
+  MdFilePresent,
+  MdDownload,
+  MdAssignment,
+  MdAccessTime,
+  MdWork,
 } from "react-icons/md";
 import { Calendar, momentLocalizer, type View } from "react-big-calendar";
 import moment from "moment";
@@ -1250,24 +1260,6 @@ const ScheduleManagement = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {/* <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setEditingLog(null);
-                      setLogForm({
-                        date: moment().format("YYYY-MM-DD"),
-                        projectId: selectedProject,
-                        weather: "",
-                        notes: "",
-                        workHours: 0,
-                        workersPresent: 0,
-                      });
-                      setShowLogModal(true);
-                    }}
-                  >
-                    <MdAdd className="mr-2" />
-                    Add Log
-                  </button> */}
                   {selectedDate && (
                     <div className="badge badge-primary badge-lg">
                       {dailyLogs.length} logs
@@ -1285,47 +1277,164 @@ const ScheduleManagement = () => {
                   {dailyLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="border border-base-300 rounded-xl p-6 bg-base-100 hover:shadow-md transition-shadow"
+                      className="bg-base-100 rounded-xl p-6 border border-base-300 shadow-sm hover:shadow-xl hover:shadow-neutral/10 transition-all duration-200"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold">Daily Log</h3>
-                            {log.logger && (
-                              <span className="text-sm text-base-content/60">
-                                by {log.logger.firstName} {log.logger.lastName}
-                              </span>
-                            )}
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-blue-100 p-3 rounded-xl">
+                              <MdCalendarToday className="text-blue-600 text-lg" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-800">
+                                Daily Log
+                              </h3>
+                              <div className="flex items-center gap-2">
+                                {log.logger && (
+                                  <span className="text-sm text-base-content/60">
+                                    by {log.logger.firstName} {log.logger.lastName}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-500">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {moment(log.createdAt).format("MMM D, YYYY [at] h:mm A")}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-base-content/60 mb-3">
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             {log.weather && (
-                              <span className="flex items-center gap-1">
-                                <MdWbSunny />
-                                Weather: {log.weather}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <MdWbSunny className="text-orange-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Weather:
+                                </span>
+                                <span className="text-sm">{log.weather}</span>
+                              </div>
                             )}
                             {log.workHours && (
-                              <span className="flex items-center gap-1">
-                                <MdSchedule />
-                                Work Hours: {log.workHours}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <MdSchedule className="text-blue-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Work Hours:
+                                </span>
+                                <span className="text-sm">{log.workHours}</span>
+                              </div>
                             )}
                             {log.workersPresent && (
-                              <span className="flex items-center gap-1">
-                                <MdGroup />
-                                Workers: {log.workersPresent}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <MdGroup className="text-purple-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Workers:
+                                </span>
+                                <span className="text-sm">{log.workersPresent}</span>
+                              </div>
+                            )}
+                            {/* Show coordinates if available */}
+                            {log.coordinates && (
+                              <div className="flex items-center gap-2">
+                                <MdLocationOn className="text-blue-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Location:
+                                </span>
+                                <a
+                                  href={`https://www.google.com/maps?q=${log.coordinates.lat},${log.coordinates.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:underline"
+                                >
+                                  View on map
+                                </a>
+                              </div>
+                            )}
+                            
+                            {/* Show file attachments count if available */}
+                            {log.files && log.files.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <MdAttachFile className="text-amber-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Files:
+                                </span>
+                                <span className="text-sm">
+                                  {log.files.length}
+                                </span>
+                              </div>
                             )}
                           </div>
+                          
                           {log.summary && (
-                            <p className="text-base-content/80 mb-3">
-                              {log.summary}
-                            </p>
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MdAssignment className="text-green-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Summary:
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">
+                                {log.summary}
+                              </p>
+                            </div>
                           )}
+                          
                           {log.notes && (
-                            <p className="text-base-content/70 text-sm mb-3">
-                              <strong>Notes:</strong> {log.notes}
-                            </p>
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MdNotes className="text-purple-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Notes:
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">
+                                {log.notes}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* File Attachments Section */}
+                          {log.files && log.files.length > 0 && (
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MdAttachFile className="text-amber-500" />
+                                <span className="text-sm font-medium text-gray-600">
+                                  Attachments:
+                                </span>
+                                <span className="badge badge-sm">
+                                  {log.files.length}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-base-200 rounded">
+                                {log.files.map((fileUrl, idx) => {
+                                  const fileName = fileUrl.split("/").pop() || fileUrl;
+                                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+                                  const fullUrl = `${import.meta.env.VITE_DOCUMENTS_URL}${fileUrl}`;
+
+                                  return (
+                                    <a
+                                      key={idx}
+                                      href={fullUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      download={fileName}
+                                      className="bg-white p-3 rounded-lg border border-base-300 flex items-center gap-3 hover:shadow-md transition-shadow"
+                                    >
+                                      <div className="bg-blue-50 p-2 rounded-lg">
+                                        {isImage ? <MdPhoto className="text-blue-500" /> : 
+                                         /\.pdf$/i.test(fileName) ? <MdPictureAsPdf className="text-red-500" /> : 
+                                         <MdFilePresent className="text-gray-500" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{fileName}</p>
+                                        <p className="text-xs text-gray-500">
+                                          {isImage ? "Image" : fileName.split(".").pop()?.toUpperCase()}
+                                        </p>
+                                      </div>
+                                      <MdDownload className="text-gray-400" />
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           )}
                         </div>
                         {user &&
@@ -1334,13 +1443,13 @@ const ScheduleManagement = () => {
                             moment().format("YYYY-MM-DD") && (
                             <div className="flex gap-2">
                               <button
-                                className="btn btn-sm btn-ghost"
+                                className="btn btn-sm btn-outline hover:btn-info"
                                 onClick={() => handleEditLog(log)}
                               >
                                 <MdEdit />
                               </button>
                               <button
-                                className="btn btn-sm btn-ghost text-error"
+                                className="btn btn-sm btn-outline btn-error hover:btn-error"
                                 onClick={() => handleDeleteLog(log)}
                               >
                                 <MdDelete />
@@ -1352,8 +1461,16 @@ const ScheduleManagement = () => {
                       {/* Activities */}
                       <div className="border-t border-base-300 pt-4">
                         <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-semibold">Activities</h4>
-                          {user &&
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 p-2 rounded-lg">
+                              <MdWork className="text-blue-600" />
+                            </div>
+                            <h4 className="font-semibold">Activities</h4>
+                            {log.activities && log.activities.length > 0 && (
+                              <span className="badge badge-sm">{log.activities.length}</span>
+                            )}
+                          </div>
+                          {/* {user &&
                             user.id === log.loggedById &&
                             moment(log.date).format("YYYY-MM-DD") ===
                               moment().format("YYYY-MM-DD") && (
@@ -1364,89 +1481,212 @@ const ScheduleManagement = () => {
                                 <MdAdd className="mr-1" />
                                 Add Activity
                               </button>
-                            )}
+                            )} */}
                         </div>
                         {log.activities && log.activities.length > 0 ? (
                           <div className="space-y-3">
                             {log.activities.map((activity) => (
                               <div
                                 key={activity.id}
-                                className="flex items-start justify-between p-3 bg-base-200 rounded-lg"
+                                className="bg-base-200 rounded-lg p-4 border border-base-300 shadow-sm"
                               >
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium">
-                                      {activity.activity}
-                                    </span>
-                                    {activity.status && (
-                                      <span
-                                        className={`badge badge-sm ${
-                                          activity.status === "COMPLETED"
-                                            ? "badge-success"
-                                            : activity.status === "IN_PROGRESS"
-                                            ? "badge-warning"
-                                            : activity.status === "ON_HOLD"
-                                            ? "badge-error"
-                                            : "badge-ghost"
-                                        }`}
-                                      >
-                                        {activity.status.replace("_", " ")}
-                                      </span>
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    {/* Task reference if exists */}
+                                    {activity.taskId && activity.task && (
+                                      <div className="mb-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <MdAssignment className="text-blue-600 text-lg" />
+                                          <span className="text-sm font-bold text-gray-700">
+                                            Related Task: {activity.task.title}
+                                          </span>
+                                        </div>
+                                      </div>
                                     )}
-                                  </div>
-                                  <div className="flex gap-4 text-xs text-base-content/60">
-                                    {activity.startTime && activity.endTime && (
-                                      <span>
-                                        {moment(activity.startTime).format(
-                                          "HH:mm"
-                                        )}{" "}
-                                        -{" "}
-                                        {moment(activity.endTime).format(
-                                          "HH:mm"
-                                        )}
-                                      </span>
-                                    )}
-                                    {activity.progress !== undefined && (
-                                      <span>{activity.progress}% complete</span>
-                                    )}
-                                  </div>
-                                  {activity.notes && (
-                                    <p className="text-xs text-base-content/70 mt-1">
-                                      {activity.notes}
-                                    </p>
-                                  )}
-                                </div>
-                                {user &&
-                                  user.id === log.loggedById &&
-                                  moment(log.date).format("YYYY-MM-DD") ===
-                                    moment().format("YYYY-MM-DD") && (
-                                    <div className="flex gap-1">
-                                      <button
-                                        className="btn btn-xs btn-ghost"
-                                        onClick={() =>
-                                          handleEditActivity(activity)
-                                        }
-                                      >
-                                        <MdEdit />
-                                      </button>
-                                      <button
-                                        className="btn btn-xs btn-ghost text-error"
-                                        onClick={() =>
-                                          handleDeleteActivity(activity.id)
-                                        }
-                                      >
-                                        <MdDelete />
-                                      </button>
+                                  
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <h4 className="text-lg font-semibold text-gray-800">
+                                        {activity.activity}
+                                      </h4>
+                                      {activity.status && (
+                                        <span
+                                          className={`badge ${
+                                            activity.status === "COMPLETED"
+                                              ? "badge-success"
+                                              : activity.status === "IN_PROGRESS"
+                                              ? "badge-warning"
+                                              : activity.status === "ON_HOLD"
+                                              ? "badge-error"
+                                              : "badge-ghost"
+                                          }`}
+                                        >
+                                          {activity.status.replace("_", " ")}
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                      {activity.startTime && activity.endTime && (
+                                        <div className="flex items-center gap-2">
+                                          <MdAccessTime className="text-gray-400" />
+                                          <span className="text-sm text-gray-600">
+                                            {moment(activity.startTime).format("HH:mm")} -{" "}
+                                            {moment(activity.endTime).format("HH:mm")}
+                                          </span>
+                                        </div>
+                                      )}
+                                      
+                                      {activity.progress !== undefined &&
+                                        activity.progress !== null && (
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm text-gray-600 font-medium">
+                                              Progress: {activity.progress}%
+                                            </span>
+                                          </div>
+                                        )}
+                                    </div>
+
+                                    {/* Show location if available */}
+                                    {activity.coordinates && (
+                                      <div className="flex items-center gap-2 mb-4">
+                                        <MdLocationOn className="text-blue-500" />
+                                        <span className="text-sm font-medium text-gray-600">
+                                          Location:
+                                        </span>
+                                        <a
+                                          href={`https://www.google.com/maps?q=${activity.coordinates.lat},${activity.coordinates.lng}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-blue-600 hover:underline"
+                                        >
+                                          View on map
+                                        </a>
+                                      </div>
+                                    )}
+
+                                    {activity.progress !== undefined &&
+                                      activity.progress !== null && (
+                                        <div className="mb-4">
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                              <div
+                                                className={`h-3 rounded-full transition-all duration-300 ${
+                                                  activity.status === "COMPLETED"
+                                                    ? "bg-green-500"
+                                                    : activity.status === "IN_PROGRESS"
+                                                    ? "bg-blue-500"
+                                                    : "bg-gray-400"
+                                                }`}
+                                                style={{ width: `${activity.progress}%` }}
+                                              ></div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    {activity.notes && (
+                                      <div className="bg-base-300 p-3 rounded-lg mb-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <MdNotes className="text-gray-400" />
+                                          <span className="text-sm font-medium text-gray-600">
+                                            Notes:
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700">
+                                          {activity.notes}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Show activity attachments if any */}
+                                    {activity.files && activity.files.length > 0 && (
+                                      <div className="mt-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <MdAttachFile className="text-amber-500" />
+                                          <span className="text-sm font-medium text-gray-600">
+                                            Attachments:
+                                          </span>
+                                          <span className="badge badge-sm">
+                                            {activity.files.length}
+                                          </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {activity.files.map((fileUrl, idx) => {
+                                            const fileName = fileUrl.split("/").pop() || fileUrl;
+                                            const fullUrl = `${import.meta.env.VITE_DOCUMENTS_URL}${fileUrl}`;
+                                            return (
+                                              <a
+                                                key={idx}
+                                                href={fullUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                download={fileName}
+                                                className="bg-base-100 p-2 rounded flex items-center gap-2 hover:bg-base-300 transition-colors text-sm"
+                                              >
+                                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(fileName) ? 
+                                                  <MdPhoto className="text-blue-500" /> : 
+                                                  /\.pdf$/i.test(fileName) ? 
+                                                  <MdPictureAsPdf className="text-red-500" /> : 
+                                                  <MdFilePresent className="text-gray-500" />}
+                                                <span className="truncate flex-1">
+                                                  {fileName}
+                                                </span>
+                                                <MdDownload className="text-gray-500" />
+                                              </a>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {user &&
+                                    user.id === log.loggedById &&
+                                    moment(log.date).format("YYYY-MM-DD") ===
+                                      moment().format("YYYY-MM-DD") && (
+                                      <div className="flex gap-1">
+                                        <button
+                                          className="btn btn-xs btn-outline hover:btn-info"
+                                          onClick={() =>
+                                            handleEditActivity(activity)
+                                          }
+                                          title="Edit Activity"
+                                        >
+                                          <MdEdit />
+                                        </button>
+                                        <button
+                                          className="btn btn-xs btn-outline btn-error hover:btn-error"
+                                          onClick={() =>
+                                            handleDeleteActivity(activity.id)
+                                          }
+                                          title="Delete Activity"
+                                        >
+                                          <MdDelete />
+                                        </button>
+                                      </div>
+                                    )}
+                                </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-base-content/60">
-                            <p className="text-sm">
+                          <div className="text-center py-8 bg-base-200 rounded-lg border border-base-300">
+                            <MdWork className="mx-auto text-4xl text-gray-300 mb-4" />
+                            <h4 className="text-lg font-semibold text-gray-600 mb-2">
+                              No Activities Yet
+                            </h4>
+                            <p className="text-gray-500 mb-6">
                               No activities recorded for this log.
                             </p>
+                            {user && user.id === log.loggedById && (
+                              <button
+                                className="btn btn-primary gap-2"
+                                onClick={() => handleAddActivity(log)}
+                              >
+                                <MdAdd />
+                                Add First Activity
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
