@@ -110,6 +110,7 @@ export interface DailyActivity {
     title: string;
     status: string;
   };
+  coordinates?: { lng: number; lat: number } | null;
 }
 
 // DTOs
@@ -193,6 +194,7 @@ export interface CreateDailyActivityDto {
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
   taskId?: string; // NEW: optional related task id
+  coordinates?: { lng: number; lat: number } | null;
 }
 
 export interface UpdateDailyActivityDto {
@@ -204,6 +206,7 @@ export interface UpdateDailyActivityDto {
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
   notes?: string;
   taskId?: string; // NEW: optional related task id
+  coordinates?: { lng: number; lat: number } | null;
 }
 
 // PROJECT PHASE HOOKS

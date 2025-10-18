@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   MdAdd,
   MdEdit,
@@ -15,6 +15,7 @@ import {
   MdOpacity,
   MdAcUnit,
   MdFlashOn,
+  MdLocationOn,
 } from "react-icons/md";
 import moment from "moment";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -36,7 +37,10 @@ import {
   type UpdateDailyActivityDto,
 } from "../hooks/useSchedule";
 import { useTasks, type Task } from "../hooks/useTasks";
-import { useProjectAttendanceByDate, type AttendanceRecord } from "../hooks/useProjects";
+import {
+  useProjectAttendanceByDate,
+  type AttendanceRecord,
+} from "../hooks/useProjects";
 
 type DailyLogTab = "view_all" | "view_specific" | "add_log" | "view_details";
 
@@ -65,6 +69,14 @@ export default function DailyLogsManagement() {
   const [selectedLogForActivity, setSelectedLogForActivity] =
     useState<DailyLog | null>(null);
 
+  // Geolocation state
+  const [coordinates, setCoordinates] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
   // Form state for adding/editing logs
   // Note: workHours and workersPresent are removed; attendance counts come from workforce
   const [logForm, setLogForm] = useState<Partial<CreateDailyLogDto>>({
@@ -72,6 +84,7 @@ export default function DailyLogsManagement() {
     projectId: "",
     weather: "",
     notes: "",
+    coordinates: null, // Add coordinates field
   });
 
   // Activity form state
@@ -89,6 +102,7 @@ export default function DailyLogsManagement() {
       | "CANCELLED",
     notes: "",
     taskId: "", // NEW: selected related task id
+    coordinates: null as { lat: number; lng: number } | null, // Add coordinates field
   });
 
   // Get auth user
@@ -116,11 +130,13 @@ export default function DailyLogsManagement() {
     useDailyLogsByDate(selectedProject, selectedDate);
 
   // Attendance for selected project/date (default to logForm.date or today when adding)
-  const attendanceDateForQuery = selectedDate || logForm.date || moment().format("YYYY-MM-DD");
-  const {
-    data: attendanceResponse,
-    isLoading: attendanceLoading,
-  } = useProjectAttendanceByDate(selectedProject, attendanceDateForQuery as string);
+  const attendanceDateForQuery =
+    selectedDate || logForm.date || moment().format("YYYY-MM-DD");
+  const { data: attendanceResponse, isLoading: attendanceLoading } =
+    useProjectAttendanceByDate(
+      selectedProject,
+      attendanceDateForQuery as string
+    );
 
   // Mutations
   const createLogMutation = useCreateDailyLog();
@@ -174,6 +190,7 @@ export default function DailyLogsManagement() {
           date: logForm.date as string,
           weather: (logForm.weather as string) || undefined,
           notes: (logForm.notes as string) || undefined,
+          coordinates: logForm.coordinates || undefined, // Include coordinates in update
         };
         await updateLogMutation.mutateAsync({
           id: editingLog.id,
@@ -190,6 +207,7 @@ export default function DailyLogsManagement() {
         projectId: selectedProject,
         weather: "",
         notes: "",
+        coordinates: null,
       });
       setEditingLog(null);
       setActiveTab("view_all");
@@ -252,7 +270,8 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
-          taskId: activityForm.taskId || undefined, // INCLUDE taskId on update
+          taskId: activityForm.taskId || undefined,
+          coordinates: activityForm.coordinates || undefined, // Include coordinates in update
         };
         await updateActivityMutation.mutateAsync({
           id: editingActivity.id,
@@ -268,7 +287,8 @@ export default function DailyLogsManagement() {
           progress: activityForm.progress || undefined,
           status: activityForm.status,
           notes: activityForm.notes || undefined,
-          taskId: activityForm.taskId || undefined, // INCLUDE taskId on create
+          taskId: activityForm.taskId || undefined,
+          coordinates: activityForm.coordinates || undefined, // Include coordinates in create
         };
         await createActivityMutation.mutateAsync(activityData);
       }
@@ -284,7 +304,8 @@ export default function DailyLogsManagement() {
         progress: 0,
         status: "NOT_STARTED",
         notes: "",
-        taskId: "", // reset selected task
+        taskId: "",
+        coordinates: null,
       });
     } catch (error) {
       console.error("Error saving activity:", error);
@@ -302,7 +323,8 @@ export default function DailyLogsManagement() {
       progress: 0,
       status: "NOT_STARTED",
       notes: "",
-      taskId: "", // reset selected task
+      taskId: "",
+      coordinates: coordinates, // Include current coordinates
     });
     setShowActivityModal(true);
   };
@@ -326,6 +348,7 @@ export default function DailyLogsManagement() {
       status: activity.status,
       notes: activity.notes || "",
       taskId: activity.taskId || (activity.task ? activity.task.id : "") || "",
+      coordinates: activity.coordinates || coordinates, // Use existing coordinates or current ones
     });
     setShowActivityModal(true);
   };
@@ -345,6 +368,59 @@ export default function DailyLogsManagement() {
     setSelectedLogForDetails(log);
     setActiveTab("view_details");
   };
+
+  // Function to get current geolocation - wrapped in useCallback
+  const getCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setGeoLoading(true);
+    setGeoError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCoordinates(coords);
+        setGeoLoading(false);
+
+        // Update the forms with the coordinates - convert to expected format
+        setLogForm((prev) => ({
+          ...prev,
+          coordinates: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          },
+        }));
+        if (showActivityModal) {
+          setActivityForm((prev) => ({ ...prev, coordinates: coords }));
+        }
+      },
+      (error) => {
+        console.log(error);
+        setGeoError(`Geolocation fetch failed`);
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+  }, [showActivityModal]); // Add dependencies that the function uses from component scope
+
+  // Add effects to get geolocation when the tab changes or activity modal opens
+  useEffect(() => {
+    if (activeTab === "add_log") {
+      getCurrentLocation();
+    }
+  }, [activeTab, getCurrentLocation]);
+
+  useEffect(() => {
+    if (showActivityModal) {
+      getCurrentLocation();
+    }
+  }, [showActivityModal, getCurrentLocation]);
 
   // Check if projects is available and is an array
   const hasProjects = Array.isArray(projects) && projects.length > 0;
@@ -767,6 +843,35 @@ export default function DailyLogsManagement() {
               {editingLog ? "Edit Daily Log" : "Add New Daily Log"}
             </h2>
 
+            {/* Display geolocation status */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <MdLocationOn
+                  className={geoError ? "text-red-500" : "text-green-500"}
+                />
+                <span className="text-sm font-medium">
+                  {geoLoading
+                    ? "Fetching location..."
+                    : geoError
+                    ? geoError
+                    : coordinates
+                    ? `Location captured: ${coordinates.lat.toFixed(
+                        6
+                      )}, ${coordinates.lng.toFixed(6)}`
+                    : "Location not available"}
+                </span>
+                {!geoLoading && (geoError || !coordinates) && (
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    onClick={getCurrentLocation}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            </div>
+
             <form onSubmit={handleLogSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -819,13 +924,20 @@ export default function DailyLogsManagement() {
                 {/* Show attendance summary pulled from workforce attendance for the selected date */}
                 <div className="p-4 bg-base-100 rounded-lg border border-base-300">
                   {attendanceLoading ? (
-                    <div className="text-sm text-gray-500">Loading attendance...</div>
+                    <div className="text-sm text-gray-500">
+                      Loading attendance...
+                    </div>
                   ) : attendanceResponse && attendanceResponse.data ? (
                     (() => {
-                      const crew: (AttendanceRecord & { crewMemberId: string })[] =
-                        attendanceResponse.data.crewAttendance || [];
-                      const present = crew.filter((c) => c.status === "Present").length;
-                      const absent = crew.filter((c) => c.status !== "Present").length;
+                      const crew: (AttendanceRecord & {
+                        crewMemberId: string;
+                      })[] = attendanceResponse.data.crewAttendance || [];
+                      const present = crew.filter(
+                        (c) => c.status === "Present"
+                      ).length;
+                      const absent = crew.filter(
+                        (c) => c.status !== "Present"
+                      ).length;
                       return (
                         <div className="flex items-center gap-6">
                           <div className="flex items-center gap-2">
@@ -847,7 +959,8 @@ export default function DailyLogsManagement() {
                     })()
                   ) : (
                     <div className="text-sm text-yellow-600">
-                      Attendance not marked for this date. Please mark attendance in Workforce Management before creating a log.
+                      Attendance not marked for this date. Please mark
+                      attendance in Workforce Management before creating a log.
                     </div>
                   )}
                 </div>
@@ -1239,6 +1352,36 @@ export default function DailyLogsManagement() {
               <h3 className="text-lg font-bold mb-4">
                 {editingActivity ? "Edit Activity" : "Add Activity"}
               </h3>
+
+              {/* Display geolocation status for activity */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2">
+                  <MdLocationOn
+                    className={geoError ? "text-red-500" : "text-green-500"}
+                  />
+                  <span className="text-sm font-medium">
+                    {geoLoading
+                      ? "Fetching location..."
+                      : geoError
+                      ? geoError
+                      : coordinates
+                      ? `Location captured: ${coordinates.lat.toFixed(
+                          6
+                        )}, ${coordinates.lng.toFixed(6)}`
+                      : "Location not available"}
+                  </span>
+                  {!geoLoading && (geoError || !coordinates) && (
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-outline"
+                      onClick={getCurrentLocation}
+                    >
+                      Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <form onSubmit={handleActivitySubmit} className="space-y-4">
                 <div className="form-control">
                   <label className="label">
@@ -1409,6 +1552,7 @@ export default function DailyLogsManagement() {
                         status: "NOT_STARTED",
                         notes: "",
                         taskId: "", // reset selected task
+                        coordinates: null,
                       });
                     }}
                   >
