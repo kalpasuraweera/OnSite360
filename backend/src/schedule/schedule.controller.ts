@@ -168,7 +168,7 @@ export class ScheduleController {
   @ApiOperation({ summary: 'Create a new daily log' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FilesInterceptor('attachments', 5, {
+    FilesInterceptor('files', 5, {
       storage: diskStorage({
         destination: (req, file, cb) => {
           const uploadPath = './uploads/dailylogs';
@@ -301,7 +301,7 @@ export class ScheduleController {
   @ApiOperation({ summary: 'Create a new daily activity' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FilesInterceptor('attachments', 5, {
+    FilesInterceptor('files', 5, {
       storage: diskStorage({
         destination: (req, file, cb) => {
           const uploadPath = './uploads/activities';

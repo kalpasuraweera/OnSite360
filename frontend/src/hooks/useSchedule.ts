@@ -92,6 +92,7 @@ export interface DailyLog {
   _count?: {
     activities: number;
   };
+  files?: string[]; // Array of file URLs
 }
 
 // Daily Activity interfaces
@@ -121,6 +122,7 @@ export interface DailyActivity {
     };
   };
   coordinates?: { lng: number; lat: number } | null;
+  files?: string[]; // Array of file URLs
 }
 
 // DTOs
@@ -183,6 +185,7 @@ export interface CreateDailyLogDto {
   workersPresent?: number;
   // Geographic coordinates of the log (optional) - shape matches Prisma JSON { lat, lng }
   coordinates?: { lat: number; lng: number } | null;
+  files?: string[]; // Array of file URLs
 }
 
 export interface UpdateDailyLogDto {
@@ -193,6 +196,7 @@ export interface UpdateDailyLogDto {
   workHours?: number;
   workersPresent?: number;
   coordinates?: { lat: number; lng: number } | null;
+  files?: string[]; // Array of file URLs
 }
 
 export interface CreateDailyActivityDto {
@@ -205,6 +209,7 @@ export interface CreateDailyActivityDto {
   notes?: string;
   taskId?: string; // NEW: optional related task id
   coordinates?: { lng: number; lat: number } | null;
+  files?: string[]; // Array of file URLs
 }
 
 export interface UpdateDailyActivityDto {
@@ -217,6 +222,7 @@ export interface UpdateDailyActivityDto {
   notes?: string;
   taskId?: string; // NEW: optional related task id
   coordinates?: { lng: number; lat: number } | null;
+  files?: string[]; // Array of file URLs
 }
 
 // PROJECT PHASE HOOKS
