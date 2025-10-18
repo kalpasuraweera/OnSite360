@@ -312,6 +312,7 @@ const ProjectOversight = () => {
     };
 
     return (
+      // Add team member modal
       <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
           <h3 className="text-lg font-semibold mb-4">Add User to Project</h3>
@@ -384,7 +385,7 @@ const ProjectOversight = () => {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-1">Project Oversight</h1>
       <p className="text-gray-500 mb-6">
         Monitor and manage construction projects
@@ -444,15 +445,15 @@ const ProjectOversight = () => {
           onChange={() => setActiveTab("projects")}
         />
         {activeTab === "projects" && (
-          <div className="tab-content p-5">
+          <div className="tab-content lg:p-5">
             {/* Projects List Section */}
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+            <div className="bg-base-200 border border-base-300 p-3 sm:p-4 lg:p-6 rounded-2xl">
               <h2 className="text-2xl font-bold">Projects</h2>
               <p className="text-neutral-500 mb-4">
                 Overview of all construction projects
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-2 lg:space-y-4 sm:space-y-3 ">
                 {isLoading ? (
                   <div className="flex justify-center py-8">
                     <span className="loading loading-spinner loading-lg"></span>
@@ -481,32 +482,25 @@ const ProjectOversight = () => {
                       className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
                     >
                       <div className="flex-1">
-                        <div className="flex justify-between items-center gap-4">
-                          <div className="flex gap-5">
-                            {/* project name and id */}
-                            <div className="font-semibold text-xl">
-                              {project.name}
-                            </div>
-                            <div className="badge badge-neutral">
-                              {project.id}
-                            </div>
+                        {/* Project Name with Edit Button */}
+                        <div className="flex justify-between sm:flex-row gap-2 items-center">
+                          <div className="font-semibold text-xl">
+                            {project.name}
                           </div>
-                          <div className="flex gap-2 mt-4 lg:mt-0">
-                            <button
-                              className="btn btn-primary btn-md"
-                              onClick={() => handleViewProject(project)}
-                            >
-                              View Details
-                            </button>
-                            <button
-                              className="btn btn-md btn-soft"
-                              onClick={() => handleEditProject(project)}
-                            >
-                              Edit
-                            </button>
-                          </div>
+                          <button
+                            className="btn btn-sm btn-soft"
+                            onClick={() => handleEditProject(project)}
+                          >
+                            Edit
+                          </button>
                         </div>
 
+                        {/* Project ID */}
+                        <div className="badge badge-neutral my-2">
+                          {project.id}
+                        </div>
+
+                        {/* Project Description */}
                         <div className="text-gray-500 text-sm my-4">
                           {project.description
                             ? project.description.length > 100
@@ -514,6 +508,8 @@ const ProjectOversight = () => {
                               : project.description
                             : "No description provided"}
                         </div>
+
+                        {/* Tags */}
                         <div className="flex flex-wrap gap-2 mb-3">
                           <span className="badge badge-neutral">
                             {project.type || "Unknown Type"}
@@ -527,53 +523,55 @@ const ProjectOversight = () => {
                             </span>
                           )}
                         </div>
-                        <div className="">
-                          {project.budget && (
-                            <span className="font-semibold text-lg bg-base-200 p-2 rounded-xl">
-                              Budget: {formatCurrency(project.budget)}
+
+                        {/* Project Size, Start and End Date */}
+                        <div className="flex gap-4 text-sm text-gray-600 mb-3">
+                          {project.squareFeet && (
+                            <span>
+                              Size: {project.squareFeet.toLocaleString()} sq ft
+                            </span>
+                          )}
+                          {project.startDate && (
+                            <span>
+                              Start:{" "}
+                              {new Date(project.startDate).toLocaleDateString()}
+                            </span>
+                          )}
+                          {project.endDate && (
+                            <span>
+                              End:{" "}
+                              {new Date(project.endDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
-                        <div className="flex justify-between items-center">
-                          <div className="flex gap-4 text-sm text-gray-600">
-                            {project.squareFeet && (
-                              <span>
-                                Size: {project.squareFeet.toLocaleString()} sq
-                                ft
-                              </span>
-                            )}
-                            {project.startDate && (
-                              <span>
-                                Start:{" "}
-                                {new Date(
-                                  project.startDate
-                                ).toLocaleDateString()}
-                              </span>
-                            )}
-                            {project.endDate && (
-                              <span>
-                                End:{" "}
-                                {new Date(project.endDate).toLocaleDateString()}
-                              </span>
-                            )}
+
+                        {/* Small Cards */}
+                        {project._count && (
+                          <div className="flex gap-2 font-medium">
+                            <span className="badge bg-info/10 p-6">
+                              📋 {project._count.tasks}
+                            </span>
+                            <span className="badge bg-secondary/10 p-6">
+                              📄 {project._count.documents}
+                            </span>
+                            <span className="badge bg-success/10 p-6">
+                              💬 {project._count.threads}
+                            </span>
+                            <span className="badge bg-error/10 p-6">
+                              ⚠️ {project._count.issue}
+                            </span>
                           </div>
-                          {project._count && (
-                            <div className="flex gap-2 font-medium">
-                              <span className="badge bg-info/10 p-6">
-                                📋 {project._count.tasks} Tasks
-                              </span>
-                              <span className="badge bg-secondary/10 p-6">
-                                📄 {project._count.documents} Docs
-                              </span>
-                              <span className="badge bg-success/10 p-6">
-                                💬 {project._count.threads} Threads
-                              </span>
-                              <span className="badge bg-error/10 p-6">
-                                ⚠️ {project._count.issue} Issues
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-4 lg:mt-0">
+                        <button
+                          className="btn btn-primary btn-md hidden lg:block"
+                          onClick={() => handleViewProject(project)}
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
                   ))
