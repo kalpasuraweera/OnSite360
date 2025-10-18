@@ -16,6 +16,14 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { useUserProjects } from "../hooks/useUsers";
 import type { UserProject } from "../hooks/useUsers";
 import { useProjectPhases, type ProjectPhase } from "../hooks/useSchedule";
+import {
+  useProject,
+  useProjectExpenses,
+  useCreateExpense,
+  useUpdateExpense,
+  useDeleteExpense,
+  type Expense,
+} from "../hooks/useProjects";
 
 ChartJS.register(
   ArcElement,
@@ -28,77 +36,37 @@ ChartJS.register(
   LineElement
 );
 
-const dummyExpenses = [
-  {
-    id: "1",
-    date: "2025-10-01",
-    category: "Materials",
-    amount: 1250.5,
-    vendor: "ABC Supplies",
-    note: "Concrete and rebar",
-  },
-  {
-    id: "2",
-    date: "2025-10-03",
-    category: "Labor",
-    amount: 860.0,
-    vendor: "WorkerCo",
-    note: "Overtime",
-  },
-  {
-    id: "3",
-    date: "2025-10-07",
-    category: "Equipment",
-    amount: 430.25,
-    vendor: "EquipRentals",
-    note: "Mini excavator",
-  },
-  {
-    id: "4",
-    date: "2025-10-10",
-    category: "Permits",
-    amount: 120.0,
-    vendor: "City Hall",
-    note: "Permit fees",
-  },
-  {
-    id: "5",
-    date: "2025-10-12",
-    category: "Materials",
-    amount: 540.0,
-    vendor: "XYZ Lumber",
-    note: "Framing lumber",
-  },
-];
-
-interface ExpenseItem {
-  id: string;
-  date: string;
-  category: string;
-  amount: number;
-  vendor: string;
-  note?: string;
-}
-
 const RiskManagement: React.FC = () => {
   const { user } = useAuthStore();
   const { data: projects = [] } = useUserProjects(user?.id || "");
   const [selectedProject, setSelectedProject] = useState<string>(
     projects?.[0]?.id || ""
   );
+
+  // project details (includes costToDate)
+  const { data: projectDetail } = useProject(selectedProject);
+
+  // expenses from backend
+  const { data: expenses = [], refetch: refetchExpenses } =
+    useProjectExpenses(selectedProject);
+
+  const createExpenseMutation = useCreateExpense();
+  const updateExpenseMutation = useUpdateExpense();
+  const deleteExpenseMutation = useDeleteExpense();
+
+  // show modal state and editing expense
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  // file attachments (for create/update) - stored in parent to persist across modal
+  const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(
+    null
+  );
+
   const [showRiskAlert, setShowRiskAlert] = useState<boolean>(true);
 
   // schedule-based insights
   const { data: projectPhases = [] } = useProjectPhases(selectedProject);
-
-  // local expense state and modal
-  const [expenses, setExpenses] = useState<ExpenseItem[]>(() =>
-    dummyExpenses.map((d) => ({ ...d }))
-  );
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(
-    null
-  );
 
   useEffect(() => {
     if (!selectedProject && projects && projects.length > 0) {
@@ -146,10 +114,14 @@ const RiskManagement: React.FC = () => {
     return p?.budget || 0;
   }, [projects, selectedProject]);
 
-  const totalSpent = useMemo(
-    () => expenses.reduce((s, e) => s + e.amount, 0),
-    [expenses]
-  );
+  // Use project's costToDate when available as total spent
+  const totalSpent = useMemo(() => {
+    if (projectDetail && typeof projectDetail.costToDate === "number") {
+      return projectDetail.costToDate;
+    }
+    // fallback to summing fetched expenses
+    return (expenses || []).reduce((s, e) => s + (e.amount || 0), 0);
+  }, [projectDetail, expenses]);
 
   const budgetBarData = useMemo(
     () => ({
@@ -232,25 +204,88 @@ const RiskManagement: React.FC = () => {
     return { labels, datasets } as unknown as ChartData<"line">;
   }, [projectPhases]);
 
-  // CRUD handlers (local only)
+  // CRUD handlers calling API
   const handleAddExpense = () => {
     setEditingExpense(null);
+    setSelectedReceiptFile(null);
     setShowExpenseModal(true);
   };
-  const handleEditExpense = (e: ExpenseItem) => {
+
+  const handleEditExpense = (e: Expense) => {
     setEditingExpense(e);
+    setSelectedReceiptFile(null); // user may upload a new receipt if needed
     setShowExpenseModal(true);
   };
-  const handleDeleteExpense = (id: string) => {
-    if (window.confirm("Delete this expense?"))
-      setExpenses((prev) => prev.filter((x) => x.id !== id));
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!selectedProject) return;
+    if (!window.confirm("Delete this expense?")) return;
+    try {
+      await deleteExpenseMutation.mutateAsync({
+        projectId: selectedProject,
+        expenseId: id,
+      });
+      // refetch handled by react-query invalidation; optionally refetch local snapshot
+      await refetchExpenses();
+    } catch (err) {
+      console.error("Failed to delete expense:", err);
+      alert("Failed to delete expense");
+    }
   };
-  const handleSaveExpense = (exp: ExpenseItem) => {
-    if (editingExpense)
-      setExpenses((prev) => prev.map((p) => (p.id === exp.id ? exp : p)));
-    else setExpenses((prev) => [{ ...exp, id: String(Date.now()) }, ...prev]);
-    setShowExpenseModal(false);
-    setEditingExpense(null);
+
+  const handleSaveExpense = async (form: {
+    id?: string;
+    date?: string;
+    category?: string;
+    amount?: number;
+    vendor?: string;
+    notes?: string;
+    currency?: string;
+    isReimbursable?: boolean;
+  }) => {
+    if (!selectedProject) {
+      alert("Select a project first");
+      return;
+    }
+    try {
+      if (editingExpense && editingExpense.id) {
+        await updateExpenseMutation.mutateAsync({
+          projectId: selectedProject,
+          expenseId: editingExpense.id,
+          expense: {
+            amount: form.amount,
+            category: form.category,
+            vendor: form.vendor,
+            date: form.date,
+            notes: form.notes,
+            currency: form.currency,
+            isReimbursable: form.isReimbursable,
+          },
+          file: selectedReceiptFile ?? undefined,
+        });
+      } else {
+        await createExpenseMutation.mutateAsync({
+          projectId: selectedProject,
+          expense: {
+            amount: form.amount!,
+            category: form.category,
+            vendor: form.vendor,
+            date: form.date,
+            notes: form.notes,
+            currency: form.currency,
+            isReimbursable: form.isReimbursable,
+          },
+          file: selectedReceiptFile ?? undefined,
+        });
+      }
+      setShowExpenseModal(false);
+      setEditingExpense(null);
+      setSelectedReceiptFile(null);
+      await refetchExpenses();
+    } catch (err) {
+      console.error("Failed to save expense:", err);
+      alert("Failed to save expense");
+    }
   };
 
   return (
@@ -329,6 +364,11 @@ const RiskManagement: React.FC = () => {
             Budget: ${projectBudget.toFixed(2)} • Spent: $
             {totalSpent.toFixed(2)} • Remaining: $
             {(projectBudget - totalSpent).toFixed(2)}
+            {projectDetail && (
+              <div className="text-xs text-gray-400 mt-1">
+                (Project costToDate: ${projectDetail.costToDate ?? 0})
+              </div>
+            )}
           </div>
         </div>
 
@@ -374,9 +414,6 @@ const RiskManagement: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Expense Records</h3>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-500">
-              Showing sample data (no backend)
-            </div>
             <button
               className="btn btn-sm btn-primary"
               onClick={handleAddExpense}
@@ -394,18 +431,36 @@ const RiskManagement: React.FC = () => {
                 <th>Category</th>
                 <th>Vendor</th>
                 <th>Amount</th>
+                <th>Invoice</th>
                 <th>Note</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {expenses.map((e) => (
+              {(expenses || []).map((e) => (
                 <tr key={e.id}>
-                  <td>{e.date}</td>
+                  <td>{new Date(e.date).toISOString().split("T")[0]}</td>
                   <td>{e.category}</td>
                   <td>{e.vendor}</td>
-                  <td>${e.amount.toFixed(2)}</td>
-                  <td>{e.note}</td>
+                  <td>${(e.amount || 0).toFixed(2)}</td>
+                  <td>
+                    {e.receiptUrl ? (
+                      <a
+                        href={`${
+                          import.meta.env.VITE_DOCUMENTS_URL ||
+                          "http://localhost:3000"
+                        }${e.receiptUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="link"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td>{e.notes}</td>
                   <td>
                     <div className="flex gap-2">
                       <button
@@ -424,55 +479,104 @@ const RiskManagement: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {(!expenses || expenses.length === 0) && (
+                <tr>
+                  <td colSpan={7} className="text-center text-gray-500 py-6">
+                    No expenses found for this project.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Expense modal */}
       {showExpenseModal && (
         <ExpenseModal
           show={showExpenseModal}
           onClose={() => {
             setShowExpenseModal(false);
             setEditingExpense(null);
+            setSelectedReceiptFile(null);
           }}
           onSave={handleSaveExpense}
-          expense={editingExpense || undefined}
+          expense={editingExpense ?? undefined}
+          selectedFile={selectedReceiptFile}
+          onFileChange={(file) => setSelectedReceiptFile(file)}
         />
       )}
     </div>
   );
 };
 
-// Expense Modal component (local only)
+// Expense Modal component (now supports receipt file)
 const ExpenseModal: React.FC<{
   show: boolean;
   onClose: () => void;
-  onSave: (expense: ExpenseItem) => void;
-  expense?: ExpenseItem;
-}> = ({ show, onClose, onSave, expense }) => {
-  const [form, setForm] = useState<ExpenseItem>(
-    expense || {
-      id: "",
-      date: new Date().toISOString().split("T")[0],
-      category: "",
-      amount: 0,
-      vendor: "",
-      note: "",
-    }
-  );
+  onSave: (expense: {
+    id?: string;
+    date?: string;
+    category?: string;
+    amount?: number;
+    vendor?: string;
+    notes?: string;
+    currency?: string;
+    isReimbursable?: boolean;
+  }) => void;
+  expense?: Expense;
+  selectedFile?: File | null;
+  onFileChange?: (file: File | null) => void;
+}> = ({ show, onClose, onSave, expense, selectedFile, onFileChange }) => {
+  const [form, setForm] = useState({
+    id: expense?.id ?? "",
+    date: expense
+      ? new Date(expense.date).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    category: expense?.category ?? "",
+    amount: expense?.amount ?? 0,
+    vendor: expense?.vendor ?? "",
+    notes: expense?.notes ?? "",
+    currency: expense?.currency ?? "USD",
+    isReimbursable: false,
+  });
 
   useEffect(() => {
-    if (expense) setForm(expense);
+    if (expense) {
+      setForm({
+        id: expense.id,
+        date: new Date(expense.date).toISOString().split("T")[0],
+        category: expense.category ?? "",
+        amount: expense.amount ?? 0,
+        vendor: expense.vendor ?? "",
+        notes: expense.notes ?? "",
+        currency: (expense as any).currency ?? "USD",
+        isReimbursable: false,
+      });
+    }
   }, [expense]);
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (onFileChange) onFileChange(f ?? null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.category || !form.vendor) {
-      alert("Please fill category and vendor");
+    if (!form.category || !form.vendor || !form.amount) {
+      alert("Please fill required fields: category, vendor, amount");
       return;
     }
-    onSave({ ...form });
+    onSave({
+      id: form.id || undefined,
+      date: form.date,
+      category: form.category,
+      amount: form.amount,
+      vendor: form.vendor,
+      notes: form.notes,
+      currency: form.currency,
+      isReimbursable: form.isReimbursable,
+    });
   };
 
   if (!show) return null;
@@ -495,6 +599,7 @@ const ExpenseModal: React.FC<{
               onChange={(e) => setForm({ ...form, date: e.target.value })}
             />
           </div>
+
           <div>
             <label className="label">
               <span className="label-text">Category</span>
@@ -505,6 +610,7 @@ const ExpenseModal: React.FC<{
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">
@@ -531,16 +637,49 @@ const ExpenseModal: React.FC<{
               />
             </div>
           </div>
+
+          <div>
+            <label className="label">
+              <span className="label-text">Receipt / Invoice</span>
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+              onChange={handleFileInput}
+              className="file-input file-input-bordered w-full"
+            />
+            {expense?.receiptUrl && !selectedFile && (
+              <div className="text-sm mt-2">
+                Existing:{" "}
+                <a
+                  href={`${
+                    import.meta.env.VITE_DOCUMENTS_URL ||
+                    "http://localhost:3000"
+                  }${expense.receiptUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link"
+                >
+                  View invoice
+                </a>
+              </div>
+            )}
+            {selectedFile && (
+              <div className="text-sm mt-2">Selected: {selectedFile.name}</div>
+            )}
+          </div>
+
           <div>
             <label className="label">
               <span className="label-text">Note</span>
             </label>
             <input
               className="input input-bordered w-full"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </div>
+
           <div className="modal-action">
             <button type="button" className="btn" onClick={onClose}>
               Cancel

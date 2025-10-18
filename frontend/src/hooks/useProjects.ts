@@ -25,6 +25,7 @@ export interface Project {
   description?: string;
   type?: string;
   budget?: number;
+  costToDate?: number; // NEW: total cost for project from backend
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };
@@ -827,6 +828,147 @@ export const useDeleteIssue = () => {
       queryClient.invalidateQueries({ queryKey: ["project-issues", variables.projectId] });
       queryClient.invalidateQueries({ queryKey: ["all-issues"] });
       queryClient.invalidateQueries({ queryKey: ["project-statistics", variables.projectId] });
+    },
+  });
+};
+
+// New: Expense types & hooks
+export interface Expense {
+  id: string;
+  projectId: string;
+  amount: number;
+  currency?: string;
+  vendor?: string;
+  category?: string;
+  date: string;
+  notes?: string | null;
+  receiptUrl?: string | null;
+  createdById?: string | null;
+  isApproved?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const useProjectExpenses = (projectId: string) => {
+  return useQuery({
+    queryKey: ["project-expenses", projectId],
+    queryFn: async () => {
+      const { data } = await instance.get(`/projects/${projectId}/expenses`);
+      return data as Expense[];
+    },
+    enabled: !!projectId,
+  });
+};
+
+export const useCreateExpense = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      expense,
+      file,
+    }: {
+      projectId: string;
+      expense: {
+        amount: number;
+        currency?: string;
+        vendor?: string;
+        category?: string;
+        date?: string;
+        notes?: string;
+        isReimbursable?: boolean;
+      };
+      file?: File | null;
+    }) => {
+      const formData = new FormData();
+      formData.append("amount", String(expense.amount));
+      if (expense.currency) formData.append("currency", expense.currency);
+      if (expense.vendor) formData.append("vendor", expense.vendor);
+      if (expense.category) formData.append("category", expense.category);
+      if (expense.date) formData.append("date", expense.date);
+      if (expense.notes) formData.append("notes", expense.notes);
+      if (typeof expense.isReimbursable !== "undefined")
+        formData.append("isReimbursable", String(expense.isReimbursable));
+      if (file) formData.append("receipts", file);
+
+      const { data } = await instance.post(
+        `/projects/${projectId}/expenses`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return data as Expense;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-expenses", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.projectId] });
+    },
+  });
+};
+
+export const useUpdateExpense = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      expenseId,
+      expense,
+      file,
+    }: {
+      projectId: string;
+      expenseId: string;
+      expense: Partial<{
+        amount: number;
+        currency: string;
+        vendor: string;
+        category: string;
+        date: string;
+        notes: string;
+        isReimbursable: boolean;
+      }>;
+      file?: File | null;
+    }) => {
+      const formData = new FormData();
+      if (typeof expense.amount !== "undefined")
+        formData.append("amount", String(expense.amount));
+      if (expense.currency) formData.append("currency", expense.currency);
+      if (expense.vendor) formData.append("vendor", expense.vendor);
+      if (expense.category) formData.append("category", expense.category);
+      if (expense.date) formData.append("date", expense.date);
+      if (expense.notes) formData.append("notes", expense.notes);
+      if (typeof expense.isReimbursable !== "undefined")
+        formData.append("isReimbursable", String(expense.isReimbursable));
+      if (file) formData.append("receipts", file);
+
+      const { data } = await instance.patch(
+        `/projects/${projectId}/expenses/${expenseId}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return data as Expense;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-expenses", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.projectId] });
+    },
+  });
+};
+
+export const useDeleteExpense = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, expenseId }: { projectId: string; expenseId: string }) => {
+      const { data } = await instance.delete(`/projects/${projectId}/expenses/${expenseId}`);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["project-expenses", variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project", variables.projectId] });
     },
   });
 };
