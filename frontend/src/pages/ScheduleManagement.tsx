@@ -219,7 +219,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
               key={mode}
               onClick={() => handleViewModeChange(mode)}
               className={`btn btn-sm ${
-                viewMode === mode ? "btn-primary" : "btn-outline"
+                viewMode === mode ? "btn-neutral" : "btn-outline"
               }`}
               disabled
             >
@@ -256,7 +256,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
               key={mode}
               onClick={() => handleViewModeChange(mode)}
               className={`btn btn-sm ${
-                viewMode === mode ? "btn-primary" : "btn-outline"
+                viewMode === mode ? "btn-neutral" : "btn-outline"
               }`}
               disabled={isLoading}
             >
@@ -288,7 +288,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
       {/* Gantt Chart Container */}
       <div
-        className="relative w-[1100px] overflow-x-auto border border-base-300 rounded-lg"
+        className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
         style={{ minHeight: "400px" }}
       >
         {isLoading && (
@@ -300,7 +300,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
         <div
           ref={ganttRef}
           className="gantt-target w-full h-full"
-          style={{ minHeight: "400px" }}
+          style={{ minHeight: "400px", maxWidth: "100%" }}
         />
       </div>
     </div>
@@ -864,7 +864,7 @@ const ScheduleManagement = () => {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold">Schedule Management</h1>
@@ -934,12 +934,12 @@ const ScheduleManagement = () => {
           Daily Logs
         </button>
       </div>
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+      <div className="bg-base-200 border border-base-300 p-4 sm:p-6 lg:p-6 rounded-2xl">
         {/* Tab Content */}
-        <div className="mt-4">
+        <div className="">
           {/* Gantt Chart */}
           {activeTab === "gantt" && (
-            <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
+            <div className="bg-base-100 border border-base-300 rounded-2xl p-4 sm:p-6 lg:p-6">
               {phasesLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="loading loading-spinner loading-lg"></div>
