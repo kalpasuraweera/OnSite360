@@ -101,7 +101,6 @@ export default function DailyLogsManagement() {
     weather: "",
     notes: "",
     coordinates: null, // Add coordinates field
-    files: [], // Add files field for storing file links
   });
 
   // Activity form state
@@ -120,7 +119,7 @@ export default function DailyLogsManagement() {
     notes: "",
     taskId: "", // NEW: selected related task id
     coordinates: null as { lat: number; lng: number } | null,
-    files: [] as string[], // Add files field for storing file links
+    files: [] as File[], // Add files field for storing file links
   });
 
   // Get auth user
@@ -225,11 +224,15 @@ export default function DailyLogsManagement() {
 
   // Function to get file icon based on file type
   const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension || '')) {
+    const extension = fileName.split(".").pop()?.toLowerCase();
+
+    if (
+      ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"].includes(
+        extension || ""
+      )
+    ) {
       return <MdPhoto className="text-blue-500" />;
-    } else if (['pdf'].includes(extension || '')) {
+    } else if (["pdf"].includes(extension || "")) {
       return <MdPictureAsPdf className="text-red-500" />;
     } else {
       return <MdFilePresent className="text-gray-500" />;
@@ -242,27 +245,23 @@ export default function DailyLogsManagement() {
     if (!selectedProject) return;
 
     try {
-      // In a real implementation, we would upload files here and get back URLs
-      // For now, we'll just add placeholders for the UI update
-      
       if (editingLog) {
+        // Update existing log - don't include files
         const updateData: UpdateDailyLogDto = {
           date: logForm.date as string,
           weather: (logForm.weather as string) || undefined,
           notes: (logForm.notes as string) || undefined,
           coordinates: logForm.coordinates || undefined,
-          // We would add file URLs here after upload
-          files: logForm.files as string[], // Placeholder for now
         };
         await updateLogMutation.mutateAsync({
           id: editingLog.id,
           log: updateData,
         });
       } else {
+        // Create new log - include files
         await createLogMutation.mutateAsync({
           ...logForm as CreateDailyLogDto,
-          // We would add file URLs here after upload
-          files: [], // Placeholder for now
+          files: logFiles, // Pass files for upload
         });
       }
 
@@ -273,7 +272,6 @@ export default function DailyLogsManagement() {
         weather: "",
         notes: "",
         coordinates: null,
-        files: [],
       });
       setLogFiles([]);
       setEditingLog(null);
@@ -292,7 +290,6 @@ export default function DailyLogsManagement() {
       weather: log.weather || "",
       notes: log.notes || "",
       coordinates: log.coordinates || null,
-      files: log.files || [],
     });
     setLogFiles([]);
     setActiveTab("add_log");
@@ -331,11 +328,8 @@ export default function DailyLogsManagement() {
         return `${logDate}T${time}:00`;
       };
 
-      // In a real implementation, we would upload files here and get back URLs
-      // For now, we'll just add placeholders for the UI update
-
       if (editingActivity) {
-        // Update existing activity
+        // Update existing activity - don't include files
         const activityData: UpdateDailyActivityDto = {
           activity: activityForm.activity || undefined,
           startTime: combineDateTime(activityForm.startTime),
@@ -345,14 +339,13 @@ export default function DailyLogsManagement() {
           notes: activityForm.notes || undefined,
           taskId: activityForm.taskId || undefined,
           coordinates: activityForm.coordinates || undefined,
-          files: activityForm.files, // Include files
         };
         await updateActivityMutation.mutateAsync({
           id: editingActivity.id,
           activity: activityData,
         });
       } else {
-        // Create new activity
+        // Create new activity - include files
         const activityData: CreateDailyActivityDto = {
           activity: activityForm.activity,
           dailyLogId: selectedLogForActivity.id,
@@ -363,9 +356,11 @@ export default function DailyLogsManagement() {
           notes: activityForm.notes || undefined,
           taskId: activityForm.taskId || undefined,
           coordinates: activityForm.coordinates || undefined,
-          files: [], // We would add file URLs here after upload
         };
-        await createActivityMutation.mutateAsync(activityData);
+        await createActivityMutation.mutateAsync({
+          ...activityData,
+          files: activityFiles, // Pass files for upload
+        });
       }
 
       setShowActivityModal(false);
@@ -427,7 +422,7 @@ export default function DailyLogsManagement() {
       notes: activity.notes || "",
       taskId: activity.taskId || (activity.task ? activity.task.id : "") || "",
       coordinates: activity.coordinates || coordinates,
-      files: activity.files || [], // Set existing files
+      files: [], // Set existing files
     });
     setActivityFiles([]);
     setShowActivityModal(true);
@@ -735,7 +730,9 @@ export default function DailyLogsManagement() {
                               <span className="text-sm font-medium text-gray-600">
                                 Files:
                               </span>
-                              <span className="text-sm">{log.files.length}</span>
+                              <span className="text-sm">
+                                {log.files.length}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -1120,7 +1117,7 @@ export default function DailyLogsManagement() {
                 <label className="label">
                   <span className="label-text font-medium">Attachments</span>
                 </label>
-                
+
                 <div className="bg-base-100 p-4 rounded-lg border border-dashed border-gray-300">
                   <div className="flex flex-col items-center justify-center gap-2 mb-4">
                     <MdCloudUpload className="text-3xl text-gray-400" />
@@ -1147,7 +1144,9 @@ export default function DailyLogsManagement() {
                   {/* Show selected files */}
                   {logFiles.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Selected Files:</h4>
+                      <h4 className="text-sm font-medium mb-2">
+                        Selected Files:
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {logFiles.map((file, idx) => (
                           <div
@@ -1156,7 +1155,9 @@ export default function DailyLogsManagement() {
                           >
                             <div className="flex items-center gap-2">
                               {getFileIcon(file.name)}
-                              <span className="text-sm text-ellipsis overflow-hidden">{file.name}</span>
+                              <span className="text-sm text-ellipsis overflow-hidden">
+                                {file.name}
+                              </span>
                               <span className="text-xs text-gray-500">
                                 ({(file.size / 1024).toFixed(1)} KB)
                               </span>
@@ -1175,12 +1176,14 @@ export default function DailyLogsManagement() {
                   )}
 
                   {/* Show existing files for editing */}
-                  {editingLog && logForm.files && logForm.files.length > 0 && (
+                  {/* {editingLog && logForm.files && logForm.files.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Existing Files:</h4>
+                      <h4 className="text-sm font-medium mb-2">
+                        Existing Files:
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {logForm.files.map((fileUrl, idx) => {
-                          const fileName = fileUrl.split('/').pop() || fileUrl;
+                          const fileName = fileUrl.split("/").pop() || fileUrl;
                           return (
                             <div
                               key={`existing-${idx}`}
@@ -1188,7 +1191,9 @@ export default function DailyLogsManagement() {
                             >
                               <div className="flex items-center gap-2">
                                 {getFileIcon(fileName)}
-                                <span className="text-sm text-ellipsis overflow-hidden">{fileName}</span>
+                                <span className="text-sm text-ellipsis overflow-hidden">
+                                  {fileName}
+                                </span>
                               </div>
                               <div className="flex gap-1">
                                 <a
@@ -1202,9 +1207,11 @@ export default function DailyLogsManagement() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setLogForm(prev => ({
+                                    setLogForm((prev) => ({
                                       ...prev,
-                                      files: prev.files?.filter((_, i) => i !== idx)
+                                      files: prev.files?.filter(
+                                        (_, i) => i !== idx
+                                      ),
                                     }));
                                   }}
                                   className="btn btn-xs btn-ghost btn-circle text-red-500"
@@ -1217,7 +1224,7 @@ export default function DailyLogsManagement() {
                         })}
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
 
@@ -1406,44 +1413,53 @@ export default function DailyLogsManagement() {
               )}
 
               {/* File Attachments Section */}
-              {selectedLogForDetails.files && selectedLogForDetails.files.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MdAttachFile className="text-amber-500" />
-                    <span className="text-sm font-medium text-gray-600">
-                      Attachments:
-                    </span>
-                    <span className="badge badge-sm">{selectedLogForDetails.files.length}</span>
+              {selectedLogForDetails.files &&
+                selectedLogForDetails.files.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MdAttachFile className="text-amber-500" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Attachments:
+                      </span>
+                      <span className="badge badge-sm">
+                        {selectedLogForDetails.files.length}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-base-200 rounded">
+                      {selectedLogForDetails.files.map((fileUrl, idx) => {
+                        const fileName = fileUrl.split("/").pop() || fileUrl;
+                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(
+                          fileName
+                        );
+
+                        return (
+                          <a
+                            key={idx}
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white p-3 rounded-lg border border-base-300 flex items-center gap-3 hover:shadow-md transition-shadow"
+                          >
+                            <div className="bg-blue-50 p-2 rounded-lg">
+                              {getFileIcon(fileName)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {fileName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {isImage
+                                  ? "Image"
+                                  : fileName.split(".").pop()?.toUpperCase()}
+                              </p>
+                            </div>
+                            <MdDownload className="text-gray-400" />
+                          </a>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-base-200 rounded">
-                    {selectedLogForDetails.files.map((fileUrl, idx) => {
-                      const fileName = fileUrl.split('/').pop() || fileUrl;
-                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-                      
-                      return (
-                        <a
-                          key={idx}
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-white p-3 rounded-lg border border-base-300 flex items-center gap-3 hover:shadow-md transition-shadow"
-                        >
-                          <div className="bg-blue-50 p-2 rounded-lg">
-                            {getFileIcon(fileName)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{fileName}</p>
-                            <p className="text-xs text-gray-500">
-                              {isImage ? "Image" : fileName.split('.').pop()?.toUpperCase()}
-                            </p>
-                          </div>
-                          <MdDownload className="text-gray-400" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                )}
 
               <div className="text-xs text-gray-500">
                 Logged by {selectedLogForDetails.logger.firstName}{" "}
@@ -1694,12 +1710,17 @@ export default function DailyLogsManagement() {
                             <div className="mt-4">
                               <div className="flex items-center gap-2 mb-2">
                                 <MdAttachFile className="text-amber-500" />
-                                <span className="text-sm font-medium text-gray-600">Attachments:</span>
-                                <span className="badge badge-sm">{activity.files.length}</span>
+                                <span className="text-sm font-medium text-gray-600">
+                                  Attachments:
+                                </span>
+                                <span className="badge badge-sm">
+                                  {activity.files.length}
+                                </span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 {activity.files.map((fileUrl, idx) => {
-                                  const fileName = fileUrl.split('/').pop() || fileUrl;
+                                  const fileName =
+                                    fileUrl.split("/").pop() || fileUrl;
                                   return (
                                     <a
                                       key={idx}
@@ -1709,7 +1730,9 @@ export default function DailyLogsManagement() {
                                       className="bg-base-100 p-2 rounded flex items-center gap-2 hover:bg-base-300 transition-colors text-sm"
                                     >
                                       {getFileIcon(fileName)}
-                                      <span className="truncate flex-1">{fileName}</span>
+                                      <span className="truncate flex-1">
+                                        {fileName}
+                                      </span>
                                       <MdVisibility className="text-gray-500" />
                                     </a>
                                   );
@@ -1998,111 +2021,111 @@ export default function DailyLogsManagement() {
                   />
                 </div>
 
-                {/* File Upload Section for Activity */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Attachments</span>
-                  </label>
-                  
-                  <div className="bg-base-100 p-4 rounded-lg border border-dashed border-gray-300">
-                    <div className="flex flex-col items-center justify-center gap-2 mb-2">
-                      <MdCloudUpload className="text-3xl text-gray-400" />
-                      <p className="text-sm text-gray-500">
-                        Upload photos, documents, or other files
-                      </p>
-                      <input
-                        type="file"
-                        ref={activityFileInputRef}
-                        onChange={handleActivityFileChange}
-                        multiple
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => activityFileInputRef.current?.click()}
-                        className="btn btn-sm btn-outline gap-2"
-                      >
-                        <MdAttachFile />
-                        Select Files
-                      </button>
-                    </div>
+                {/* Only show file upload section when creating new activity */}
+                {!editingActivity && (
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">Attachments</span>
+                    </label>
 
-                    {/* Show selected files */}
-                    {activityFiles.length > 0 && (
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium mb-2">Selected Files:</h4>
-                        <div className="grid grid-cols-1 gap-2">
-                          {activityFiles.map((file, idx) => (
-                            <div
-                              key={`${file.name}-${idx}`}
-                              className="flex items-center justify-between bg-base-200 p-2 rounded"
-                            >
-                              <div className="flex items-center gap-2">
-                                {getFileIcon(file.name)}
-                                <span className="text-sm text-ellipsis overflow-hidden">{file.name}</span>
-                                <span className="text-xs text-gray-500">
-                                  ({(file.size / 1024).toFixed(1)} KB)
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveActivityFile(idx)}
-                                className="btn btn-xs btn-ghost btn-circle"
-                              >
-                                <MdClose />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                    <div className="bg-base-100 p-4 rounded-lg border border-dashed border-gray-300">
+                      <div className="flex flex-col items-center justify-center gap-2 mb-2">
+                        <MdCloudUpload className="text-3xl text-gray-400" />
+                        <p className="text-sm text-gray-500">
+                          Upload photos, documents, or other files
+                        </p>
+                        <input
+                          type="file"
+                          ref={activityFileInputRef}
+                          onChange={handleActivityFileChange}
+                          multiple
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => activityFileInputRef.current?.click()}
+                          className="btn btn-sm btn-outline gap-2"
+                        >
+                          <MdAttachFile />
+                          Select Files
+                        </button>
                       </div>
-                    )}
 
-                    {/* Show existing files when editing */}
-                    {editingActivity && activityForm.files && activityForm.files.length > 0 && (
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium mb-2">Existing Files:</h4>
-                        <div className="grid grid-cols-1 gap-2">
-                          {activityForm.files.map((fileUrl, idx) => {
-                            const fileName = fileUrl.split('/').pop() || fileUrl;
-                            return (
+                      {/* Show selected files */}
+                      {activityFiles.length > 0 && (
+                        <div className="mt-3">
+                          <h4 className="text-sm font-medium mb-2">
+                            Selected Files:
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            {activityFiles.map((file, idx) => (
                               <div
-                                key={`existing-${idx}`}
-                                className="flex items-center justify-between bg-blue-50 p-2 rounded"
+                                key={`${file.name}-${idx}`}
+                                className="flex items-center justify-between bg-base-200 p-2 rounded"
                               >
                                 <div className="flex items-center gap-2">
-                                  {getFileIcon(fileName)}
-                                  <span className="text-sm text-ellipsis overflow-hidden">{fileName}</span>
+                                  {getFileIcon(file.name)}
+                                  <span className="text-sm text-ellipsis overflow-hidden">
+                                    {file.name}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    ({(file.size / 1024).toFixed(1)} KB)
+                                  </span>
                                 </div>
-                                <div className="flex gap-1">
-                                  <a
-                                    href={fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn btn-xs btn-ghost btn-circle"
-                                  >
-                                    <MdVisibility />
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActivityForm(prev => ({
-                                        ...prev,
-                                        files: prev.files.filter((_, i) => i !== idx)
-                                      }));
-                                    }}
-                                    className="btn btn-xs btn-ghost btn-circle text-red-500"
-                                  >
-                                    <MdClose />
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveActivityFile(idx)}
+                                  className="btn btn-xs btn-ghost btn-circle"
+                                >
+                                  <MdClose />
+                                </button>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Show existing files when editing */}
+                {editingActivity && activityForm.files && activityForm.files.length > 0 && (
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">Existing Files</span>
+                    </label>
+                    <div className="bg-base-100 p-4 rounded-lg border border-dashed border-gray-300">
+                      <div className="grid grid-cols-1 gap-2">
+                        {/* {activityForm.files.map((fileUrl, idx) => {
+                          const fileName = fileUrl.split("/").pop() || fileUrl;
+                          return (
+                            <div
+                              key={`existing-${idx}`}
+                              className="flex items-center justify-between bg-blue-50 p-2 rounded"
+                            >
+                              <div className="flex items-center gap-2">
+                                {getFileIcon(fileName)}
+                                <span className="text-sm text-ellipsis overflow-hidden">
+                                  {fileName}
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-xs btn-ghost btn-circle"
+                                >
+                                  <MdVisibility />
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })} */}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-4 justify-end pt-4 border-t">
                   <button

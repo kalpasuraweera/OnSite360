@@ -185,7 +185,7 @@ export interface CreateDailyLogDto {
   workersPresent?: number;
   // Geographic coordinates of the log (optional) - shape matches Prisma JSON { lat, lng }
   coordinates?: { lat: number; lng: number } | null;
-  files?: string[]; // Array of file URLs
+  // No files field in DTO - files are sent separately
 }
 
 export interface UpdateDailyLogDto {
@@ -196,7 +196,7 @@ export interface UpdateDailyLogDto {
   workHours?: number;
   workersPresent?: number;
   coordinates?: { lat: number; lng: number } | null;
-  files?: string[]; // Array of file URLs
+  files?: string[]; // Keep track of existing file URLs
 }
 
 export interface CreateDailyActivityDto {
@@ -209,7 +209,7 @@ export interface CreateDailyActivityDto {
   notes?: string;
   taskId?: string; // NEW: optional related task id
   coordinates?: { lng: number; lat: number } | null;
-  files?: string[]; // Array of file URLs
+  // No files field in DTO - files are sent separately
 }
 
 export interface UpdateDailyActivityDto {
@@ -222,7 +222,7 @@ export interface UpdateDailyActivityDto {
   notes?: string;
   taskId?: string; // NEW: optional related task id
   coordinates?: { lng: number; lat: number } | null;
-  files?: string[]; // Array of file URLs
+  files?: string[]; // Keep track of existing file URLs
 }
 
 // PROJECT PHASE HOOKS
@@ -428,8 +428,40 @@ export const useCreateDailyLog = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newLog: CreateDailyLogDto) => {
-      const { data } = await instance.post("/schedule/daily-logs", newLog);
+    mutationFn: async ({
+      files,
+      ...logData
+    }: CreateDailyLogDto & { files?: File[] }) => {
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      
+      // Append all log data fields
+      formData.append("date", logData.date);
+      formData.append("projectId", logData.projectId);
+      
+      if (logData.weather) formData.append("weather", logData.weather);
+      if (logData.notes) formData.append("notes", logData.notes);
+      if (logData.workHours) formData.append("workHours", String(logData.workHours));
+      if (logData.workersPresent) formData.append("workersPresent", String(logData.workersPresent));
+      
+      // Handle coordinates as JSON
+      if (logData.coordinates) {
+        formData.append("coordinates", JSON.stringify(logData.coordinates));
+      }
+      
+      // Append any file uploads
+      if (files && files.length > 0) {
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+      }
+
+      const { data } = await instance.post("/schedule/daily-logs", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      
       return data;
     },
     onSuccess: (_, variables) => {
@@ -438,7 +470,7 @@ export const useCreateDailyLog = () => {
   });
 };
 
-// Update a daily log
+// Update a daily log - doesn't support file uploads
 export const useUpdateDailyLog = () => {
   const queryClient = useQueryClient();
 
@@ -508,8 +540,42 @@ export const useCreateDailyActivity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newActivity: CreateDailyActivityDto) => {
-      const { data } = await instance.post("/schedule/daily-activities", newActivity);
+    mutationFn: async ({
+      files,
+      ...activityData
+    }: CreateDailyActivityDto & { files?: File[] }) => {
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      
+      // Append all activity data fields
+      formData.append("activity", activityData.activity);
+      formData.append("dailyLogId", activityData.dailyLogId);
+      
+      if (activityData.startTime) formData.append("startTime", activityData.startTime);
+      if (activityData.endTime) formData.append("endTime", activityData.endTime);
+      if (activityData.progress !== undefined) formData.append("progress", String(activityData.progress));
+      if (activityData.status) formData.append("status", activityData.status);
+      if (activityData.notes) formData.append("notes", activityData.notes);
+      if (activityData.taskId) formData.append("taskId", activityData.taskId);
+      
+      // Handle coordinates as JSON
+      if (activityData.coordinates) {
+        formData.append("coordinates", JSON.stringify(activityData.coordinates));
+      }
+      
+      // Append any file uploads
+      if (files && files.length > 0) {
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+      }
+
+      const { data } = await instance.post("/schedule/daily-activities", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      
       return data;
     },
     onSuccess: (_, variables) => {
@@ -519,7 +585,7 @@ export const useCreateDailyActivity = () => {
   });
 };
 
-// Update a daily activity
+// Update a daily activity - doesn't support file uploads
 export const useUpdateDailyActivity = () => {
   const queryClient = useQueryClient();
 
