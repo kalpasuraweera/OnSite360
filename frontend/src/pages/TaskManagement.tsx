@@ -197,7 +197,11 @@ const AddTaskModal = ({
       };
 
       // Validation: require phase if the project has phases
-      if (projectPhases && projectPhases.length > 0 && !taskData.projectPhaseId) {
+      if (
+        projectPhases &&
+        projectPhases.length > 0 &&
+        !taskData.projectPhaseId
+      ) {
         setPhaseError("Please select a project phase.");
         setIsSubmitting(false);
         return;
@@ -232,14 +236,12 @@ const AddTaskModal = ({
         <div className="modal-box w-11/12 max-w-md">
           <h3 className="font-bold text-lg mb-2">Cannot create task</h3>
           <p className="text-sm text-base-content/70 mb-4">
-            This project has no defined phases. Tasks must be assigned to a project phase.
-            Please create project phases first in the Schedule / Phases section before adding tasks.
+            This project has no defined phases. Tasks must be assigned to a
+            project phase. Please create project phases first in the Schedule /
+            Phases section before adding tasks.
           </p>
           <div className="modal-action">
-            <button
-              className="btn"
-              onClick={() => setShowAddModal(false)}
-            >
+            <button className="btn" onClick={() => setShowAddModal(false)}>
               Close
             </button>
           </div>
@@ -435,7 +437,9 @@ const AddTaskModal = ({
 
           <div className="form-control">
             <label className="label">
-              <span className="label-text">Phase <span className="text-error">*</span></span>
+              <span className="label-text">
+                Phase <span className="text-error">*</span>
+              </span>
             </label>
             <select
               className="select select-bordered"
@@ -480,7 +484,9 @@ const AddTaskModal = ({
               className={`btn ${submitSuccess ? "btn-success" : "btn-primary"}`}
               disabled={
                 isSubmitting ||
-                (projectPhases && projectPhases.length > 0 && !newTask.projectPhaseId)
+                (projectPhases &&
+                  projectPhases.length > 0 &&
+                  !newTask.projectPhaseId)
               }
             >
               {submitSuccess ? (
@@ -2039,7 +2045,7 @@ const TaskManagement = () => {
   }
 
   return (
-    <div className="p-8 relative">
+    <div className="p-4 sm:p-6 lg:p-8 relative">
       {/* Global loading overlay for mutations */}
       {(updateTaskMutation.isPending ||
         deleteTaskMutation.isPending ||
@@ -2170,10 +2176,10 @@ const TaskManagement = () => {
             {/* Filters */}
             {showFilters && <FilterPanel />}
 
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+            <div className="bg-base-200 border border-base-300 p-4 rounded-2xl">
               {/* Controls */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center justify-between mb-4">
+                <div className="flex items-center gap-4 mb-2">
                   <button
                     className="btn btn-primary flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -2181,11 +2187,11 @@ const TaskManagement = () => {
                       !selectedProject ||
                       projectDataLoading ||
                       createTaskMutation.isPending ||
-                      phasesLoading ||                    // NEW: disable while phases loading
+                      phasesLoading || // NEW: disable while phases loading
                       (!phasesLoading && projectPhases.length === 0) // NEW: disable if no phases
                     }
                     title={
-                      (!phasesLoading && projectPhases.length === 0)
+                      !phasesLoading && projectPhases.length === 0
                         ? "Create project phases first"
                         : undefined
                     }
@@ -2198,8 +2204,7 @@ const TaskManagement = () => {
                     Add Task
                   </button>
                   <button
-
-                    className="btn btn-outline flex items-center gap-2"
+                    className="btn btn-soft flex items-center gap-2"
                     onClick={handleExport}
                     disabled={filteredTasks.length === 0}
                   >
@@ -2211,7 +2216,7 @@ const TaskManagement = () => {
                 <div className="flex gap-2">
                   <button
                     className={`btn btn-sm ${
-                      viewMode === "kanban" ? "btn-primary" : "btn-outline"
+                      viewMode === "kanban" ? "btn-neutral" : "btn-outline"
                     }`}
                     onClick={() => setViewMode("kanban")}
                   >
@@ -2220,7 +2225,7 @@ const TaskManagement = () => {
                   </button>
                   <button
                     className={`btn btn-sm ${
-                      viewMode === "table" ? "btn-primary" : "btn-outline"
+                      viewMode === "table" ? "btn-neutral" : "btn-outline"
                     }`}
                     onClick={() => setViewMode("table")}
                   >
@@ -2252,7 +2257,10 @@ const TaskManagement = () => {
                       <button
                         className="btn btn-primary"
                         onClick={() => setShowAddModal(true)}
-                        disabled={phasesLoading || (!phasesLoading && projectPhases.length === 0)}
+                        disabled={
+                          phasesLoading ||
+                          (!phasesLoading && projectPhases.length === 0)
+                        }
                         title={
                           !phasesLoading && projectPhases.length === 0
                             ? "Create project phases first"
@@ -2260,7 +2268,9 @@ const TaskManagement = () => {
                         }
                       >
                         <MdAddTask className="mr-2" />
-                        {!phasesLoading && projectPhases.length === 0 ? "Create Phases First" : "Add First Task"}
+                        {!phasesLoading && projectPhases.length === 0
+                          ? "Create Phases First"
+                          : "Add First Task"}
                       </button>
                     )}
                   </div>
