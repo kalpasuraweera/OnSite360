@@ -13,7 +13,16 @@ import {
   BadRequestException,
   Request,
   Query,
+  UseInterceptors,
+  UploadedFiles,
+  ParseFilePipe,
+  MaxFileSizeValidator,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
+import * as fs from 'fs';
 import { ProjectsService } from './projects.service';
 
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -34,6 +43,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '../auth/auth.guard';
+import { CreateExpenseDto } from './dto/create-expense.dto';
+import { UpdateExpenseDto } from './dto/update-expense.dto';
 
 @ApiTags('projects')
 @Controller('projects')
@@ -1034,6 +1045,252 @@ export class ProjectsController {
       console.error('Error deleting project attendance:', error);
       throw new HttpException(
         'Failed to delete project attendance',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Add expense routes
+
+  @ApiOperation({ summary: 'Create a new expense' })
+  @ApiResponse({ status: 201, description: 'Expense created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Post(':id/expenses')
+  @UseInterceptors(
+    FilesInterceptor('receipts', 5, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/expenses';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowed = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'text/plain',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
+  async createExpense(
+    @Param('id') projectId: string,
+    @Body() createExpenseDto: CreateExpenseDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    files: Express.Multer.File[],
+    @Request() req: AuthenticatedRequest,
+  ) {
+    try {
+      const createdById = req.user?.sub;
+      const receiptUrls =
+        files?.map((f) => `/uploads/expenses/${f.filename}`) ?? [];
+      const expense = await this.projectsService.createExpense(
+        projectId,
+        createExpenseDto,
+        createdById,
+        receiptUrls,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Expense created successfully',
+        data: expense,
+      };
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new HttpException(
+        'Failed to create expense',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get all expenses for a project' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project expenses retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/expenses')
+  async getProjectExpenses(@Param('id') projectId: string) {
+    try {
+      const expenses = await this.projectsService.getProjectExpenses(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Project expenses retrieved successfully',
+        data: expenses,
+      };
+    } catch (error) {
+      console.error('Error retrieving project expenses:', error);
+      throw new HttpException(
+        'Failed to retrieve project expenses',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Get an expense by ID' })
+  @ApiResponse({ status: 200, description: 'Expense retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Expense or project not found' })
+  @ApiBearerAuth()
+  @Get(':id/expenses/:expenseId')
+  async getExpense(
+    @Param('id') projectId: string,
+    @Param('expenseId') expenseId: string,
+  ) {
+    try {
+      const expense = await this.projectsService.getExpense(
+        projectId,
+        expenseId,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Expense retrieved successfully',
+        data: expense,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error('Error retrieving expense:', error);
+      throw new HttpException(
+        'Failed to retrieve expense',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Update an expense' })
+  @ApiResponse({ status: 200, description: 'Expense updated successfully' })
+  @ApiResponse({ status: 404, description: 'Expense or project not found' })
+  @ApiBearerAuth()
+  @Patch(':id/expenses/:expenseId')
+  @UseInterceptors(
+    FilesInterceptor('receipts', 1, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/expenses';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        const allowed = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'text/plain',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
+  async updateExpense(
+    @Param('id') projectId: string,
+    @Param('expenseId') expenseId: string,
+    @Body() updateExpenseDto: UpdateExpenseDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    files: Express.Multer.File[],
+    @Request() req: AuthenticatedRequest,
+  ) {
+    try {
+      const updatedById = req.user?.sub;
+      const receiptUrls =
+        files?.map((f) => `/uploads/expenses/${f.filename}`) ?? [];
+      const expense = await this.projectsService.updateExpense(
+        projectId,
+        expenseId,
+        updateExpenseDto,
+        updatedById,
+        receiptUrls,
+      );
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Expense updated successfully',
+        data: expense,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      console.error('Error updating expense:', error);
+      throw new HttpException(
+        'Failed to update expense',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Delete an expense' })
+  @ApiResponse({ status: 200, description: 'Expense deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Expense or project not found' })
+  @ApiBearerAuth()
+  @Delete(':id/expenses/:expenseId')
+  async deleteExpense(
+    @Param('id') projectId: string,
+    @Param('expenseId') expenseId: string,
+  ) {
+    try {
+      await this.projectsService.deleteExpense(projectId, expenseId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Expense deleted successfully',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      console.error('Error deleting expense:', error);
+      throw new HttpException(
+        'Failed to delete expense',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

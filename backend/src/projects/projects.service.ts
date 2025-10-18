@@ -21,6 +21,8 @@ import { UpdateProjectAttendanceDto } from './dto/update-project-attendance.dto'
 import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
+import { CreateExpenseDto } from './dto/create-expense.dto';
+import { UpdateExpenseDto } from './dto/update-expense.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -1447,6 +1449,142 @@ export class ProjectsService {
           },
         },
       },
+    });
+  }
+
+  // Create expense and increment project's costToDate
+  async createExpense(
+    projectId: string,
+    createExpenseDto: CreateExpenseDto,
+    createdById?: string,
+    receiptUrls: string[] = [],
+  ) {
+    // validate project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const receiptUrl = receiptUrls.length > 0 ? receiptUrls[0] : null;
+
+    return await this.prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.create({
+        data: {
+          projectId,
+          amount: createExpenseDto.amount,
+          vendor: createExpenseDto.vendor,
+          category: createExpenseDto.category,
+          notes: createExpenseDto.notes,
+          receiptUrl: receiptUrl ?? undefined,
+          createdById: createdById ?? undefined,
+          isApproved: false,
+        },
+      });
+
+      const newCost = (project.costToDate ?? 0) + createExpenseDto.amount;
+      await tx.project.update({
+        where: { id: projectId },
+        data: { costToDate: newCost },
+      });
+
+      return expense;
+    });
+  }
+
+  // Get list of expenses for a project
+  async getProjectExpenses(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    return this.prisma.expense.findMany({
+      where: { projectId },
+      orderBy: { date: 'desc' },
+    });
+  }
+
+  async getExpense(projectId: string, expenseId: string) {
+    const expense = await this.prisma.expense.findUnique({
+      where: { id: expenseId },
+    });
+    if (!expense || expense.projectId !== projectId)
+      throw new NotFoundException('Expense not found');
+
+    return expense;
+  }
+
+  // Update expense and adjust project's costToDate by delta
+  async updateExpense(
+    projectId: string,
+    expenseId: string,
+    updateExpenseDto: UpdateExpenseDto,
+    updatedById?: string,
+    receiptUrls: string[] = [],
+  ) {
+    const existing = await this.prisma.expense.findUnique({
+      where: { id: expenseId },
+    });
+    if (!existing || existing.projectId !== projectId)
+      throw new NotFoundException('Expense not found');
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const newAmount =
+      updateExpenseDto.amount !== undefined
+        ? updateExpenseDto.amount
+        : existing.amount;
+    const delta = newAmount - existing.amount;
+
+    const receiptUrl = receiptUrls.length > 0 ? receiptUrls[0] : undefined;
+
+    return await this.prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.update({
+        where: { id: expenseId },
+        data: {
+          amount: updateExpenseDto.amount ?? undefined,
+          vendor: updateExpenseDto.vendor ?? undefined,
+          category: updateExpenseDto.category ?? undefined,
+          notes: updateExpenseDto.notes ?? undefined,
+          receiptUrl: receiptUrl ?? existing.receiptUrl ?? undefined,
+          updatedAt: new Date(),
+        },
+      });
+
+      if (delta !== 0) {
+        await tx.project.update({
+          where: { id: projectId },
+          data: { costToDate: (project.costToDate ?? 0) + delta },
+        });
+      }
+
+      return expense;
+    });
+  }
+
+  // Delete expense and decrement project's costToDate
+  async deleteExpense(projectId: string, expenseId: string) {
+    const existing = await this.prisma.expense.findUnique({
+      where: { id: expenseId },
+    });
+    if (!existing || existing.projectId !== projectId)
+      throw new NotFoundException('Expense not found');
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.expense.delete({ where: { id: expenseId } });
+      await tx.project.update({
+        where: { id: projectId },
+        data: { costToDate: (project.costToDate ?? 0) - existing.amount },
+      });
+      return { success: true };
     });
   }
 }
