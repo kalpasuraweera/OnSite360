@@ -78,7 +78,8 @@ const RiskManagement: React.FC = () => {
   const expenseByCategory = useMemo(() => {
     const map: Record<string, number> = {};
     expenses.forEach((e) => {
-      map[e.category] = (map[e.category] || 0) + e.amount;
+      const category = e.category || "No Category";
+      map[category] = (map[category] || 0) + (e.amount || 0);
     });
     return map;
   }, [expenses]);
@@ -550,7 +551,7 @@ const ExpenseModal: React.FC<{
         amount: expense.amount ?? 0,
         vendor: expense.vendor ?? "",
         notes: expense.notes ?? "",
-        currency: (expense as any).currency ?? "USD",
+        currency: expense.currency ?? "USD",
         isReimbursable: false,
       });
     }

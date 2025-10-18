@@ -854,7 +854,7 @@ export const useProjectExpenses = (projectId: string) => {
     queryKey: ["project-expenses", projectId],
     queryFn: async () => {
       const { data } = await instance.get(`/projects/${projectId}/expenses`);
-      return data as Expense[];
+      return data.data as Expense[];
     },
     enabled: !!projectId,
   });
@@ -897,7 +897,7 @@ export const useCreateExpense = () => {
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      return data as Expense;
+      return data.data as Expense;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["project-expenses", variables.projectId] });
@@ -947,7 +947,7 @@ export const useUpdateExpense = () => {
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      return data as Expense;
+      return data.data as Expense;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["project-expenses", variables.projectId] });

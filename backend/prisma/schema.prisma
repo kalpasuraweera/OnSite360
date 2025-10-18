@@ -632,6 +632,7 @@ model Expense {
   projectId    String
   project      Project   @relation(fields: [projectId], references: [id])
   amount       Float     // Expense amount (positive values)
+  currency     String    @default("USD") // Currency code, e.g., "USD", "EUR"
   vendor       String?   // Vendor or payee name
   category     String?   // e.g., "Materials", "Labor", "Equipment", "Permit", "Travel"
   date         DateTime  @default(now())
@@ -640,6 +641,7 @@ model Expense {
   createdById  String?
   createdBy    User?     @relation(fields: [createdById], references: [id])
   // Optional flags for bookkeeping
+  isReimbursable Boolean   @default(false)
   isApproved   Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
