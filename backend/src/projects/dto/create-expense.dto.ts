@@ -1,9 +1,8 @@
-import { IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateExpenseDto {
   @ApiProperty({ example: 1500.5 })
-  @IsNumber()
   amount: number;
 
   @ApiProperty({ required: false, example: 'USD' })
@@ -28,6 +27,5 @@ export class CreateExpenseDto {
 
   @ApiProperty({ required: false, example: false })
   @IsOptional()
-  @IsBoolean()
   isReimbursable?: boolean;
 }

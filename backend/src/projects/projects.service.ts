@@ -1465,13 +1465,26 @@ export class ProjectsService {
     });
     if (!project) throw new NotFoundException('Project not found');
 
+    // parse amount (form-data sends strings)
+    const rawAmount = createExpenseDto.amount;
+    const amount =
+      typeof rawAmount === 'number'
+        ? rawAmount
+        : parseFloat(String(rawAmount ?? ''));
+    if (!Number.isFinite(amount)) {
+      throw new BadRequestException('Invalid amount');
+    }
+    if (amount < 0) {
+      throw new BadRequestException('Amount must be non-negative');
+    }
+
     const receiptUrl = receiptUrls.length > 0 ? receiptUrls[0] : null;
 
     return await this.prisma.$transaction(async (tx) => {
       const expense = await tx.expense.create({
         data: {
           projectId,
-          amount: createExpenseDto.amount,
+          amount, // use parsed numeric amount
           vendor: createExpenseDto.vendor,
           category: createExpenseDto.category,
           notes: createExpenseDto.notes,
@@ -1481,7 +1494,7 @@ export class ProjectsService {
         },
       });
 
-      const newCost = (project.costToDate ?? 0) + createExpenseDto.amount;
+      const newCost = (project.costToDate ?? 0) + amount;
       await tx.project.update({
         where: { id: projectId },
         data: { costToDate: newCost },
@@ -1533,10 +1546,20 @@ export class ProjectsService {
     });
     if (!project) throw new NotFoundException('Project not found');
 
-    const newAmount =
-      updateExpenseDto.amount !== undefined
-        ? updateExpenseDto.amount
-        : existing.amount;
+    // Determine new amount (parse if provided as string)
+    let newAmount: number = existing.amount;
+    if (updateExpenseDto.amount !== undefined) {
+      const rawNew = updateExpenseDto.amount;
+      newAmount =
+        typeof rawNew === 'number' ? rawNew : parseFloat(String(rawNew ?? ''));
+      if (!Number.isFinite(newAmount)) {
+        throw new BadRequestException('Invalid amount');
+      }
+      if (newAmount < 0) {
+        throw new BadRequestException('Amount must be non-negative');
+      }
+    }
+
     const delta = newAmount - existing.amount;
 
     const receiptUrl = receiptUrls.length > 0 ? receiptUrls[0] : undefined;
@@ -1545,7 +1568,7 @@ export class ProjectsService {
       const expense = await tx.expense.update({
         where: { id: expenseId },
         data: {
-          amount: updateExpenseDto.amount ?? undefined,
+          amount: updateExpenseDto.amount !== undefined ? newAmount : undefined,
           vendor: updateExpenseDto.vendor ?? undefined,
           category: updateExpenseDto.category ?? undefined,
           notes: updateExpenseDto.notes ?? undefined,
