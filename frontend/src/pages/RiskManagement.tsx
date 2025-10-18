@@ -63,7 +63,9 @@ const RiskManagement: React.FC = () => {
     null
   );
 
-  const [showRiskAlert, setShowRiskAlert] = useState<boolean>(true);
+  // Alert visibility and computed message (default hidden)
+  const [showRiskAlert, setShowRiskAlert] = useState<boolean>(false);
+  const [riskMessage, setRiskMessage] = useState<string>("");
 
   // schedule-based insights
   const { data: projectPhases = [] } = useProjectPhases(selectedProject);
@@ -137,6 +139,38 @@ const RiskManagement: React.FC = () => {
     }),
     [projectBudget, totalSpent]
   );
+
+    // Compute alert visibility/message when relevant data changes
+  useEffect(() => {
+    // Determine over-budget
+    const overBudget =
+      typeof projectBudget === "number" &&
+      typeof totalSpent === "number" &&
+      totalSpent > projectBudget;
+
+    // Determine overdue phases (progress < 100 and endDate before today)
+    const today = new Date();
+    const overduePhases = (projectPhases || []).filter((ph) => {
+      if (!ph.endDate) return false;
+      const end = new Date(ph.endDate);
+      return (ph.progress ?? 0) < 100 && end < today;
+    });
+
+    // Build message based on conditions
+    let message = "";
+    if (overBudget && overduePhases.length > 0) {
+      const overBy = (totalSpent - projectBudget).toFixed(2);
+      message = `Project is over budget by $${overBy} and ${overduePhases.length} phase(s) are past their end date but not complete.`;
+    } else if (overBudget) {
+      const overBy = (totalSpent - projectBudget).toFixed(2);
+      message = `Project is over budget by $${overBy}.`;
+    } else if (overduePhases.length > 0) {
+      message = `${overduePhases.length} phase(s) are past their end date but not complete.`;
+    }
+
+    setRiskMessage(message);
+    setShowRiskAlert(!!message);
+  }, [projectBudget, totalSpent, projectPhases, selectedProject]);
 
   // time/schedule insights
   const plannedDays = useMemo(() => {
@@ -309,10 +343,7 @@ const RiskManagement: React.FC = () => {
             </svg>
             <div>
               <h3 className="font-bold">Project Risk Alert</h3>
-              <div className="text-xs">
-                This project is trending over budget. Review expenses and
-                schedule phases.
-              </div>
+              <div className="text-xs">{riskMessage}</div>
             </div>
 
             <div className="flex-none">
@@ -370,7 +401,7 @@ const RiskManagement: React.FC = () => {
                 (Project costToDate: ${projectDetail.costToDate ?? 0})
               </div>
             )}
-          </div>
+        </div>
         </div>
 
         <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
