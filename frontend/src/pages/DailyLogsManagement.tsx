@@ -16,6 +16,9 @@ import {
   MdAcUnit,
   MdFlashOn,
   MdLocationOn,
+  MdAssignment,
+  MdFlag,
+  MdLayers,
 } from "react-icons/md";
 import moment from "moment";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -444,6 +447,20 @@ export default function DailyLogsManagement() {
     );
   }
 
+  // Function to format coordinates for display
+  const formatCoordinates = (
+    coordinates: { lat: number; lng: number } | null
+  ) => {
+    if (!coordinates) return null;
+    return `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`;
+  };
+
+  // Function to get a link to Google Maps for coordinates
+  const getMapLink = (coordinates: { lat: number; lng: number } | null) => {
+    if (!coordinates) return null;
+    return `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`;
+  };
+
   return (
     <div className="p-8">
       <div className="flex items-end justify-between">
@@ -602,7 +619,37 @@ export default function DailyLogsManagement() {
                               <span className="text-sm">{log.weather}</span>
                             </div>
                           )}
-                          {/* Attendance/Workforce info shown from attendance data (see Add Log tab) */}
+
+                          {/* Show coordinates if available */}
+                          {log.coordinates && (
+                            <div className="flex items-center gap-2">
+                              <MdLocationOn className="text-blue-500" />
+                              <span className="text-sm font-medium text-gray-600">
+                                Location:
+                              </span>
+                              <a
+                                href={getMapLink(log.coordinates) || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline"
+                              >
+                                View on map
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Show activities count */}
+                          <div className="flex items-center gap-2">
+                            <MdWork className="text-purple-500" />
+                            <span className="text-sm font-medium text-gray-600">
+                              Activities:
+                            </span>
+                            <span className="text-sm">
+                              {log._count?.activities ||
+                                log.activities?.length ||
+                                0}
+                            </span>
+                          </div>
                         </div>
 
                         {log.notes && (
@@ -1086,7 +1133,7 @@ export default function DailyLogsManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {selectedLogForDetails.weather && (
                   <div className="flex items-center gap-2">
                     <MdWbSunny className="text-orange-500" />
@@ -1098,8 +1145,42 @@ export default function DailyLogsManagement() {
                     </span>
                   </div>
                 )}
-                {/* Workforce counts and hours are managed via Workforce Management and attendance data */}
+
+                {/* Show location coordinates if available */}
+                {selectedLogForDetails.coordinates && (
+                  <div className="flex items-center gap-2">
+                    <MdLocationOn className="text-blue-500" />
+                    <span className="text-sm font-medium text-gray-600">
+                      Location:
+                    </span>
+                    <a
+                      href={
+                        getMapLink(selectedLogForDetails.coordinates) || "#"
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      {formatCoordinates(selectedLogForDetails.coordinates)}
+                    </a>
+                  </div>
+                )}
               </div>
+
+              {/* Show summary if available */}
+              {selectedLogForDetails.summary && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MdNotes className="text-green-500" />
+                    <span className="text-sm font-medium text-gray-600">
+                      Summary:
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">
+                    {selectedLogForDetails.summary}
+                  </p>
+                </div>
+              )}
 
               {selectedLogForDetails.notes && (
                 <div className="mb-4">
@@ -1111,6 +1192,21 @@ export default function DailyLogsManagement() {
                   </div>
                   <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">
                     {selectedLogForDetails.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Show issues if available */}
+              {selectedLogForDetails.issues && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MdFlag className="text-red-500" />
+                    <span className="text-sm font-medium text-gray-600">
+                      Issues:
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 bg-base-200 p-3 rounded">
+                    {selectedLogForDetails.issues}
                   </p>
                 </div>
               )}
@@ -1164,19 +1260,105 @@ export default function DailyLogsManagement() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          {/* Show related task if available */}
+                          {/* Enhanced task display with more details */}
                           {(activity.task || activity.taskId) && (
-                            <div className="mb-2">
-                              <span className="text-sm text-base-content/60">
-                                Related task:{" "}
-                              </span>
-                              <span className="font-medium text-sm">
-                                {activity.task?.title ||
+                            <div className="mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MdAssignment className="text-blue-600 text-lg" />
+                                <span className="text-sm font-bold text-gray-700">
+                                  Related Task
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500">
+                                    Title:
+                                  </span>
+                                  <span className="text-sm font-medium">
+                                    {activity.task?.title ||
+                                      projectTasks.find(
+                                        (t) => t.id === activity.taskId
+                                      )?.title ||
+                                      `Task (${activity.taskId})`}
+                                  </span>
+                                </div>
+
+                                {/* Show task status if available */}
+                                {activity.task?.status ||
+                                  (projectTasks.find(
+                                    (t) => t.id === activity.taskId
+                                  )?.status && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500">
+                                        Status:
+                                      </span>
+                                      <span className="text-sm">
+                                        {activity.task?.status ||
+                                          projectTasks.find(
+                                            (t) => t.id === activity.taskId
+                                          )?.status}
+                                      </span>
+                                    </div>
+                                  ))}
+
+                                {/* Show task priority if available */}
+                                {activity.task?.priority ||
+                                  (projectTasks.find(
+                                    (t) => t.id === activity.taskId
+                                  )?.priority && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500">
+                                        Priority:
+                                      </span>
+                                      <span className="text-sm">
+                                        {activity.task?.priority ||
+                                          projectTasks.find(
+                                            (t) => t.id === activity.taskId
+                                          )?.priority}
+                                      </span>
+                                    </div>
+                                  ))}
+
+                                {/* Show due date if available */}
+                                {(activity.task?.dueDate ||
                                   projectTasks.find(
                                     (t) => t.id === activity.taskId
-                                  )?.title ||
-                                  `Task (${activity.taskId})`}
-                              </span>
+                                  )?.dueDate) && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500">
+                                      Due:
+                                    </span>
+                                    <span className="text-sm">
+                                      {moment(
+                                        activity.task?.dueDate ||
+                                          projectTasks.find(
+                                            (t) => t.id === activity.taskId
+                                          )?.dueDate
+                                      ).format("MMM D, YYYY")}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Show project phase if available */}
+                                {(activity.task?.projectPhase?.name ||
+                                  projectTasks.find(
+                                    (t) => t.id === activity.taskId
+                                  )?.projectPhase?.name) && (
+                                  <div className="flex items-center gap-2 col-span-2">
+                                    <MdLayers className="text-gray-400" />
+                                    <span className="text-xs text-gray-500">
+                                      Phase:
+                                    </span>
+                                    <span className="text-sm">
+                                      {activity.task?.projectPhase?.name ||
+                                        projectTasks.find(
+                                          (t) => t.id === activity.taskId
+                                        )?.projectPhase?.name}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
 
@@ -1220,6 +1402,24 @@ export default function DailyLogsManagement() {
                                 </div>
                               )}
                           </div>
+
+                          {/* Show location if available */}
+                          {activity.coordinates && (
+                            <div className="flex items-center gap-2 mb-4">
+                              <MdLocationOn className="text-blue-500" />
+                              <span className="text-sm font-medium text-gray-600">
+                                Location:
+                              </span>
+                              <a
+                                href={getMapLink(activity.coordinates) || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline"
+                              >
+                                {formatCoordinates(activity.coordinates)}
+                              </a>
+                            </div>
+                          )}
 
                           {activity.progress !== undefined &&
                             activity.progress !== null && (

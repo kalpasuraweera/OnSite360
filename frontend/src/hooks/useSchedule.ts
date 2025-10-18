@@ -88,6 +88,10 @@ export interface DailyLog {
     id: string;
     name: string;
   };
+  coordinates?: { lng: number; lat: number } | null;
+  _count?: {
+    activities: number;
+  };
 }
 
 // Daily Activity interfaces
@@ -109,6 +113,12 @@ export interface DailyActivity {
     id: string;
     title: string;
     status: string;
+    priority?: string;
+    dueDate?: string;
+    projectPhase?: {
+      id: string;
+      name: string;
+    };
   };
   coordinates?: { lng: number; lat: number } | null;
 }
