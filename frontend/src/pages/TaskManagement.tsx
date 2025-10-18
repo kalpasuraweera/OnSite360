@@ -991,22 +991,18 @@ const TaskDetails = ({
     <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <button
-            className="btn btn-soft btn-sm"
-            onClick={() => setMainTab("all-tasks")}
-          >
-            Back to Tasks
-          </button>
           <h1 className="text-2xl font-bold">{selectedTask.title}</h1>
         </div>
         <div className="flex gap-2">
+          {/* download */}
           <button
             className="btn btn-success btn-sm"
             onClick={handleDownloadTask}
           >
             <MdDownload />
-            Download
+            <span className="hidden sm:inline">Download</span>
           </button>
+          {/* edit */}
           <button
             className="btn btn-primary btn-sm"
             onClick={() => {
@@ -1014,8 +1010,9 @@ const TaskDetails = ({
             }}
           >
             <MdEdit />
-            Edit
+            <span className="hidden sm:inline">Edit</span>
           </button>
+          {/* delete */}
           <button
             className="btn btn-error btn-sm"
             onClick={handleDeleteTask}
@@ -1026,7 +1023,7 @@ const TaskDetails = ({
             ) : (
               <MdDelete />
             )}
-            Delete
+            <span className="hidden sm:inline">Delete</span>
           </button>
         </div>
       </div>
