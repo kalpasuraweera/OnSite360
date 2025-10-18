@@ -196,7 +196,7 @@ export interface UpdateDailyLogDto {
   workHours?: number;
   workersPresent?: number;
   coordinates?: { lat: number; lng: number } | null;
-  files?: string[]; // Keep track of existing file URLs
+  // No files field here - file uploads not supported in updates
 }
 
 export interface CreateDailyActivityDto {
@@ -222,7 +222,7 @@ export interface UpdateDailyActivityDto {
   notes?: string;
   taskId?: string; // NEW: optional related task id
   coordinates?: { lng: number; lat: number } | null;
-  files?: string[]; // Keep track of existing file URLs
+  // No files field here - file uploads not supported in updates
 }
 
 // PROJECT PHASE HOOKS
@@ -482,6 +482,7 @@ export const useUpdateDailyLog = () => {
       id: string;
       log: UpdateDailyLogDto;
     }) => {
+      // Don't use FormData for updates, regular JSON is sufficient
       const { data } = await instance.patch(`/schedule/daily-logs/${id}`, log);
       return data;
     },
@@ -597,6 +598,7 @@ export const useUpdateDailyActivity = () => {
       id: string;
       activity: UpdateDailyActivityDto;
     }) => {
+      // Don't use FormData for updates, regular JSON is sufficient
       const { data } = await instance.patch(`/schedule/daily-activities/${id}`, activity);
       return data;
     },
