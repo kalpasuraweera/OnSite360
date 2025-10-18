@@ -255,7 +255,7 @@ const AddTaskModal = ({
       <div className="modal-box w-11/12 max-w-2xl">
         <h3 className="font-bold text-lg mb-4">Add New Task</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">
                 Task Title <span className="text-error">*</span>
@@ -263,7 +263,7 @@ const AddTaskModal = ({
             </label>
             <input
               type="text"
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               value={newTask.title}
               onChange={(e) =>
@@ -407,12 +407,12 @@ const AddTaskModal = ({
             </div>
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Description</span>
             </label>
             <textarea
-              className="textarea textarea-bordered"
+              className="textarea textarea-bordered w-full"
               rows={3}
               value={newTask.description}
               onChange={(e) =>
@@ -435,14 +435,14 @@ const AddTaskModal = ({
             />
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">
                 Phase <span className="text-error">*</span>
               </span>
             </label>
             <select
-              className="select select-bordered"
+              className="select select-bordered w-full"
               value={newTask.projectPhaseId || ""}
               onChange={(e) => {
                 setNewTask((t) => ({
@@ -632,7 +632,7 @@ const EditTaskModal = ({
       <div className="modal-box w-11/12 max-w-2xl">
         <h3 className="font-bold text-lg mb-4">Edit Task</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">
                 Task Title <span className="text-error">*</span>
@@ -640,7 +640,7 @@ const EditTaskModal = ({
             </label>
             <input
               type="text"
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               value={editTask.title}
               onChange={(e) =>
@@ -807,12 +807,12 @@ const EditTaskModal = ({
             </div>
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Description</span>
             </label>
             <textarea
-              className="textarea textarea-bordered"
+              className="textarea textarea-bordered w-full"
               rows={3}
               value={editTask.description}
               onChange={(e) =>
@@ -835,12 +835,12 @@ const EditTaskModal = ({
             />
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Phase (optional)</span>
             </label>
             <select
-              className="select select-bordered"
+              className="select select-bordered w-full"
               value={editTask.projectPhaseId || ""}
               onChange={(e) =>
                 setEditTask((t) => ({
