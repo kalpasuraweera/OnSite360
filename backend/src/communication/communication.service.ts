@@ -336,10 +336,13 @@ export class CommunicationService {
     }
 
     // Process attachments - store relative paths
-    const attachmentUrls = files.map((file) => `/uploads/messages/${file.filename}`);
-    
+    const attachmentUrls = files.map(
+      (file) => `/uploads/messages/${file.filename}`,
+    );
+
     // For now, store the first attachment in the attachment field for backward compatibility
-    const primaryAttachment = attachmentUrls.length > 0 ? attachmentUrls[0] : undefined;
+    const primaryAttachment =
+      attachmentUrls.length > 0 ? attachmentUrls[0] : undefined;
 
     return this.prisma.message.create({
       data: {

@@ -41,6 +41,7 @@ model User {
   createdEvents    ScheduleEvent[]     @relation("EventCreator") // Events created by this user
   markedAttendance ProjectAttendance[] // Attendance records marked by this user
   notifications     Notification[] // New: notifications for the user (title, description, time)
+  createdExpenses   Expense[] // Expenses created by this user
 }
 
 // Role model for grouping users (e.g., Admin, Site Worker)
@@ -91,7 +92,8 @@ model Project {
   name                String
   description         String?
   type                String? // e.g., "Residential", "Commercial", "Industrial"
-  budget              Float? // Project budget amount
+  budget              Float? // Project budget amount, this is the initial budget that has been allocated
+  costToDate         Float? // Total cost incurred to date
   squareFeet          Float? // Square footage of the project
   location            String? // Address or description of location
   coordinates         Json? // Stores latitude/longitude as JSON: { "lat": 40.7128, "lng": -74.0060 }
@@ -115,6 +117,8 @@ model Project {
   EquipmentAssignment EquipmentAssignment[]
   RFI                 RFI[]
   attendance          ProjectAttendance[]
+  // NEW: expenses related to this project
+  expenses            Expense[]
 }
 
 // Junction table for many-to-many relationship between User and Project
@@ -620,4 +624,25 @@ model Notification {
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// New model for project expenses
+model Expense {
+  id           String    @id @default(uuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  amount       Float     // Expense amount (positive values)
+  vendor       String?   // Vendor or payee name
+  category     String?   // e.g., "Materials", "Labor", "Equipment", "Permit", "Travel"
+  date         DateTime  @default(now())
+  notes        String?
+  receiptUrl   String?   // document URL for receipt or invoice
+  createdById  String?
+  createdBy    User?     @relation(fields: [createdById], references: [id])
+  // Optional flags for bookkeeping
+  isApproved   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([projectId])
 }
