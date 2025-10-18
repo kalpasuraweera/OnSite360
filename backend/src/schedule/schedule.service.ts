@@ -500,7 +500,11 @@ export class ScheduleService {
   }
 
   // Daily Log CRUD operations
-  async createDailyLog(createDailyLogDto: CreateDailyLogDto, userId: string) {
+  async createDailyLog(
+    createDailyLogDto: CreateDailyLogDto,
+    userId: string,
+    fileUrls: string[] = [],
+  ) {
     // Check if user has access to the project
     const userProject = await this.prisma.userProject.findFirst({
       where: {
@@ -529,12 +533,14 @@ export class ScheduleService {
 
     const { notes, ...logData } = createDailyLogDto;
 
-    return this.prisma.dailyLog.create({
+    // Create the log and store file URLs in the files array
+    const dailyLog = await this.prisma.dailyLog.create({
       data: {
         ...logData,
         date: new Date(createDailyLogDto.date),
         summary: notes || 'Daily log entry',
         loggedById: userId,
+        files: fileUrls, // Store file URLs directly in the files array
       },
       include: {
         project: {
@@ -558,6 +564,8 @@ export class ScheduleService {
         },
       },
     });
+
+    return dailyLog;
   }
 
   async getDailyLogs(projectId: string, userId: string) {
@@ -816,6 +824,7 @@ export class ScheduleService {
   async createDailyActivity(
     createDailyActivityDto: CreateDailyActivityDto,
     userId: string,
+    fileUrls: string[] = [],
   ) {
     const log = await this.prisma.dailyLog.findUnique({
       where: { id: createDailyActivityDto.dailyLogId },
@@ -868,6 +877,8 @@ export class ScheduleService {
         endTime: endTime ? new Date(endTime) : undefined,
         // persist taskId if provided
         ...(taskConnect ? { taskId: createDailyActivityDto.taskId } : {}),
+        // Store file URLs directly in the files array
+        files: fileUrls,
       },
       include: {
         dailyLog: {
@@ -885,7 +896,7 @@ export class ScheduleService {
             },
           },
         },
-        // NEW: include task details
+        // Include task details
         task: {
           select: {
             id: true,
@@ -949,7 +960,7 @@ export class ScheduleService {
             },
           },
         },
-        // NEW: include task details
+        // Include task details
         task: {
           select: {
             id: true,
@@ -994,7 +1005,7 @@ export class ScheduleService {
             },
           },
         },
-        // NEW: include task details
+        // Include task details
         task: {
           select: {
             id: true,

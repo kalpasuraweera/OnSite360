@@ -8,7 +8,16 @@ import {
   Delete,
   Request,
   Query,
+  UseInterceptors,
+  UploadedFiles,
+  ParseFilePipe,
+  MaxFileSizeValidator,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
+import * as fs from 'fs';
 import { ScheduleService } from './schedule.service';
 import {
   CreateProjectPhaseDto,
@@ -28,6 +37,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '../auth/auth.guard';
 
@@ -156,11 +166,66 @@ export class ScheduleController {
   // Daily Log Routes
   @Post('daily-logs')
   @ApiOperation({ summary: 'Create a new daily log' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('attachments', 5, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/dailylogs';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowed = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'text/plain',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/zip',
+          'application/x-zip-compressed',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
   createDailyLog(
     @Body() createDailyLogDto: CreateDailyLogDto,
     @Request() req: AuthenticatedRequest,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    files: Express.Multer.File[] = [],
   ) {
-    return this.scheduleService.createDailyLog(createDailyLogDto, req.user.sub);
+    const fileUrls =
+      files?.map((f) => `/uploads/dailylogs/${f.filename}`) ?? [];
+    return this.scheduleService.createDailyLog(
+      createDailyLogDto,
+      req.user.sub,
+      fileUrls,
+    );
   }
 
   @Get('daily-logs')
@@ -234,13 +299,65 @@ export class ScheduleController {
   // Daily Activity Routes
   @Post('daily-activities')
   @ApiOperation({ summary: 'Create a new daily activity' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('attachments', 5, {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/activities';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowed = [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+          'text/plain',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/zip',
+          'application/x-zip-compressed',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
   createDailyActivity(
     @Body() createDailyActivityDto: CreateDailyActivityDto,
     @Request() req: AuthenticatedRequest,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    files: Express.Multer.File[] = [],
   ) {
+    const fileUrls =
+      files?.map((f) => `/uploads/activities/${f.filename}`) ?? [];
     return this.scheduleService.createDailyActivity(
       createDailyActivityDto,
       req.user.sub,
+      fileUrls,
     );
   }
 
