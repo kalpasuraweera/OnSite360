@@ -140,7 +140,7 @@ const RiskManagement: React.FC = () => {
     [projectBudget, totalSpent]
   );
 
-    // Compute alert visibility/message when relevant data changes
+  // Compute alert visibility/message when relevant data changes
   useEffect(() => {
     // Determine over-budget
     const overBudget =
@@ -323,6 +323,82 @@ const RiskManagement: React.FC = () => {
     }
   };
 
+  // Handle print report
+  const handlePrintReport = () => {
+    // Create a printable version of the expenses table
+    const printContent = `
+      <html>
+        <head>
+          <title>Expense Report - ${projects.find((p: UserProject) => p.id === selectedProject)?.name || 'Project'}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { font-size: 24px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .footer { font-size: 12px; color: #666; margin-top: 30px; }
+            .meta { margin-bottom: 20px; font-size: 14px; }
+            .meta div { margin-bottom: 5px; }
+          </style>
+        </head>
+        <body>
+          <h1>Expense Report</h1>
+          <div class="meta">
+            <div><strong>Project:</strong> ${projects.find((p: UserProject) => p.id === selectedProject)?.name || 'Unknown'}</div>
+            <div><strong>Date Generated:</strong> ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+            <div><strong>Total Expenses:</strong> $${totalSpent.toFixed(2)}</div>
+            <div><strong>Budget:</strong> $${projectBudget.toFixed(2)}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Vendor</th>
+                <th>Amount</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${expenses.map((e) => `
+                <tr>
+                  <td>${new Date(e.date).toISOString().split("T")[0]}</td>
+                  <td>${e.category || '-'}</td>
+                  <td>${e.vendor || '-'}</td>
+                  <td>$${(e.amount || 0).toFixed(2)}</td>
+                  <td>${e.notes || '-'}</td>
+                </tr>
+              `).join('')}
+              ${(!expenses || expenses.length === 0) ? `
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px;">No expenses found for this project.</td>
+                </tr>
+              ` : ''}
+            </tbody>
+          </table>
+          <div class="footer">
+            Generated from OnSite360 Construction Management System
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Wait for content to load before printing
+      printWindow.onload = function() {
+        printWindow.print();
+        // printWindow.close(); // Uncomment to auto-close after print dialog
+      };
+    } else {
+      alert('Please allow pop-ups to print the expense report.');
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="flex flex-col gap-4 mb-6">
@@ -446,6 +522,15 @@ const RiskManagement: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold">Expense Records</h3>
           <div className="flex items-center gap-4">
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={handlePrintReport}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Report
+            </button>
             <button
               className="btn btn-sm btn-primary"
               onClick={handleAddExpense}
