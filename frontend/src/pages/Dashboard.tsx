@@ -180,8 +180,14 @@ const Dashboard = () => {
     }
 
     // determine range: earliest start, latest end (or use latest start if no ends)
-    const minDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date(Math.min(...ends.map(d => d.getTime())));
-    const maxDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date(Math.max(...starts.map(d => d.getTime())));
+    const minDate =
+      starts.length > 0
+        ? new Date(Math.min(...starts.map((d) => d.getTime())))
+        : new Date(Math.min(...ends.map((d) => d.getTime())));
+    const maxDate =
+      ends.length > 0
+        ? new Date(Math.max(...ends.map((d) => d.getTime())))
+        : new Date(Math.max(...starts.map((d) => d.getTime())));
 
     // Normalize to first of month for iteration
     const startMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
@@ -195,9 +201,14 @@ const Dashboard = () => {
 
     let cur = new Date(startMonth);
     while (cur <= endMonth && monthKeys.length < maxMonths) {
-      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`; // e.g. 2025-10
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`; // e.g. 2025-10
       monthKeys.push(key);
-      labels.push(cur.toLocaleString(undefined, { month: "short", year: "numeric" })); // "Oct 2025"
+      labels.push(
+        cur.toLocaleString(undefined, { month: "short", year: "numeric" })
+      ); // "Oct 2025"
       keyToIndex.set(key, monthKeys.length - 1);
       cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
     }
@@ -207,9 +218,14 @@ const Dashboard = () => {
       const now = new Date();
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
         monthKeys.push(key);
-        labels.push(d.toLocaleString(undefined, { month: "short", year: "numeric" }));
+        labels.push(
+          d.toLocaleString(undefined, { month: "short", year: "numeric" })
+        );
         keyToIndex.set(key, monthKeys.length - 1);
       }
     }
@@ -221,7 +237,10 @@ const Dashboard = () => {
       if (p.startDate) {
         const sd = new Date(p.startDate as string);
         if (!isNaN(sd.getTime())) {
-          const key = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, "0")}`;
+          const key = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}`;
           const idx = keyToIndex.get(key);
           if (typeof idx === "number") startedCounts[idx]++;
         }
@@ -229,7 +248,10 @@ const Dashboard = () => {
       if (p.endDate) {
         const ed = new Date(p.endDate as string);
         if (!isNaN(ed.getTime())) {
-          const key = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, "0")}`;
+          const key = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}`;
           const idx = keyToIndex.get(key);
           if (typeof idx === "number") completedCounts[idx]++;
         }
@@ -380,7 +402,9 @@ const Dashboard = () => {
   const lastAdminActivity = useMemo(() => {
     // derive most recent updatedAt from users whose role name includes "admin"
     const users: User[] = (usersQuery.data as User[]) ?? [];
-    const admins = users.filter((u) => !!u.role?.name && /admin/i.test(u.role.name));
+    const admins = users.filter(
+      (u) => !!u.role?.name && /admin/i.test(u.role.name)
+    );
     if (admins.length === 0) return "--";
     const latest = admins.reduce((prev, cur) => {
       const pd = prev.updatedAt ? new Date(prev.updatedAt).getTime() : 0;
@@ -388,48 +412,64 @@ const Dashboard = () => {
       return cd > pd ? cur : prev;
     }, admins[0]);
     // show date only (no time)
-    return latest.updatedAt ? new Date(latest.updatedAt).toLocaleDateString() : "--";
+    return latest.updatedAt
+      ? new Date(latest.updatedAt).toLocaleDateString()
+      : "--";
   }, [usersQuery.data]);
 
   // add after lastAdminActivity (or near other derived stats)
   const atRiskCount = useMemo(() => {
-	// Count projects that are over budget or have at least one overdue phase.
-	// Mirrors the RiskManagement.tsx logic: overBudget || overduePhases
-	const projects = (projectsQuery.data?.data ?? []) as any[];
-	const now = new Date();
-	let count = 0;
+    // Count projects that are over budget or have at least one overdue phase.
+    // Mirrors the RiskManagement.tsx logic: overBudget || overduePhases
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const now = new Date();
+    let count = 0;
 
-	projects.forEach((p) => {
-		// budget and spent may be on project as numbers or strings or costToDate
-		const budgetRaw = p.budget ?? p.projectBudget ?? null;
-		const costRaw = p.costToDate ?? p.totalSpent ?? null;
+    projects.forEach((p) => {
+      // budget and spent may be on project as numbers or strings or costToDate
+      const budgetRaw = p.budget ?? p.projectBudget ?? null;
+      const costRaw = p.costToDate ?? p.totalSpent ?? null;
 
-		const budget = typeof budgetRaw === "number" ? budgetRaw : budgetRaw ? Number(budgetRaw) : NaN;
-		const costToDate = typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
+      const budget =
+        typeof budgetRaw === "number"
+          ? budgetRaw
+          : budgetRaw
+          ? Number(budgetRaw)
+          : NaN;
+      const costToDate =
+        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
 
-		const overBudget = !Number.isNaN(budget) && !Number.isNaN(costToDate) && costToDate > budget;
+      const overBudget =
+        !Number.isNaN(budget) &&
+        !Number.isNaN(costToDate) &&
+        costToDate > budget;
 
-		// phases may be provided on the project as `phases`, `projectPhases`, or similar
-		const phases = Array.isArray(p.phases)
-			? p.phases
-			: Array.isArray(p.projectPhases)
-			? p.projectPhases
-			: Array.isArray(p.schedule?.phases)
-			? p.schedule.phases
-			: [];
+      // phases may be provided on the project as `phases`, `projectPhases`, or similar
+      const phases = Array.isArray(p.phases)
+        ? p.phases
+        : Array.isArray(p.projectPhases)
+        ? p.projectPhases
+        : Array.isArray(p.schedule?.phases)
+        ? p.schedule.phases
+        : [];
 
-		const overduePhase = Array.isArray(phases) && phases.some((ph: any) => {
-			if (!ph || !ph.endDate) return false;
-			const end = new Date(ph.endDate);
-			const progress = typeof ph.progress === "number" ? ph.progress : Number(ph?.progress ?? 0);
-			return end < now && (progress ?? 0) < 100;
-		});
+      const overduePhase =
+        Array.isArray(phases) &&
+        phases.some((ph: any) => {
+          if (!ph || !ph.endDate) return false;
+          const end = new Date(ph.endDate);
+          const progress =
+            typeof ph.progress === "number"
+              ? ph.progress
+              : Number(ph?.progress ?? 0);
+          return end < now && (progress ?? 0) < 100;
+        });
 
-		if (overBudget || overduePhase) count++;
-	});
+      if (overBudget || overduePhase) count++;
+    });
 
-	return count;
-}, [projectsQuery.data?.data]);
+    return count;
+  }, [projectsQuery.data?.data]);
 
   // add near other derived stats (e.g. after atRiskCount)
   const outstandingValue = useMemo(() => {
@@ -439,11 +479,19 @@ const Dashboard = () => {
       const budgetRaw = p.budget ?? p.projectBudget ?? null;
       const costRaw = p.costToDate ?? p.totalSpent ?? null;
 
-      const budget = typeof budgetRaw === "number" ? budgetRaw : budgetRaw ? Number(budgetRaw) : NaN;
-      const costToDate = typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
+      const budget =
+        typeof budgetRaw === "number"
+          ? budgetRaw
+          : budgetRaw
+          ? Number(budgetRaw)
+          : NaN;
+      const costToDate =
+        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
 
       if (!Number.isNaN(budget)) {
-        const outstanding = Number.isNaN(costToDate) ? budget : Math.max(0, budget - costToDate);
+        const outstanding = Number.isNaN(costToDate)
+          ? budget
+          : Math.max(0, budget - costToDate);
         sumOutstanding += outstanding;
       }
     });
@@ -707,7 +755,7 @@ const Dashboard = () => {
   ];
 
   // Additional charts data for various roles
-  const resourceAllocationData = useMemo(() => {
+  const projectTaskData = useMemo(() => {
     const projects = (projectsQuery.data?.data ?? []) as any[];
     const maxItems = 12;
     const slice = projects.slice(0, maxItems);
@@ -721,8 +769,16 @@ const Dashboard = () => {
         {
           label: "Task Count",
           data,
-          backgroundColor: labels.map((_, i) =>
-            ["#f87171", "#60a5fa", "#34d399", "#fbbf24", "#f97316", "#8b5cf6"][i % 6]
+          backgroundColor: labels.map(
+            (_, i) =>
+              [
+                "#f87171",
+                "#60a5fa",
+                "#34d399",
+                "#fbbf24",
+                "#f97316",
+                "#8b5cf6",
+              ][i % 6]
           ),
           borderWidth: 1,
         },
@@ -730,7 +786,7 @@ const Dashboard = () => {
     };
   }, [projectsQuery.data?.data]);
 
-  const safetyIncidentsData = useMemo(() => {
+  const projectDocData = useMemo(() => {
     // Use document counts per project
     const projects = (projectsQuery.data?.data ?? []) as any[];
     const maxItems = 12;
@@ -755,7 +811,7 @@ const Dashboard = () => {
     };
   }, [projectsQuery.data?.data]);
 
-  const clientSatisfactionData = useMemo(() => {
+  const projectThreadData = useMemo(() => {
     // Use thread counts per project
     const projects = (projectsQuery.data?.data ?? []) as any[];
     const maxItems = 12;
@@ -770,8 +826,14 @@ const Dashboard = () => {
         {
           label: "Thread Count",
           data,
-          backgroundColor: labels.map((_, i) =>
-            ["rgba(96,165,250,0.7)", "rgba(16,185,129,0.7)", "rgba(251,113,133,0.7)", "rgba(253,224,71,0.7)"][i % 4]
+          backgroundColor: labels.map(
+            (_, i) =>
+              [
+                "rgba(96,165,250,0.7)",
+                "rgba(16,185,129,0.7)",
+                "rgba(251,113,133,0.7)",
+                "rgba(253,224,71,0.7)",
+              ][i % 4]
           ),
           borderWidth: 1,
         },
@@ -780,86 +842,86 @@ const Dashboard = () => {
   }, [projectsQuery.data?.data]);
 
   // replace the static costBreakdownData with a memoized per-project cost dataset
-const costBreakdownData = useMemo(() => {
-  const projects = (projectsQuery.data?.data ?? []) as any[];
-  if (!projects || projects.length === 0) {
+  const costBreakdownData = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    if (!projects || projects.length === 0) {
+      return {
+        labels: [],
+        datasets: [
+          {
+            label: "Project Cost ($)",
+            data: [],
+            backgroundColor: [],
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+
+    const maxItems = 12;
+    const slice = projects.slice(0, maxItems);
+
+    const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+    const values = slice.map((p) =>
+      Number(p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0)
+    );
+
+    const palette = [
+      "#6366f1",
+      "#f472b6",
+      "#facc15",
+      "#34d399",
+      "#60a5fa",
+      "#f97316",
+      "#ef4444",
+      "#7c3aed",
+      "#06b6d4",
+      "#f43f5e",
+      "#10b981",
+      "#8b5cf6",
+    ];
+
     return {
-      labels: [],
+      labels,
       datasets: [
         {
           label: "Project Cost ($)",
-          data: [],
-          backgroundColor: [],
+          data: values,
+          backgroundColor: values.map((_, i) => palette[i % palette.length]),
           borderWidth: 1,
         },
       ],
     };
-  }
-
-  const maxItems = 12;
-  const slice = projects.slice(0, maxItems);
-
-  const labels = slice.map((p) => p.name ?? p.id ?? "Project");
-  const values = slice.map((p) =>
-    Number(p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0)
-  );
-
-  const palette = [
-    "#6366f1",
-    "#f472b6",
-    "#facc15",
-    "#34d399",
-    "#60a5fa",
-    "#f97316",
-    "#ef4444",
-    "#7c3aed",
-    "#06b6d4",
-    "#f43f5e",
-    "#10b981",
-    "#8b5cf6",
-  ];
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: "Project Cost ($)",
-        data: values,
-        backgroundColor: values.map((_, i) => palette[i % palette.length]),
-        borderWidth: 1,
-      },
-    ],
-  };
-}, [projectsQuery.data?.data]);
+  }, [projectsQuery.data?.data]);
 
   // replace rfiResponseTimeData with a memo that counts RFIs per project
-const rfiCountPerProjectData = useMemo(() => {
-	const projects = (projectsQuery.data?.data ?? []) as any[];
-	const rfis = (rfisQuery.data ?? []) as any[];
-	const maxItems = 12;
-	const slice = projects.slice(0, maxItems);
+  const rfiCountPerProjectData = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const rfis = (rfisQuery.data ?? []) as any[];
+    const maxItems = 12;
+    const slice = projects.slice(0, maxItems);
 
-	const labels = slice.map((p) => p.name ?? p.id ?? "Project");
-	const data = slice.map((p) => {
-		// count rfis where rfi.project?.id or rfi.projectId matches project id
-		return rfis.filter(
-			(r: any) => (r.project?.id ?? r.projectId ?? "") === p.id
-		).length;
-	});
+    const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+    const data = slice.map((p) => {
+      // count rfis where rfi.project?.id or rfi.projectId matches project id
+      return rfis.filter(
+        (r: any) => (r.project?.id ?? r.projectId ?? "") === p.id
+      ).length;
+    });
 
-	return {
-		labels,
-		datasets: [
-			{
-				label: "Open RFIs",
-				data,
-				backgroundColor: "rgba(59,130,246,0.7)",
-				borderColor: "#2563eb",
-				borderWidth: 2,
-			},
-		],
-	};
-}, [projectsQuery.data?.data, rfisQuery.data]);
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Open RFIs",
+          data,
+          backgroundColor: "rgba(59,130,246,0.7)",
+          borderColor: "#2563eb",
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data, rfisQuery.data]);
 
   // Chart grid configuration
   const chartsGrid = [
@@ -876,10 +938,10 @@ const rfiCountPerProjectData = useMemo(() => {
     // New charts for different roles
     {
       key: "resource-allocation",
-      title: "Resource Allocation (Engineer)",
+      title: "Project Task Distribution",
       chart: (
         <Bar
-          data={resourceAllocationData}
+          data={projectTaskData}
           options={{
             ...chartOptions,
             plugins: {
@@ -888,7 +950,7 @@ const rfiCountPerProjectData = useMemo(() => {
             },
             scales: {
               x: { stacked: false },
-              y: { beginAtZero: true, max: 100 },
+              y: { beginAtZero: true },
             },
           }}
         />
@@ -896,10 +958,10 @@ const rfiCountPerProjectData = useMemo(() => {
     },
     {
       key: "safety-incidents",
-      title: "Safety Incidents Trend (Site Supervisor)",
+      title: "Project Document Trend",
       chart: (
         <Line
-          data={safetyIncidentsData}
+          data={projectDocData}
           options={{
             ...chartOptions,
             plugins: {
@@ -920,10 +982,10 @@ const rfiCountPerProjectData = useMemo(() => {
     },
     {
       key: "client-satisfaction",
-      title: "Client Satisfaction (Client)",
+      title: "Project Thread Distribution",
       chart: (
         <Bar
-          data={clientSatisfactionData}
+          data={projectThreadData}
           options={{
             ...chartOptions,
             plugins: {
@@ -931,7 +993,7 @@ const rfiCountPerProjectData = useMemo(() => {
               legend: { display: false },
             },
             scales: {
-              y: { beginAtZero: true, max: 100 },
+              y: { beginAtZero: true },
             },
           }}
         />
@@ -939,7 +1001,7 @@ const rfiCountPerProjectData = useMemo(() => {
     },
     {
       key: "cost-breakdown",
-      title: "Cost Breakdown (Project Manager)",
+      title: "Cost Breakdown",
       chart: (
         <Doughnut
           data={costBreakdownData}
@@ -955,7 +1017,7 @@ const rfiCountPerProjectData = useMemo(() => {
     },
     {
       key: "rfi-response-time",
-      title: "RFI Count per Project",
+      title: "Project RFIs Distribution",
       chart: (
         <Bar
           data={rfiCountPerProjectData}
@@ -1033,11 +1095,16 @@ const rfiCountPerProjectData = useMemo(() => {
         "completion-rate",
         "overall-progress",
       ],
-      chartKeys: ["cost-breakdown", "rfi-response-time", "resource-allocation","safety-incidents", "client-satisfaction"],
+      chartKeys: ["cost-breakdown", "rfi-response-time"],
     },
     {
       role: "Executive Admin",
-      statCardIds: ["outstanding-value", "total-value", "avg-progress", "alerts"],
+      statCardIds: [
+        "outstanding-value",
+        "total-value",
+        "avg-progress",
+        "alerts",
+      ],
       chartKeys: ["project-status", "cost-breakdown"],
     },
     {
