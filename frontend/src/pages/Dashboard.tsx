@@ -49,7 +49,11 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
-import { useUsers, useUserNotifications } from "../hooks/useUsers";
+import {
+  useUsers,
+  useUserNotifications,
+  useUserProjects,
+} from "../hooks/useUsers";
 import { useRFIs } from "../hooks/useCommunication"; // <-- add this import
 import type { User } from "../hooks/useUsers";
 import { useTasks } from "../hooks/useTasks";
@@ -76,6 +80,7 @@ const Dashboard = () => {
   const authUser = useAuthStore((s) => s.user);
   const notificationsQuery = useUserNotifications(authUser?.id ?? "");
   const rfisQuery = useRFIs(); // <-- fetch RFIs
+  const userProjectsQuery = useUserProjects(authUser?.id ?? ""); // NEW: fetch user's projects
 
   // Local type: some backend responses include status/state or _count
   type ProjectWithOptional = Project & {
@@ -1206,35 +1211,51 @@ const Dashboard = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-2">
             <div>
               <h3 className="text-lg sm:text-xl font-semibold">
-                Today Updates
+                Featured Projects
               </h3>
-              <p className="text-sm text-neutral">Downtown Project</p>
+              <p className="text-sm text-neutral">
+                Projects you're currently working
+              </p>
             </div>
-            <button className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">
-              Go to Project
-            </button>
+            {/* <button className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">
+              Go to Projects
+            </button> */}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-1">
-            <img
-              src="/img1.jpg"
-              alt=""
-              className="w-full h-20 sm:h-auto object-cover rounded"
-            />
-            <img
-              src="/img2.jpg"
-              alt=""
-              className="w-full h-20 sm:h-auto object-cover rounded"
-            />
-            <img
-              src="/img1.jpg"
-              alt=""
-              className="w-full h-20 sm:h-auto object-cover rounded"
-            />
-            <img
-              src="/img2.jpg"
-              alt=""
-              className="w-full h-20 sm:h-auto object-cover rounded"
-            />
+            {userProjectsQuery.isLoading
+              ? // loading placeholders
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-full h-20 sm:h-auto bg-base-300 animate-pulse rounded"
+                  />
+                ))
+              : // map up to 4 projects and render featured images
+                (userProjectsQuery.data ?? []).slice(0, 4).map((p: any) => {
+                  const imgPath =
+                    p?.featuredImageUrl ??
+                    p?.featuredImage ??
+                    p?.imageUrl ??
+                    "";
+                  const src =
+                    imgPath && typeof imgPath === "string"
+                      ? `${
+                          import.meta.env.VITE_DOCUMENTS_URL ||
+                          "http://localhost:3000"
+                        }${imgPath}`
+                      : "/img1.jpg";
+                  return (
+                    <img
+                      key={p.id ?? src}
+                      src={src}
+                      alt={p.name ?? "Project image"}
+                      className="w-full h-20 sm:h-auto object-cover rounded"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/img1.jpg";
+                      }}
+                    />
+                  );
+                })}
           </div>
         </div>
       )}
