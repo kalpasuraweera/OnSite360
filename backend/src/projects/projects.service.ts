@@ -1730,8 +1730,14 @@ export class ProjectsService {
       phasesCount,
     ] = await Promise.all([
       this.prisma.user.count(),
-      // admins count (used as AdminActivity placeholder)
-      this.prisma.user.count({ where: { role: { name: 'Admin' } } }),
+      // admin last activity (last updated system admin)
+      this.prisma.user
+        .findFirst({
+          where: { role: { name: 'System Admin' } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        })
+        .then((admin) => admin?.updatedAt || null),
       // unread notifications (Alerts)
       this.prisma.notification.count({ where: { isRead: false } }),
       // active projects (no endDate or endDate >= today)
@@ -1784,19 +1790,12 @@ export class ProjectsService {
         where: { ...crewProjectFilter, isActive: true },
       }),
       // open RFIs
-      this.prisma.rFI
-        ? this.prisma.rFI.count({
-            where: {
-              ...rfiProjectFilter,
-              status: { in: ['Open', 'In Review'] },
-            },
-          })
-        : this.prisma.rfi.count({
-            where: {
-              ...rfiProjectFilter,
-              status: { in: ['Open', 'In Review'] },
-            },
-          }),
+      this.prisma.rFI.count({
+        where: {
+          ...rfiProjectFilter,
+          status: { in: ['Open', 'In Review'] },
+        },
+      }),
       // notifications total (global; project-specific notifications not stored)
       this.prisma.notification.count(),
       // approvals pending (expenses not approved)
@@ -1837,10 +1836,10 @@ export class ProjectsService {
       this.prisma.projectPhase.count({ where: phaseProjectFilter }),
     ]);
 
-    const avgProgress = (taskAvgProgressAgg._avg.progress ?? 0) as number;
-    const totalBudget = (projectBudgetAgg._sum.budget ?? 0) as number;
-    const totalExpenses = (expenseSumAgg._sum.amount ?? 0) as number;
-    const outstandingValue = (expensePendingAgg._sum.amount ?? 0) as number;
+    const avgProgress = taskAvgProgressAgg._avg.progress ?? 0;
+    const totalBudget = projectBudgetAgg._sum.budget ?? 0;
+    const totalExpenses = expenseSumAgg._sum.amount ?? 0;
+    const outstandingValue = expensePendingAgg._sum.amount ?? 0;
     const teamMembers = Array.isArray(uniqueUserProjects)
       ? uniqueUserProjects.length
       : 0;
@@ -1848,10 +1847,9 @@ export class ProjectsService {
     const total = totalTasks ?? 0;
     const efficiency = total > 0 ? Math.round((completed / total) * 100) : 0;
     const completionRate = efficiency; // reuse same computation
-    const manHoursThisWeek = (manHoursAgg._sum.totalHours ?? 0) as number;
-    const averageExpense = (averageExpenseAgg._avg.amount ?? 0) as number;
-    const totalCostToDate = (projectCostToDateAgg._sum.costToDate ??
-      0) as number;
+    const manHoursThisWeek = manHoursAgg._sum.totalHours ?? 0;
+    const averageExpense = averageExpenseAgg._avg.amount ?? 0;
+    const totalCostToDate = projectCostToDateAgg._sum.costToDate ?? 0;
 
     // budget remaining and status
     const remaining = totalBudget - totalCostToDate;

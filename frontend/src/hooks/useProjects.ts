@@ -976,3 +976,55 @@ export const useDeleteExpense = () => {
     },
   });
 };
+
+// New: Dashboard response shape
+export interface DashboardResponse {
+  totalUsers: number;
+  adminActivity: number;
+  alerts: number;
+  activeProjects: number;
+  avgProgress: number;
+  totalValue: number;
+  totalExpenses: number;
+  outstandingValue: number;
+  teamMembers: number;
+  efficiency: number;
+  tasksComplete: number;
+  urgentTasks: number;
+  activeCrew: number;
+  openRFIs: number;
+  notifications: number;
+  approvalsPending: number;
+  drawingRevisions: number;
+  manHoursThisWeek: number;
+  averageExpense: number;
+  completionRate: number;
+  overallProgress: string;
+  budgetStatus: {
+    remaining: number;
+    status: 'Under' | 'Over' | 'Balanced';
+  };
+  milestones: number;
+}
+
+// New hooks: global and project-scoped dashboard
+export const useDashboard = () => {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const { data } = await instance.get('/projects/dashboard');
+      return data.data as DashboardResponse;
+    },
+  });
+};
+
+export const useProjectDashboard = (projectId: string) => {
+  return useQuery({
+    queryKey: ['project-dashboard', projectId],
+    queryFn: async () => {
+      const { data } = await instance.get(`/projects/${projectId}/dashboard`);
+      return data.data as DashboardResponse;
+    },
+    enabled: !!projectId,
+  });
+};

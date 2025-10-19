@@ -47,7 +47,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useProjects } from "../hooks/useProjects";
+import { useDashboard, useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
 import {
   useUsers,
@@ -82,6 +82,9 @@ const Dashboard = () => {
   const notificationsQuery = useUserNotifications(authUser?.id ?? "");
   const rfisQuery = useRFIs(); // <-- fetch RFIs
   const userProjectsQuery = useUserProjects(authUser?.id ?? ""); // NEW: fetch user's projects
+
+  const dashboardCardQuery = useDashboard();
+
 
   // Local type: some backend responses include status/state or _count
   type ProjectWithOptional = Project & {
