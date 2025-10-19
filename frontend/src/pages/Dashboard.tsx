@@ -84,29 +84,37 @@ const Dashboard = () => {
 
   // Chart: project status breakdown (derive from projects when possible)
   const projectStatusData = useMemo(() => {
-    const labels = ["Active", "Completed", "On Hold", "Planning"];
-    const counts = [0, 0, 0, 0];
+    // Use project.type instead of status to produce a type breakdown
+    const labels = [
+      "Commercial",
+      "Residential",
+      "Industrial",
+      "Mixed Use",
+      "Other",
+    ];
+    const counts = new Array(labels.length).fill(0);
 
     const projects = projectsQuery.data?.data ?? [];
-    // Try to infer status from project fields if available. If not available, leave zeroes and show comment.
     (projects as ProjectWithOptional[]).forEach((p) => {
-      // Some projects may not have a status; fall back to heuristics
-      const status = p.status ?? p.state ?? "Active";
-      if (/completed/i.test(String(status))) counts[1]++;
-      else if (/hold|on hold/i.test(String(status))) counts[2]++;
-      else if (/plan|planning/i.test(String(status))) counts[3]++;
-      else counts[0]++;
+      const rawType = (p.type ?? "Other").toString();
+      const idx = labels.findIndex(
+        (lbl) => lbl.toLowerCase() === rawType.toLowerCase()
+      );
+      counts[idx >= 0 ? idx : labels.length - 1]++;
     });
-
-    // Fallback to small defaults if no projects exist
-    const data = counts.map((c) => c ?? 0);
 
     return {
       labels,
       datasets: [
         {
-          data,
-          backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#6B7280"],
+          data: counts,
+          backgroundColor: [
+            "#3B82F6", // Commercial
+            "#10B981", // Residential
+            "#F59E0B", // Industrial
+            "#A78BFA", // Mixed Use
+            "#6B7280", // Other
+          ],
           borderWidth: 0,
         },
       ],
