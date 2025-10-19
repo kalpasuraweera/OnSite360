@@ -46,6 +46,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
 import { useUsers, useUserNotifications } from "../hooks/useUsers";
@@ -233,10 +234,23 @@ const Dashboard = () => {
   };
 
   // Quick actions buttons
+  const navigate = useNavigate();
   const quickActions = [
-    { label: "Create New Project", className: "btn btn-primary" },
-    { label: "Generate Report", className: "btn btn-neutral" },
-    { label: "System Backup", className: "btn btn-accent" },
+    {
+      label: "Permission Management",
+      className: "btn btn-primary",
+      onClick: () => navigate("/permission-management"),
+    },
+    {
+      label: "Role Management",
+      className: "btn btn-neutral",
+      onClick: () => navigate("/role-management"),
+    },
+    {
+      label: "User Management",
+      className: "btn btn-accent",
+      onClick: () => navigate("/user-management"),
+    },
   ];
 
   // Summary statistics cards
@@ -846,6 +860,7 @@ const Dashboard = () => {
               <button
                 key={action.label}
                 className={`btn ${action.className} w-full text-sm sm:text-base`}
+                onClick={action.onClick}
               >
                 {action.label}
               </button>
