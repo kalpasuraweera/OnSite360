@@ -24,11 +24,11 @@ export class CreateProjectDto {
   @IsOptional()
   type?: string; // e.g., "Residential", "Commercial", "Industrial"
 
-  @IsNumber()
+  // @IsNumber()
   @IsOptional()
   budget?: number;
 
-  @IsNumber()
+  // @IsNumber()
   @IsOptional()
   squareFeet?: number;
 
@@ -36,7 +36,7 @@ export class CreateProjectDto {
   @IsOptional()
   location?: string;
 
-  @IsObject()
+  // @IsObject()
   @IsOptional()
   coordinates?: { lat: number; lng: number };
 
@@ -56,11 +56,11 @@ export class CreateProjectDto {
   @IsOptional()
   endDate?: string;
 
-  @IsArray()
+  // @IsArray()
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => ProjectUserDto)
-  users?: ProjectUserDto[]; // Array of users to assign to the project
+  // @ValidateNested({ each: true })
+  // @Type(() => ProjectUserDto)
+  users?: string; // Array of users to assign to the project
 }
 
 export class ProjectUserDto {

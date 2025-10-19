@@ -30,18 +30,55 @@ export class ProjectsService {
 
   // Create a new project
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    const { users, ...projectData } = createProjectDto;
+    let { users, budget, squareFeet, coordinates, ...projectData } =
+      createProjectDto;
+
+    // Parse budget if it's a string
+    if (typeof budget === 'string') {
+      budget = parseFloat(budget);
+      if (isNaN(budget)) {
+        budget = undefined;
+      }
+    }
+
+    // Parse squareFeet if it's a string
+    if (typeof squareFeet === 'string') {
+      squareFeet = parseFloat(squareFeet);
+      if (isNaN(squareFeet)) {
+        squareFeet = undefined;
+      }
+    }
+
+    // Parse coordinates if it's a string
+    if (typeof coordinates === 'string') {
+      try {
+        coordinates = JSON.parse(coordinates);
+      } catch (e) {
+        coordinates = undefined;
+      }
+    }
+
+    // Parse users array if it's a string
+    if (typeof users === 'string') {
+      try {
+        users = JSON.parse(users) as { userId: string; projectRole?: string }[];
+      } catch (e) {
+        users = [];
+      }
+    }
 
     return this.prisma.project.create({
       data: {
         ...projectData,
+        budget,
+        squareFeet,
         startDate: projectData.startDate
           ? new Date(projectData.startDate)
           : undefined,
         endDate: projectData.endDate
           ? new Date(projectData.endDate)
           : undefined,
-        coordinates: projectData.coordinates || undefined,
+        coordinates: coordinates || undefined,
         userProjects:
           users && users.length > 0
             ? {
@@ -179,7 +216,8 @@ export class ProjectsService {
     id: string,
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
-    const { users, ...projectData } = updateProjectDto;
+    let { users, budget, squareFeet, coordinates, ...projectData } =
+      updateProjectDto;
 
     // Check if project exists
     const existingProject = await this.prisma.project.findUnique({
@@ -190,19 +228,55 @@ export class ProjectsService {
       throw new NotFoundException(`Project with ID ${id} not found`);
     }
 
-    const updateData = {
-      ...projectData,
-      startDate: projectData.startDate
-        ? new Date(projectData.startDate)
-        : undefined,
-      endDate: projectData.endDate ? new Date(projectData.endDate) : undefined,
-      coordinates: projectData.coordinates || undefined,
-    };
+    // Parse budget if it's a string
+    if (typeof budget === 'string') {
+      budget = parseFloat(budget);
+      if (isNaN(budget)) {
+        budget = undefined;
+      }
+    }
 
-    // Update the project first
+    // Parse squareFeet if it's a string
+    if (typeof squareFeet === 'string') {
+      squareFeet = parseFloat(squareFeet);
+      if (isNaN(squareFeet)) {
+        squareFeet = undefined;
+      }
+    }
+
+    // Parse coordinates if it's a string
+    if (typeof coordinates === 'string') {
+      try {
+        coordinates = JSON.parse(coordinates);
+      } catch (e) {
+        coordinates = undefined;
+      }
+    }
+
+    // Parse users array if it's a string
+    if (typeof users === 'string') {
+      try {
+        users = JSON.parse(users) as { userId: string; projectRole?: string; accessLevel?: number }[];
+      } catch (e) {
+        users = [];
+      }
+    }
+
+    // Update the project
     await this.prisma.project.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...projectData,
+        budget,
+        squareFeet,
+        startDate: projectData.startDate
+          ? new Date(projectData.startDate)
+          : undefined,
+        endDate: projectData.endDate
+          ? new Date(projectData.endDate)
+          : undefined,
+        coordinates: coordinates || undefined,
+      },
     });
 
     // If users are provided, handle user assignments
@@ -250,7 +324,7 @@ export class ProjectsService {
       }
     }
 
-    const result = await this.prisma.project.findUnique({
+    return this.prisma.project.findUnique({
       where: { id },
       include: {
         userProjects: {
@@ -266,13 +340,7 @@ export class ProjectsService {
           },
         },
       },
-    });
-
-    if (!result) {
-      throw new NotFoundException(`Project with ID ${id} not found`);
-    }
-
-    return result;
+    }) as Promise<Project>;
   }
 
   // Delete a project
