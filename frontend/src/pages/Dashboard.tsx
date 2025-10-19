@@ -611,6 +611,106 @@ const Dashboard = () => {
     return { status, hasPhases, hasOverdueIncomplete };
   }, [projectsQuery.data?.data, userProjectPhasesQuery.data]);
 
+  // Calculate weekly workforce hours for user projects
+  const weeklyWorkforceHours = useMemo(() => {
+    if (!userProjectsQuery.data || userProjectsQuery.isLoading) {
+      return { totalHours: 0, hoursPerProject: [] };
+    }
+    
+    const hoursPerDay = 10; // Assuming 10 hours per person per day
+    const daysPerWeek = 5; // Assuming 5 working days per week
+    
+    let totalHours = 0;
+    const hoursPerProject: { projectId: string; projectName: string; hours: number }[] = [];
+    
+    // Iterate through each project to calculate workforce hours
+    (userProjectsQuery.data ?? []).forEach((project: any) => {
+      // Get crew count from project if available
+      const crewCount = project.crewCount || project._count?.crewAssignments || 0;
+      
+      // Calculate weekly hours for this project
+      const projectHours = crewCount * hoursPerDay * daysPerWeek;
+      
+      if (projectHours > 0) {
+        hoursPerProject.push({
+          projectId: project.id,
+          projectName: project.name || 'Unnamed Project',
+          hours: projectHours
+        });
+        
+        totalHours += projectHours;
+      }
+    });
+    
+    return {
+      totalHours,
+      hoursPerProject,
+      averageHoursPerProject: hoursPerProject.length ? Math.round(totalHours / hoursPerProject.length) : 0,
+      formattedTotalHours: totalHours.toLocaleString()
+    };
+  }, [userProjectsQuery.data, userProjectsQuery.isLoading]);
+
+  // Get total expense count across all user projects
+  const expenseCountInfo = useMemo(() => {
+    if (!userProjectsQuery.data || userProjectsQuery.isLoading) {
+      return { count: 0, expensesByProject: [] };
+    }
+    
+    // Get all project IDs from user projects
+    const projectIds = (userProjectsQuery.data ?? []).map((p: any) => p.id).filter(Boolean);
+    
+    // Map to store expenses by project
+    const expensesByProject: { projectId: string, projectName: string, count: number }[] = [];
+    
+    // Total expense count across all projects
+    let totalExpenseCount = 0;
+    
+    // Iterate through each project to get expense data
+    (userProjectsQuery.data ?? []).forEach((project: any) => {
+      // We can't directly call the hook here since hooks must be called at top level
+      // Instead, we can use the project's expenseCount if it's available on the project object
+      const expenseCount = project.expenseCount || project._count?.expenses || 0;
+      
+      if (expenseCount > 0) {
+        expensesByProject.push({
+          projectId: project.id,
+          projectName: project.name || 'Unnamed Project',
+          count: expenseCount
+        });
+        
+        totalExpenseCount += expenseCount;
+      }
+    });
+    
+    return {
+      count: totalExpenseCount,
+      expensesByProject
+    };
+  }, [userProjectsQuery.data, userProjectsQuery.isLoading]);
+
+  // Calculate total expenses (monetary value) across projects
+  const totalExpensesValue = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    let totalExpenses = 0;
+    
+    projects.forEach((p) => {
+      const expensesTotal = 
+        typeof p.expensesTotal === "number" ? p.expensesTotal :
+        typeof p.totalExpenses === "number" ? p.totalExpenses : 0;
+      
+      if (!Number.isNaN(expensesTotal)) {
+        totalExpenses += expensesTotal;
+      }
+    });
+    
+    // Format as currency
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(totalExpenses);
+  }, [projectsQuery.data?.data]);
+
   const statCards = [
     {
       id: "total-users",
@@ -816,15 +916,15 @@ const Dashboard = () => {
     {
       id: "hours-this-week",
       icon: <HiOutlineClock className="inline w-7 h-7 text-secondary" />,
-      value: "--",
-      label: "Hours This Week",
+      value: weeklyWorkforceHours.formattedTotalHours,
+      label: "Man Hours This Week",
     },
     {
       id: "pending-invoices",
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      value: 8,
+      value: expenseCountInfo.count,
       label: "Average Invoices",
     },
     {
