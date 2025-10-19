@@ -395,6 +395,37 @@ const ProjectOversight = () => {
     );
   };
 
+  // Add helpers to build document URL and resolve project image fields
+  const buildDocumentUrl = (path?: string) => {
+    // return `${import.meta.env.VITE_DOCUMENTS_URL || 'http://localhost:3000'}$`
+    // Use environment var fallback and append the path if provided
+    if (!path) return undefined;
+    return `${import.meta.env.VITE_DOCUMENTS_URL || "http://localhost:3000"}${path}`;
+  };
+
+  const getProjectImageUrl = (project: Project) => {
+    const p = project as any;
+    // common property names that backend might use for uploaded image
+    const candidates = [
+      p.imageUrl,
+      p.image?.url,
+      p.image,
+      p.featuredImage,
+      p.featuredPhoto,
+      p.photoUrl,
+      p.photo,
+      p.logoUrl,
+      p.logo,
+    ];
+    const found = candidates.find((c) => !!c);
+    if (!found) return undefined;
+    // found may be a string or an object with url/path
+    if (typeof found === "string") {
+      return buildDocumentUrl(found);
+    }
+    return buildDocumentUrl(found.url || found.path);
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-1">Project Oversight</h1>
@@ -492,87 +523,106 @@ const ProjectOversight = () => {
                       key={project.id}
                       className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
                     >
-                      <div className="flex-1">
-                        {/* Project Name with Edit Button */}
-                        <div className="flex justify-between sm:flex-row gap-2 items-center">
-                          <div className="font-semibold text-xl">
-                            {project.name}
+                      {/* NEW: thumbnail area */}
+                      <div className="flex items-start gap-4 mb-4 lg:mb-0">
+                        {(() => {
+                          const img = getProjectImageUrl(project);
+                          if (img) {
+                            return (
+                              <img
+                                src={img}
+                                alt={`${project.name} image`}
+                                className="w-28 h-20 object-cover rounded-lg shadow-sm flex-shrink-0"
+                              />
+                            );
+                          }
+                          return (
+                            <div className="w-28 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-400 flex-shrink-0">
+                              No Image
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex-1">
+                          {/* Project Name with Edit Button */}
+                          <div className="flex justify-between sm:flex-row gap-2 items-center">
+                            <div className="font-semibold text-xl">{project.name}</div>
+                            <button
+                              className="btn btn-sm btn-soft"
+                              onClick={() => handleEditProject(project)}
+                            >
+                              Edit
+                            </button>
                           </div>
-                          <button
-                            className="btn btn-sm btn-soft"
-                            onClick={() => handleEditProject(project)}
-                          >
-                            Edit
-                          </button>
-                        </div>
 
-                        {/* Project ID */}
-                        <div className="badge badge-neutral my-2">
-                          {project.id}
-                        </div>
-
-                        {/* Project Description */}
-                        <div className="text-gray-500 text-sm my-4">
-                          {project.description
-                            ? project.description.length > 100
-                              ? `${project.description.substring(0, 300)}...`
-                              : project.description
-                            : "No description provided"}
-                        </div>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span className="badge badge-neutral">
-                            {project.type || "Unknown Type"}
-                          </span>
-                          <span className="badge badge-ghost">
-                            {project.location || "No location"}
-                          </span>
-                          {project.coordinates && (
-                            <span className="badge badge-success text-base-200">
-                              📍 Located
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Project Size, Start and End Date */}
-                        <div className="flex gap-4 text-sm text-gray-600 mb-3">
-                          {project.squareFeet && (
-                            <span>
-                              Size: {project.squareFeet.toLocaleString()} sq ft
-                            </span>
-                          )}
-                          {project.startDate && (
-                            <span>
-                              Start:{" "}
-                              {new Date(project.startDate).toLocaleDateString()}
-                            </span>
-                          )}
-                          {project.endDate && (
-                            <span>
-                              End:{" "}
-                              {new Date(project.endDate).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Small Cards */}
-                        {project._count && (
-                          <div className="flex gap-2 font-medium">
-                            <span className="badge bg-info/10 p-6">
-                              📋 {project._count.tasks}
-                            </span>
-                            <span className="badge bg-secondary/10 p-6">
-                              📄 {project._count.documents}
-                            </span>
-                            <span className="badge bg-success/10 p-6">
-                              💬 {project._count.threads}
-                            </span>
-                            <span className="badge bg-error/10 p-6">
-                              ⚠️ {project._count.issue}
-                            </span>
+                          {/* Project ID */}
+                          <div className="badge badge-neutral my-2">
+                            {project.id}
                           </div>
-                        )}
+
+                          {/* Project Description */}
+                          <div className="text-gray-500 text-sm my-4">
+                            {project.description
+                              ? project.description.length > 100
+                                ? `${project.description.substring(0, 300)}...`
+                                : project.description
+                              : "No description provided"}
+                          </div>
+
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            <span className="badge badge-neutral">
+                              {project.type || "Unknown Type"}
+                            </span>
+                            <span className="badge badge-ghost">
+                              {project.location || "No location"}
+                            </span>
+                            {project.coordinates && (
+                              <span className="badge badge-success text-base-200">
+                                📍 Located
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Project Size, Start and End Date */}
+                          <div className="flex gap-4 text-sm text-gray-600 mb-3">
+                            {project.squareFeet && (
+                              <span>
+                                Size: {project.squareFeet.toLocaleString()} sq ft
+                              </span>
+                            )}
+                            {project.startDate && (
+                              <span>
+                                Start:{" "}
+                                {new Date(project.startDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            {project.endDate && (
+                              <span>
+                                End:{" "}
+                                {new Date(project.endDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Small Cards */}
+                          {project._count && (
+                            <div className="flex gap-2 font-medium">
+                              <span className="badge bg-info/10 p-6">
+                                📋 {project._count.tasks}
+                              </span>
+                              <span className="badge bg-secondary/10 p-6">
+                                📄 {project._count.documents}
+                              </span>
+                              <span className="badge bg-success/10 p-6">
+                                💬 {project._count.threads}
+                              </span>
+                              <span className="badge bg-error/10 p-6">
+                                ⚠️ {project._count.issue}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Action Buttons */}
@@ -604,14 +654,34 @@ const ProjectOversight = () => {
           (selectedProject ? (
             <div className="tab-content p-5">
               <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+                {/* Updated header to show featured image if available */}
                 <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">
-                      {selectedProject.name}
-                    </h2>
-                    <p className="text-neutral-500">
-                      {selectedProject.description}
-                    </p>
+                  <div className="flex items-start gap-4">
+                    {(() => {
+                      const img = getProjectImageUrl(selectedProject);
+                      if (img) {
+                        return (
+                          <img
+                            src={img}
+                            alt={`${selectedProject.name} featured`}
+                            className="w-32 h-24 object-cover rounded-md shadow-sm"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="w-32 h-24 bg-gray-100 rounded-md flex items-center justify-center text-sm text-gray-400">
+                          No Image
+                        </div>
+                      );
+                    })()}
+                    <div>
+                      <h2 className="text-2xl font-bold">
+                        {selectedProject.name}
+                      </h2>
+                      <p className="text-neutral-500">
+                        {selectedProject.description}
+                      </p>
+                    </div>
                   </div>
                   <button
                     className="btn btn-outline btn-sm"
