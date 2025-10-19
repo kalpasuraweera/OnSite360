@@ -141,6 +141,34 @@ export class ProjectsController {
     }
   }
 
+  // Global dashboard number-cards
+  @ApiOperation({ summary: 'Get dashboard number-cards (global)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard values retrieved successfully',
+  })
+  @ApiBearerAuth()
+  @Get('dashboard')
+  async getDashboardGlobal() {
+    try {
+      const dashboard = await this.projectsService.getDashboard();
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Dashboard values retrieved successfully',
+        data: dashboard,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Error retrieving dashboard (global):', error);
+      throw new HttpException(
+        'Failed to retrieve dashboard values',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @ApiOperation({ summary: 'Get projects for authenticated user' })
   @ApiResponse({
     status: 200,
@@ -382,6 +410,43 @@ export class ProjectsController {
       console.error('Error retrieving project:', error);
       throw new HttpException(
         'Failed to retrieve project',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Project-scoped dashboard number-cards
+  @ApiOperation({
+    summary: 'Get dashboard number-cards for a specific project',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Project dashboard values retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiBearerAuth()
+  @Get(':id/dashboard')
+  async getProjectDashboard(@Param('id') projectId: string) {
+    try {
+      const dashboard = await this.projectsService.getDashboard(projectId);
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Project dashboard values retrieved successfully',
+        data: dashboard,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof HttpException
+      ) {
+        throw error;
+      }
+      console.error(
+        `Error retrieving dashboard for project ${projectId}:`,
+        error,
+      );
+      throw new HttpException(
+        'Failed to retrieve project dashboard values',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

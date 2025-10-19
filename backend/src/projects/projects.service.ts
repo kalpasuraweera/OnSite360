@@ -256,7 +256,11 @@ export class ProjectsService {
     // Parse users array if it's a string
     if (typeof users === 'string') {
       try {
-        users = JSON.parse(users) as { userId: string; projectRole?: string; accessLevel?: number }[];
+        users = JSON.parse(users) as {
+          userId: string;
+          projectRole?: string;
+          accessLevel?: number;
+        }[];
       } catch (e) {
         users = [];
       }
@@ -1677,5 +1681,213 @@ export class ProjectsService {
       });
       return { success: true };
     });
+  }
+
+  // compute dashboard number-card values
+  async getDashboard(projectId?: string) {
+    const today = new Date();
+    // start of week (Monday)
+    const day = today.getDay(); // 0 (Sun) - 6 (Sat)
+    const diffToMonday = (day + 6) % 7; // days since Monday
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - diffToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const projectFilter = projectId ? { id: projectId } : undefined;
+    const expenseProjectFilter = projectId ? { projectId } : undefined;
+    const taskProjectFilter = projectId ? { projectId } : undefined;
+    const crewProjectFilter = projectId ? { projectId } : undefined;
+    const rfiProjectFilter = projectId ? { projectId } : undefined;
+    const docProjectFilter = projectId ? { projectId } : undefined;
+    const phaseProjectFilter = projectId ? { projectId } : undefined;
+    const attendanceProjectFilter = projectId ? { projectId } : undefined;
+
+    // Run queries in parallel
+    const [
+      totalUsers,
+      adminActivity,
+      alerts,
+      activeProjects,
+      taskAvgProgressAgg,
+      projectBudgetAgg,
+      expenseSumAgg,
+      expensePendingAgg,
+      uniqueUserProjects,
+      totalTasks,
+      completedTasks,
+      urgentTasks,
+      activeCrew,
+      openRFIs,
+      notificationsCount,
+      approvalsPendingCount,
+      drawingRevisionsCount,
+      manHoursAgg,
+      averageExpenseAgg,
+      projectCostToDateAgg,
+      phasesCount,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      // admins count (used as AdminActivity placeholder)
+      this.prisma.user.count({ where: { role: { name: 'Admin' } } }),
+      // unread notifications (Alerts)
+      this.prisma.notification.count({ where: { isRead: false } }),
+      // active projects (no endDate or endDate >= today)
+      this.prisma.project.count({
+        where: projectId
+          ? {
+              id: projectId,
+              OR: [{ endDate: null }, { endDate: { gte: today } }],
+            }
+          : { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      }),
+      // average task progress
+      this.prisma.task.aggregate({
+        _avg: { progress: true },
+        where: taskProjectFilter,
+      }),
+      // total budgets sum
+      this.prisma.project.aggregate({
+        _sum: { budget: true },
+        where: projectFilter,
+      }),
+      // total expenses sum
+      this.prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: expenseProjectFilter,
+      }),
+      // outstanding (unapproved) expense amount
+      this.prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: { ...expenseProjectFilter, isApproved: false },
+      }),
+      // unique team members (distinct userId in userProject)
+      this.prisma.userProject.findMany({
+        distinct: ['userId'],
+        select: { userId: true },
+        where: projectId ? { projectId } : undefined,
+      }),
+      // total tasks
+      this.prisma.task.count({ where: taskProjectFilter }),
+      // completed tasks
+      this.prisma.task.count({
+        where: { ...taskProjectFilter, status: 'Completed' },
+      }),
+      // urgent tasks (High or Critical)
+      this.prisma.task.count({
+        where: { ...taskProjectFilter, priority: { in: ['High', 'Critical'] } },
+      }),
+      // active crew assignments
+      this.prisma.crewAssignment.count({
+        where: { ...crewProjectFilter, isActive: true },
+      }),
+      // open RFIs
+      this.prisma.rFI
+        ? this.prisma.rFI.count({
+            where: {
+              ...rfiProjectFilter,
+              status: { in: ['Open', 'In Review'] },
+            },
+          })
+        : this.prisma.rfi.count({
+            where: {
+              ...rfiProjectFilter,
+              status: { in: ['Open', 'In Review'] },
+            },
+          }),
+      // notifications total (global; project-specific notifications not stored)
+      this.prisma.notification.count(),
+      // approvals pending (expenses not approved)
+      this.prisma.expense.count({
+        where: { ...expenseProjectFilter, isApproved: false },
+      }),
+      // drawing revisions (documents with type 'Drawing')
+      this.prisma.document.count({
+        where: { ...docProjectFilter, type: 'Drawing' },
+      }),
+      // man hours this week (sum of attendanceRecord.totalHours where projectAttendance.date in this week)
+      this.prisma.attendanceRecord.aggregate({
+        _sum: { totalHours: true },
+        where: attendanceProjectFilter
+          ? {
+              projectAttendance: {
+                projectId: attendanceProjectFilter.projectId,
+                date: { gte: weekStart, lte: weekEnd },
+              },
+            }
+          : {
+              projectAttendance: {
+                date: { gte: weekStart, lte: weekEnd },
+              },
+            },
+      }),
+      // average expense
+      this.prisma.expense.aggregate({
+        _avg: { amount: true },
+        where: expenseProjectFilter,
+      }),
+      // sum of costToDate for budgetStatus calculation
+      this.prisma.project.aggregate({
+        _sum: { costToDate: true },
+        where: projectFilter,
+      }),
+      // milestones (project phases)
+      this.prisma.projectPhase.count({ where: phaseProjectFilter }),
+    ]);
+
+    const avgProgress = (taskAvgProgressAgg._avg.progress ?? 0) as number;
+    const totalBudget = (projectBudgetAgg._sum.budget ?? 0) as number;
+    const totalExpenses = (expenseSumAgg._sum.amount ?? 0) as number;
+    const outstandingValue = (expensePendingAgg._sum.amount ?? 0) as number;
+    const teamMembers = Array.isArray(uniqueUserProjects)
+      ? uniqueUserProjects.length
+      : 0;
+    const completed = completedTasks ?? 0;
+    const total = totalTasks ?? 0;
+    const efficiency = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const completionRate = efficiency; // reuse same computation
+    const manHoursThisWeek = (manHoursAgg._sum.totalHours ?? 0) as number;
+    const averageExpense = (averageExpenseAgg._avg.amount ?? 0) as number;
+    const totalCostToDate = (projectCostToDateAgg._sum.costToDate ??
+      0) as number;
+
+    // budget remaining and status
+    const remaining = totalBudget - totalCostToDate;
+    let status: 'Under' | 'Over' | 'Balanced' = 'Balanced';
+    if (remaining > 0) status = 'Under';
+    else if (remaining < 0) status = 'Over';
+
+    const dashboard = {
+      totalUsers,
+      adminActivity,
+      alerts,
+      activeProjects,
+      avgProgress: Math.round(avgProgress * 100) / 100, // two decimals
+      totalValue: Math.round(totalBudget * 100) / 100,
+      totalExpenses: Math.round(totalExpenses * 100) / 100,
+      outstandingValue: Math.round(outstandingValue * 100) / 100,
+      teamMembers,
+      efficiency,
+      tasksComplete: completed,
+      urgentTasks,
+      activeCrew,
+      openRFIs,
+      notifications: notificationsCount,
+      approvalsPending: approvalsPendingCount,
+      drawingRevisions: drawingRevisionsCount,
+      manHoursThisWeek: Math.round(manHoursThisWeek * 100) / 100,
+      averageExpense: Math.round(averageExpense * 100) / 100,
+      completionRate,
+      overallProgress: avgProgress < 50 ? 'Delayed' : 'On Track',
+      budgetStatus: {
+        remaining: Math.round(remaining * 100) / 100,
+        status,
+      },
+      milestones: phasesCount,
+    };
+
+    return dashboard;
   }
 }
