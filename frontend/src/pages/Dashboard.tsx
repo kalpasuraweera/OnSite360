@@ -516,6 +516,33 @@ const Dashboard = () => {
   const userProjectPhasesQuery = useProjectPhasesForProjects(userProjectIds);
   const milestonesCount = userProjectPhasesQuery.data?.length ?? 0;
 
+  // Get all project IDs and fetch their phases to compute global phase-based stats
+  const allProjectIds = (projectsQuery.data?.data ?? []).map((p: any) => p.id).filter(Boolean);
+  const allProjectPhasesQuery = useProjectPhasesForProjects(allProjectIds);
+
+  // Compute completion rate and overall progress from phases across all projects
+  const { completionRateValue, overallProgressValue } = useMemo(() => {
+    if (allProjectPhasesQuery.isLoading) {
+      return { completionRateValue: "--", overallProgressValue: "--" };
+    }
+    const phases: any[] = (allProjectPhasesQuery.data ?? []) as any[];
+    if (!phases || phases.length === 0) {
+      return { completionRateValue: "--", overallProgressValue: "--" };
+    }
+
+    const total = phases.length;
+    const completed = phases.filter((ph) => Number(ph?.progress ?? 0) >= 100).length;
+    const completionRate = Math.round((completed / total) * 100);
+    const avgProgress = Math.round(
+      phases.reduce((acc, ph) => acc + (Number(ph?.progress ?? 0) || 0), 0) / total
+    );
+
+    return {
+      completionRateValue: `${completionRate}%`,
+      overallProgressValue: `${avgProgress}%`,
+    };
+  }, [allProjectPhasesQuery.data, allProjectPhasesQuery.isLoading]);
+
   // NEW: compute overall budget status using project budgets and spent amounts
   const budgetStatusInfo = useMemo(() => {
     const projects = (projectsQuery.data?.data ?? []) as any[];
@@ -789,7 +816,7 @@ const Dashboard = () => {
     {
       id: "hours-this-week",
       icon: <HiOutlineClock className="inline w-7 h-7 text-secondary" />,
-      value: "--", // no attendance/time tracking hook used here
+      value: "--",
       label: "Hours This Week",
     },
     {
@@ -798,18 +825,20 @@ const Dashboard = () => {
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
       value: 8,
-      label: "Pending Invoices",
+      label: "Average Invoices",
     },
     {
       id: "completion-rate",
       icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
-      value: "92%",
+      // show computed completion rate derived from project phases across all projects
+      value: completionRateValue,
       label: "Completion Rate",
     },
     {
       id: "overall-progress",
       icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
-      value: "81%",
+      // show computed average phase progress across all projects
+      value: overallProgressValue,
       label: "Overall Progress",
     },
     {
