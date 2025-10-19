@@ -17,8 +17,9 @@ import {
   UploadedFiles,
   ParseFilePipe,
   MaxFileSizeValidator,
+  UploadedFile,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
@@ -56,8 +57,54 @@ export class ProjectsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiBearerAuth()
   @Post()
-  async create(@Body() createProjectDto: CreateProjectDto) {
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = './uploads/projects';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true, mode: 0o755 });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, uuidv4() + ext);
+        },
+      }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    file?: Express.Multer.File,
+  ) {
     try {
+      // If an image was uploaded, construct its URL and use for both logo and featured image (unless provided)
+      const imageUrl = file ? `/uploads/projects/${file.filename}` : undefined;
+      if (imageUrl) {
+        // Mutate DTO to include urls if not already set
+        // (CreateProjectDto should allow optional logoUrl/featuredImageUrl)
+        createProjectDto.logoUrl = imageUrl;
+        createProjectDto.featuredImageUrl = imageUrl;
+      }
+
       const project = await this.projectsService.create(createProjectDto);
       return {
         statusCode: HttpStatus.CREATED,
