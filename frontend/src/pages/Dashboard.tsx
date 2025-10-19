@@ -298,8 +298,74 @@ const Dashboard = () => {
       const cd = cur.updatedAt ? new Date(cur.updatedAt).getTime() : 0;
       return cd > pd ? cur : prev;
     }, admins[0]);
-    return latest.updatedAt ? new Date(latest.updatedAt).toLocaleString() : "--";
+    // show date only (no time)
+    return latest.updatedAt ? new Date(latest.updatedAt).toLocaleDateString() : "--";
   }, [usersQuery.data]);
+
+  // add after lastAdminActivity (or near other derived stats)
+  const atRiskCount = useMemo(() => {
+	// Count projects that are over budget or have at least one overdue phase.
+	// Mirrors the RiskManagement.tsx logic: overBudget || overduePhases
+	const projects = (projectsQuery.data?.data ?? []) as any[];
+	const now = new Date();
+	let count = 0;
+
+	projects.forEach((p) => {
+		// budget and spent may be on project as numbers or strings or costToDate
+		const budgetRaw = p.budget ?? p.projectBudget ?? null;
+		const costRaw = p.costToDate ?? p.totalSpent ?? null;
+
+		const budget = typeof budgetRaw === "number" ? budgetRaw : budgetRaw ? Number(budgetRaw) : NaN;
+		const costToDate = typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
+
+		const overBudget = !Number.isNaN(budget) && !Number.isNaN(costToDate) && costToDate > budget;
+
+		// phases may be provided on the project as `phases`, `projectPhases`, or similar
+		const phases = Array.isArray(p.phases)
+			? p.phases
+			: Array.isArray(p.projectPhases)
+			? p.projectPhases
+			: Array.isArray(p.schedule?.phases)
+			? p.schedule.phases
+			: [];
+
+		const overduePhase = Array.isArray(phases) && phases.some((ph: any) => {
+			if (!ph || !ph.endDate) return false;
+			const end = new Date(ph.endDate);
+			const progress = typeof ph.progress === "number" ? ph.progress : Number(ph?.progress ?? 0);
+			return end < now && (progress ?? 0) < 100;
+		});
+
+		if (overBudget || overduePhase) count++;
+	});
+
+	return count;
+}, [projectsQuery.data?.data]);
+
+  // add near other derived stats (e.g. after atRiskCount)
+  const outstandingValue = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    let sumOutstanding = 0;
+    projects.forEach((p) => {
+      const budgetRaw = p.budget ?? p.projectBudget ?? null;
+      const costRaw = p.costToDate ?? p.totalSpent ?? null;
+
+      const budget = typeof budgetRaw === "number" ? budgetRaw : budgetRaw ? Number(budgetRaw) : NaN;
+      const costToDate = typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
+
+      if (!Number.isNaN(budget)) {
+        const outstanding = Number.isNaN(costToDate) ? budget : Math.max(0, budget - costToDate);
+        sumOutstanding += outstanding;
+      }
+    });
+
+    // format as USD, show 0 if none
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(sumOutstanding || 0);
+  }, [projectsQuery.data?.data]);
 
   const statCards = [
     {
@@ -339,7 +405,8 @@ const Dashboard = () => {
           />
         </svg>
       ),
-      value: 3,
+      // show actual user notification count (falls back to 0)
+      value: notificationsQuery.data?.length ?? 0,
       label: "Alerts",
     },
     {
@@ -374,16 +441,17 @@ const Dashboard = () => {
     {
       id: "at-risk",
       icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
-      value: 2,
+      value: atRiskCount,
       label: "At risk",
     },
     {
-      id: "portfolio-value",
+      id: "outstanding-value",
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      value: "$8.1M",
-      label: "Portfolio Value",
+      // Sum of max(0, budget - costToDate) across projects formatted as USD
+      value: outstandingValue,
+      label: "Outstanding Value",
     },
     {
       id: "team-members",
@@ -801,7 +869,7 @@ const Dashboard = () => {
     },
     {
       role: "Executive Admin",
-      statCardIds: ["portfolio-value", "total-value", "avg-progress", "alerts"],
+      statCardIds: ["outstanding-value", "total-value", "avg-progress", "alerts"],
       chartKeys: ["project-status", "cost-breakdown"],
     },
     {
