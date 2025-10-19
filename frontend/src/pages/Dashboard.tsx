@@ -37,9 +37,15 @@ import {
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import StatCard from "../components/StatCard";
 import { useAuthStore } from "../stores/useAuthStore";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Tooltip as LeafletTooltip,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
 import { useUsers, useUserNotifications } from "../hooks/useUsers";
@@ -60,36 +66,6 @@ ChartJS.register(
 );
 
 const Dashboard = () => {
-  // New: state for location coordinates
-  const [locationCoords, setLocationCoords] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-
-  // Map click handler component
-  function LocationMarker({
-    onSelect,
-  }: {
-    onSelect: (coords: { lat: number; lng: number }) => void;
-  }) {
-    useMapEvents({
-      click(e) {
-        onSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
-      },
-    });
-    // This is the correct way to show a marker at the selected position:
-    return locationCoords ? <Marker position={locationCoords} /> : null;
-  }
-
-  // Confirm location selection
-  const handleConfirmLocation = () => {
-    // Logic for confirming location selection
-  };
-
-  // Cancel location selection
-  const handleCancelLocation = () => {
-    // Logic for canceling location selection
-  };
   // Chart data configurations
   // Fetch data from API hooks
   const projectsQuery = useProjects();
@@ -138,7 +114,20 @@ const Dashboard = () => {
 
   // Monthly activity chart - derive from project start/end dates if available
   const monthlyActivityData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const startedCounts = new Array(12).fill(0);
     const completedCounts = new Array(12).fill(0);
 
@@ -150,7 +139,8 @@ const Dashboard = () => {
       }
       if (p.endDate) {
         const d = new Date(p.endDate as string);
-        completedCounts[d.getMonth()] = (completedCounts[d.getMonth()] || 0) + 1;
+        completedCounts[d.getMonth()] =
+          (completedCounts[d.getMonth()] || 0) + 1;
       }
     });
 
@@ -193,7 +183,9 @@ const Dashboard = () => {
       if (t.status === "Completed") weekCompleted[weekIndex]++;
     });
 
-    const userActivity = weekTotal.map((tot, i) => (tot === 0 ? 0 : Math.round((weekCompleted[i] / tot) * 100)));
+    const userActivity = weekTotal.map((tot, i) =>
+      tot === 0 ? 0 : Math.round((weekCompleted[i] / tot) * 100)
+    );
     // System performance - no API available; keep placeholder but add comment
     const systemPerformance = [95, 95, 95, 95]; // NOTE: no hook/api for real system uptime/perf
 
@@ -253,9 +245,19 @@ const Dashboard = () => {
   const totalProjects = (projectsQuery.data?.data as Project[])?.length ?? 0;
   const totalTasks = (tasksQuery.data as Task[])?.length ?? 0;
 
-  const completedTasks = ((tasksQuery.data as Task[]) ?? []).filter((t) => t.status === "Completed").length;
+  const completedTasks = ((tasksQuery.data as Task[]) ?? []).filter(
+    (t) => t.status === "Completed"
+  ).length;
 
-  const avgProgress = totalTasks === 0 ? 0 : Math.round((((tasksQuery.data as Task[]) ?? []).reduce((acc: number, t: Task) => acc + (t.progress || 0), 0) / totalTasks));
+  const avgProgress =
+    totalTasks === 0
+      ? 0
+      : Math.round(
+          ((tasksQuery.data as Task[]) ?? []).reduce(
+            (acc: number, t: Task) => acc + (t.progress || 0),
+            0
+          ) / totalTasks
+        );
 
   const statCards = [
     {
@@ -317,8 +319,12 @@ const Dashboard = () => {
       ),
       // If projects have budget field, sum them; otherwise note no budget info
       value: (() => {
-  const projects: Project[] = (projectsQuery.data?.data as Project[]) ?? [];
-  const sum = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0);
+        const projects: Project[] =
+          (projectsQuery.data?.data as Project[]) ?? [];
+        const sum = projects.reduce(
+          (acc, p) => acc + (Number(p.budget) || 0),
+          0
+        );
         return sum > 0 ? `$${(sum / 1_000_000).toFixed(1)}M` : "--"; // display in millions
       })(),
       label: "Total Value",
@@ -374,7 +380,9 @@ const Dashboard = () => {
     {
       id: "urgent-tasks",
       icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
-      value: ((tasksQuery.data as Task[]) ?? []).filter((t) => t.priority === 'Critical' || t.priority === 'High').length,
+      value: ((tasksQuery.data as Task[]) ?? []).filter(
+        (t) => t.priority === "Critical" || t.priority === "High"
+      ).length,
       label: "Urgent Tasks",
     },
     {
@@ -402,7 +410,13 @@ const Dashboard = () => {
       id: "conversation-awaiting",
       icon: <HiOutlineChatAlt2 className="inline w-7 h-7 text-secondary" />,
       // Conversations/threads: derive from projects threads count if available
-      value: projectsQuery.data?.data ? ((projectsQuery.data?.data as ProjectWithOptional[]).reduce((acc: number, p: ProjectWithOptional) => acc + ((p._count?.threads) || 0), 0)) : "--",
+      value: projectsQuery.data?.data
+        ? (projectsQuery.data?.data as ProjectWithOptional[]).reduce(
+            (acc: number, p: ProjectWithOptional) =>
+              acc + (p._count?.threads || 0),
+            0
+          )
+        : "--",
       label: "Conversation Awaiting",
     },
     {
@@ -615,11 +629,11 @@ const Dashboard = () => {
               legend: { display: false },
             },
             scales: {
-              y: { 
-                beginAtZero: true, 
+              y: {
+                beginAtZero: true,
                 ticks: {
-                  stepSize: 1
-                }
+                  stepSize: 1,
+                },
               },
             },
           }}
@@ -778,6 +792,42 @@ const Dashboard = () => {
       )
     : chartsGrid;
 
+  // Compute project coordinates list and a sensible center for the map
+  const projectCoords = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const coords: { id: string; lat: number; lng: number; project: any }[] = [];
+
+    projects.forEach((p) => {
+      const raw = p.coordinates;
+      if (!raw) return;
+      let parsed: any = null;
+      try {
+        parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      } catch (e) {
+        // Ignore parse errors
+        parsed = raw;
+      }
+      if (
+        parsed &&
+        (parsed.lat !== undefined || parsed.latitude !== undefined)
+      ) {
+        const lat = parsed.lat ?? parsed.latitude;
+        const lng = parsed.lng ?? parsed.longitude ?? parsed.lon ?? parsed.long;
+        if (typeof lat === "number" && typeof lng === "number") {
+          coords.push({ id: p.id, lat, lng, project: p });
+        }
+      }
+    });
+
+    return coords;
+  }, [projectsQuery.data?.data]);
+
+  const mapCenter = useMemo(() => {
+    if (projectCoords.length > 0)
+      return { lat: projectCoords[0].lat, lng: projectCoords[0].lng };
+    return { lat: 40.7128, lng: -74.006 }; // fallback
+  }, [projectCoords]);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl sm:text-3xl font-bold mb-1">Dashboard</h1>
@@ -788,7 +838,9 @@ const Dashboard = () => {
       {/* Quick Actions - Only for System Admin */}
       {user?.role?.name === "System Admin" && (
         <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300 mb-4 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold mb-4">Quick Actions</h3>
+          <h3 className="text-lg sm:text-xl font-semibold mb-4">
+            Quick Actions
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {quickActions.map((action) => (
               <button
@@ -807,16 +859,36 @@ const Dashboard = () => {
         <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-2">
             <div>
-              <h3 className="text-lg sm:text-xl font-semibold">Today Updates</h3>
+              <h3 className="text-lg sm:text-xl font-semibold">
+                Today Updates
+              </h3>
               <p className="text-sm text-neutral">Downtown Project</p>
             </div>
-            <button className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">Go to Project</button>
+            <button className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto">
+              Go to Project
+            </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-1">
-            <img src="/img1.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
-            <img src="/img2.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
-            <img src="/img1.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
-            <img src="/img2.jpg" alt="" className="w-full h-20 sm:h-auto object-cover rounded" />
+            <img
+              src="/img1.jpg"
+              alt=""
+              className="w-full h-20 sm:h-auto object-cover rounded"
+            />
+            <img
+              src="/img2.jpg"
+              alt=""
+              className="w-full h-20 sm:h-auto object-cover rounded"
+            />
+            <img
+              src="/img1.jpg"
+              alt=""
+              className="w-full h-20 sm:h-auto object-cover rounded"
+            />
+            <img
+              src="/img2.jpg"
+              alt=""
+              className="w-full h-20 sm:h-auto object-cover rounded"
+            />
           </div>
         </div>
       )}
@@ -840,7 +912,9 @@ const Dashboard = () => {
             key={item.key}
             className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 shadow-xl shadow-base-300"
           >
-            <h3 className="text-lg sm:text-xl font-semibold mb-4">{item.title}</h3>
+            <h3 className="text-lg sm:text-xl font-semibold mb-4">
+              {item.title}
+            </h3>
             <div className="h-48 sm:h-64">{item.chart}</div>
           </div>
         ))}
@@ -857,10 +931,12 @@ const Dashboard = () => {
           />
         </div>
         <div className="p-2 sm:p-4 w-full relative mt-4">
-          <h3 className="text-base sm:text-lg font-semibold mb-2">Pick Project Location</h3>
+          <h3 className="text-base sm:text-lg font-semibold mb-2">
+            Project Locations
+          </h3>
           <div style={{ height: 250, width: "100%" }} className="sm:h-[350px]">
             <MapContainer
-              center={locationCoords || { lat: 40.7128, lng: -74.006 }}
+              center={mapCenter}
               zoom={13}
               style={{ height: "100%", width: "100%" }}
             >
@@ -868,24 +944,47 @@ const Dashboard = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
               />
-              <LocationMarker
-                onSelect={(coords) => setLocationCoords(coords)}
-              />
+
+              {/* Render markers for all projects that have coordinates */}
+              {projectCoords.map((c) => {
+                console.log("Rendering marker for project:", c.project.name);
+                const p = c.project;
+                const start = p.startDate
+                  ? new Date(p.startDate).toLocaleDateString()
+                  : "N/A";
+                const end = p.endDate
+                  ? new Date(p.endDate).toLocaleDateString()
+                  : "N/A";
+                const budget = p.budget
+                  ? `$${Number(p.budget).toLocaleString()}`
+                  : "N/A";
+                return (
+                  <Marker key={c.id} position={{ lat: c.lat, lng: c.lng }}>
+                    <LeafletTooltip>{p.name ?? "Project"}</LeafletTooltip>
+                    <Popup>
+                      <div className="max-w-xs">
+                        <h4 className="font-semibold">{p.name}</h4>
+                        {p.type && (
+                          <div className="text-sm text-muted">
+                            Type: {p.type}
+                          </div>
+                        )}
+                        {p.location && (
+                          <div className="text-sm">Address: {p.location}</div>
+                        )}
+                        <div className="text-sm">Start: {start}</div>
+                        <div className="text-sm">End: {end}</div>
+                        <div className="text-sm">Budget: {budget}</div>
+                        {/* Optionally show a short description */}
+                        {p.description && (
+                          <p className="mt-2 text-sm">{p.description}</p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
             </MapContainer>
-          </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
-            <button
-              className="btn btn-outline btn-sm order-2 sm:order-1"
-              onClick={handleCancelLocation}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn btn-primary btn-sm order-1 sm:order-2"
-              onClick={handleConfirmLocation}
-            >
-              Confirm Location
-            </button>
           </div>
         </div>
       </div>
@@ -893,7 +992,9 @@ const Dashboard = () => {
       {/* Performance Chart - Full Width */}
       {!roleLayout && (
         <div className="bg-base-200 rounded-2xl p-4 sm:p-6 border border-base-300 mb-4 sm:mb-6 shadow-xl shadow-base-300">
-          <h3 className="text-lg sm:text-xl font-semibold mb-4">{lastChart[0].title}</h3>
+          <h3 className="text-lg sm:text-xl font-semibold mb-4">
+            {lastChart[0].title}
+          </h3>
           <div className="h-64 sm:h-80">{lastChart[0].chart}</div>
         </div>
       )}
