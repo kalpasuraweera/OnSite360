@@ -1,5 +1,4 @@
 import {
-  HiOutlineChartBar,
   HiOutlineUserCircle,
   HiOutlineUsers,
   HiOutlineBriefcase,
@@ -49,14 +48,8 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDashboard, useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
-import {
-  useUsers,
-  useUserNotifications,
-  useUserProjects,
-} from "../hooks/useUsers";
+import { useUserNotifications, useUserProjects } from "../hooks/useUsers";
 import { useRFIs } from "../hooks/useCommunication"; // <-- add this import
-import { useProjectPhasesForProjects } from "../hooks/useSchedule"; // NEW: bulk phases hook
-import type { User } from "../hooks/useUsers";
 import { useTasks } from "../hooks/useTasks";
 import type { Task } from "../hooks/useTasks";
 
@@ -76,7 +69,6 @@ const Dashboard = () => {
   // Chart data configurations
   // Fetch data from API hooks
   const projectsQuery = useProjects();
-  const usersQuery = useUsers();
   const tasksQuery = useTasks();
   const authUser = useAuthStore((s) => s.user);
   const notificationsQuery = useUserNotifications(authUser?.id ?? "");
@@ -84,7 +76,6 @@ const Dashboard = () => {
   const userProjectsQuery = useUserProjects(authUser?.id ?? ""); // NEW: fetch user's projects
 
   const dashboardCardQuery = useDashboard();
-
 
   // Local type: some backend responses include status/state or _count
   type ProjectWithOptional = Project & {
@@ -373,366 +364,27 @@ const Dashboard = () => {
     },
   ];
 
-  // Summary statistics cards
-  // Derived statistic cards using API data where possible
-  const totalUsers = (usersQuery.data as User[])?.length ?? 0;
-  const totalProjects = (projectsQuery.data?.data as Project[])?.length ?? 0;
-  const totalTasks = (tasksQuery.data as Task[])?.length ?? 0;
-
-  // Count users whose updatedAt is today (local date)
-  const activeToday = (() => {
-    const users: User[] = (usersQuery.data as User[]) ?? [];
-    const now = new Date();
-    return users.filter((u) => {
-      if (!u.updatedAt) return false;
-      const d = new Date(u.updatedAt);
-      return (
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate()
-      );
-    }).length;
-  })();
-
-  const completedTasks = ((tasksQuery.data as Task[]) ?? []).filter(
-    (t) => t.status === "Completed"
-  ).length;
-
-  const avgProgress =
-    totalTasks === 0
-      ? 0
-      : Math.round(
-          ((tasksQuery.data as Task[]) ?? []).reduce(
-            (acc: number, t: Task) => acc + (t.progress || 0),
-            0
-          ) / totalTasks
-        );
-
-  const lastAdminActivity = useMemo(() => {
-    // derive most recent updatedAt from users whose role name includes "admin"
-    const users: User[] = (usersQuery.data as User[]) ?? [];
-    const admins = users.filter(
-      (u) => !!u.role?.name && /admin/i.test(u.role.name)
-    );
-    if (admins.length === 0) return "--";
-    const latest = admins.reduce((prev, cur) => {
-      const pd = prev.updatedAt ? new Date(prev.updatedAt).getTime() : 0;
-      const cd = cur.updatedAt ? new Date(cur.updatedAt).getTime() : 0;
-      return cd > pd ? cur : prev;
-    }, admins[0]);
-    // show date only (no time)
-    return latest.updatedAt
-      ? new Date(latest.updatedAt).toLocaleDateString()
-      : "--";
-  }, [usersQuery.data]);
-
-  // add after lastAdminActivity (or near other derived stats)
-  const atRiskCount = useMemo(() => {
-    // Count projects that are over budget or have at least one overdue phase.
-    // Mirrors the RiskManagement.tsx logic: overBudget || overduePhases
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    const now = new Date();
-    let count = 0;
-
-    projects.forEach((p) => {
-      // budget and spent may be on project as numbers or strings or costToDate
-      const budgetRaw = p.budget ?? p.projectBudget ?? null;
-      const costRaw = p.costToDate ?? p.totalSpent ?? null;
-
-      const budget =
-        typeof budgetRaw === "number"
-          ? budgetRaw
-          : budgetRaw
-          ? Number(budgetRaw)
-          : NaN;
-      const costToDate =
-        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
-
-      const overBudget =
-        !Number.isNaN(budget) &&
-        !Number.isNaN(costToDate) &&
-        costToDate > budget;
-
-      // phases may be provided on the project as `phases`, `projectPhases`, or similar
-      const phases = Array.isArray(p.phases)
-        ? p.phases
-        : Array.isArray(p.projectPhases)
-        ? p.projectPhases
-        : Array.isArray(p.schedule?.phases)
-        ? p.schedule.phases
-        : [];
-
-      const overduePhase =
-        Array.isArray(phases) &&
-        phases.some((ph: any) => {
-          if (!ph || !ph.endDate) return false;
-          const end = new Date(ph.endDate);
-          const progress =
-            typeof ph.progress === "number"
-              ? ph.progress
-              : Number(ph?.progress ?? 0);
-          return end < now && (progress ?? 0) < 100;
-        });
-
-      if (overBudget || overduePhase) count++;
-    });
-
-    return count;
-  }, [projectsQuery.data?.data]);
-
-  // add near other derived stats (e.g. after atRiskCount)
-  const outstandingValue = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    let sumOutstanding = 0;
-    projects.forEach((p) => {
-      const budgetRaw = p.budget ?? p.projectBudget ?? null;
-      const costRaw = p.costToDate ?? p.totalSpent ?? null;
-
-      const budget =
-        typeof budgetRaw === "number"
-          ? budgetRaw
-          : budgetRaw
-          ? Number(budgetRaw)
-          : NaN;
-      const costToDate =
-        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : NaN;
-
-      if (!Number.isNaN(budget)) {
-        const outstanding = Number.isNaN(costToDate)
-          ? budget
-          : Math.max(0, budget - costToDate);
-        sumOutstanding += outstanding;
-      }
-    });
-
-    // format as USD, show 0 if none
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(sumOutstanding || 0);
-  }, [projectsQuery.data?.data]);
-
-  const userProjectIds = (userProjectsQuery.data ?? [])
-    .map((p: any) => p.id)
-    .filter(Boolean);
-  const userProjectPhasesQuery = useProjectPhasesForProjects(userProjectIds);
-  const milestonesCount = userProjectPhasesQuery.data?.length ?? 0;
-
-  // Get all project IDs and fetch their phases to compute global phase-based stats
-  const allProjectIds = (projectsQuery.data?.data ?? []).map((p: any) => p.id).filter(Boolean);
-  const allProjectPhasesQuery = useProjectPhasesForProjects(allProjectIds);
-
-  // Compute completion rate and overall progress from phases across all projects
-  const { completionRateValue, overallProgressValue } = useMemo(() => {
-    if (allProjectPhasesQuery.isLoading) {
-      return { completionRateValue: "--", overallProgressValue: "--" };
-    }
-    const phases: any[] = (allProjectPhasesQuery.data ?? []) as any[];
-    if (!phases || phases.length === 0) {
-      return { completionRateValue: "--", overallProgressValue: "--" };
-    }
-
-    const total = phases.length;
-    const completed = phases.filter((ph) => Number(ph?.progress ?? 0) >= 100).length;
-    const completionRate = Math.round((completed / total) * 100);
-    const avgProgress = Math.round(
-      phases.reduce((acc, ph) => acc + (Number(ph?.progress ?? 0) || 0), 0) / total
-    );
-
-    return {
-      completionRateValue: `${completionRate}%`,
-      overallProgressValue: `${avgProgress}%`,
-    };
-  }, [allProjectPhasesQuery.data, allProjectPhasesQuery.isLoading]);
-
-  // NEW: compute overall budget status using project budgets and spent amounts
-  const budgetStatusInfo = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    let totalBudget = 0;
-    let totalSpent = 0;
-
-    projects.forEach((p) => {
-      const budgetRaw = p.budget ?? p.projectBudget ?? null;
-      const costRaw =
-        p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0;
-
-      const budget =
-        typeof budgetRaw === "number"
-          ? budgetRaw
-          : budgetRaw
-          ? Number(budgetRaw)
-          : 0;
-      const spent =
-        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : 0;
-
-      if (!Number.isNaN(budget)) totalBudget += budget;
-      if (!Number.isNaN(spent)) totalSpent += spent;
-    });
-
-    let status = "N/A";
-    if (totalBudget === 0 && totalSpent === 0) status = "N/A";
-    else if (totalSpent > totalBudget) status = "Over";
-    else if (totalSpent === totalBudget) status = "On Budget";
-    else status = "Under";
-
-    return {
-      status,
-      totalSpent,
-      totalBudget,
-      formattedOutstanding: outstandingValue, // reuse formatted outstandingValue
-    };
-  }, [projectsQuery.data?.data, outstandingValue]);
-
-  const timelineStatusInfo = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    const now = new Date();
-    let hasPhases = false;
-    let hasOverdueIncomplete = false;
-
-    // Get all project IDs to fetch their phases
-    const projectIds = projects.map(p => p.id).filter(Boolean);
-    
-    // Use the useProjectPhasesForProjects hook to get all phases for these projects
-    const allProjectPhases = userProjectPhasesQuery.data || [];
-    
-    if (allProjectPhases.length > 0) {
-      hasPhases = true;
-      
-      // Check for overdue incomplete phases
-      hasOverdueIncomplete = allProjectPhases.some(phase => {
-        if (!phase.endDate) return false;
-        const endDate = new Date(phase.endDate);
-        return endDate < now && phase.progress < 100;
-      });
-    }
-
-    let status = "No Schedule";
-    if (hasOverdueIncomplete) status = "Delayed";
-    else if (hasPhases) status = "On Track";
-
-    return { status, hasPhases, hasOverdueIncomplete };
-  }, [projectsQuery.data?.data, userProjectPhasesQuery.data]);
-
-  // Calculate weekly workforce hours for user projects
-  const weeklyWorkforceHours = useMemo(() => {
-    if (!userProjectsQuery.data || userProjectsQuery.isLoading) {
-      return { totalHours: 0, hoursPerProject: [] };
-    }
-    
-    const hoursPerDay = 10; // Assuming 10 hours per person per day
-    const daysPerWeek = 5; // Assuming 5 working days per week
-    
-    let totalHours = 0;
-    const hoursPerProject: { projectId: string; projectName: string; hours: number }[] = [];
-    
-    // Iterate through each project to calculate workforce hours
-    (userProjectsQuery.data ?? []).forEach((project: any) => {
-      // Get crew count from project if available
-      const crewCount = project.crewCount || project._count?.crewAssignments || 0;
-      
-      // Calculate weekly hours for this project
-      const projectHours = crewCount * hoursPerDay * daysPerWeek;
-      
-      if (projectHours > 0) {
-        hoursPerProject.push({
-          projectId: project.id,
-          projectName: project.name || 'Unnamed Project',
-          hours: projectHours
-        });
-        
-        totalHours += projectHours;
-      }
-    });
-    
-    return {
-      totalHours,
-      hoursPerProject,
-      averageHoursPerProject: hoursPerProject.length ? Math.round(totalHours / hoursPerProject.length) : 0,
-      formattedTotalHours: totalHours.toLocaleString()
-    };
-  }, [userProjectsQuery.data, userProjectsQuery.isLoading]);
-
-  // Get total expense count across all user projects
-  const expenseCountInfo = useMemo(() => {
-    if (!userProjectsQuery.data || userProjectsQuery.isLoading) {
-      return { count: 0, expensesByProject: [] };
-    }
-    
-    // Get all project IDs from user projects
-    const projectIds = (userProjectsQuery.data ?? []).map((p: any) => p.id).filter(Boolean);
-    
-    // Map to store expenses by project
-    const expensesByProject: { projectId: string, projectName: string, count: number }[] = [];
-    
-    // Total expense count across all projects
-    let totalExpenseCount = 0;
-    
-    // Iterate through each project to get expense data
-    (userProjectsQuery.data ?? []).forEach((project: any) => {
-      // We can't directly call the hook here since hooks must be called at top level
-      // Instead, we can use the project's expenseCount if it's available on the project object
-      const expenseCount = project.expenseCount || project._count?.expenses || 0;
-      
-      if (expenseCount > 0) {
-        expensesByProject.push({
-          projectId: project.id,
-          projectName: project.name || 'Unnamed Project',
-          count: expenseCount
-        });
-        
-        totalExpenseCount += expenseCount;
-      }
-    });
-    
-    return {
-      count: totalExpenseCount,
-      expensesByProject
-    };
-  }, [userProjectsQuery.data, userProjectsQuery.isLoading]);
-
-  // Calculate total expenses (monetary value) across projects
-  const totalExpensesValue = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    let totalExpenses = 0;
-    
-    projects.forEach((p) => {
-      const expensesTotal = 
-        typeof p.expensesTotal === "number" ? p.expensesTotal :
-        typeof p.totalExpenses === "number" ? p.totalExpenses : 0;
-      
-      if (!Number.isNaN(expensesTotal)) {
-        totalExpenses += expensesTotal;
-      }
-    });
-    
-    // Format as currency
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(totalExpenses);
-  }, [projectsQuery.data?.data]);
-
   const statCards = [
     {
       id: "total-users",
       icon: <HiOutlineUsers className="inline w-7 h-7 text-secondary" />,
-      value: totalUsers,
+      value: dashboardCardQuery.data?.totalUsers ?? "--", // Using dashboard data if available
       label: "Total Users",
     },
     {
       id: "active-sessions",
       icon: <HiOutlineUserCircle className="inline w-7 h-7 text-secondary" />,
-      // Count of users updated today (uses usersQuery.updatedAt)
-      value: activeToday,
+      // Using teamMembers as alternative for active sessions
+      value: dashboardCardQuery.data?.teamMembers ?? "--", // Comment: Using teamMembers as alternative
       label: "Active Today",
     },
     {
       id: "admin-activity",
       icon: <HiOutlineUserGroup className="inline w-7 h-7 text-secondary" />,
-      // Shows the most recent updatedAt for any user with "admin" in their role name
-      value: lastAdminActivity,
+      // Shows the admin activity date from dashboard data
+      value: dashboardCardQuery.data?.adminActivity
+        ? new Date(dashboardCardQuery.data.adminActivity).toLocaleDateString()
+        : "--",
       label: "Admin Activity",
     },
     {
@@ -752,20 +404,22 @@ const Dashboard = () => {
           />
         </svg>
       ),
-      // show actual user notification count (falls back to 0)
-      value: notificationsQuery.data?.length ?? 0,
+      value:
+        dashboardCardQuery.data?.alerts ?? notificationsQuery.data?.length ?? 0,
       label: "Alerts",
     },
     {
       id: "active-projects",
       icon: <HiOutlineBriefcase className="inline w-7 h-7 text-secondary" />,
-      value: totalProjects,
+      value: dashboardCardQuery.data?.activeProjects ?? "--",
       label: "Active Projects",
     },
     {
       id: "avg-progress",
       icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
-      value: `${avgProgress}%`,
+      value: dashboardCardQuery.data?.avgProgress
+        ? `${dashboardCardQuery.data.avgProgress}%`
+        : `--`,
       label: "Avg Progress",
     },
     {
@@ -773,22 +427,24 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      // If projects have budget field, sum them; otherwise note no budget info
-      value: (() => {
-        const projects: Project[] =
-          (projectsQuery.data?.data as Project[]) ?? [];
-        const sum = projects.reduce(
-          (acc, p) => acc + (Number(p.budget) || 0),
-          0
-        );
-        return sum > 0 ? `$${(sum / 1_000_000).toFixed(1)}M` : "--"; // display in millions
-      })(),
+      value: dashboardCardQuery.data?.totalValue
+        ? `$${dashboardCardQuery.data.totalValue.toLocaleString()}`
+        : (() => {
+            const projects: Project[] =
+              (projectsQuery.data?.data as Project[]) ?? [];
+            const sum = projects.reduce(
+              (acc, p) => acc + (Number(p.budget) || 0),
+              0
+            );
+            return sum > 0 ? `$${(sum / 1_000_000).toFixed(1)}M` : "--";
+          })(),
       label: "Total Value",
     },
     {
       id: "at-risk",
       icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
-      value: atRiskCount,
+      // Using urgentTasks as alternative for at-risk
+      value: dashboardCardQuery.data?.urgentTasks ?? "--", // Comment: Using urgentTasks as alternative
       label: "At risk",
     },
     {
@@ -796,14 +452,15 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      // Sum of max(0, budget - costToDate) across projects formatted as USD
-      value: outstandingValue,
+      value: dashboardCardQuery.data?.outstandingValue
+        ? `$${dashboardCardQuery.data.outstandingValue.toLocaleString()}`
+        : "--",
       label: "Outstanding Value",
     },
     {
       id: "team-members",
       icon: <HiOutlineUserGroup className="inline w-7 h-7 text-secondary" />,
-      value: totalUsers,
+      value: dashboardCardQuery.data?.teamMembers ?? "--",
       label: "Team Members",
     },
     {
@@ -811,18 +468,24 @@ const Dashboard = () => {
       icon: (
         <HiOutlineLightningBolt className="inline w-7 h-7 text-secondary" />
       ),
-      value: "91%",
+      value: dashboardCardQuery.data?.efficiency
+        ? `${dashboardCardQuery.data.efficiency}%`
+        : "91%",
       label: "Efficiency",
     },
     {
       id: "project-success-rate",
       icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
-      value: "87%",
+      // Using completionRate as alternative for project success rate
+      value: dashboardCardQuery.data?.completionRate
+        ? `${dashboardCardQuery.data.completionRate}%`
+        : "87%", // Comment: Using completionRate as alternative
       label: "Project Success Rate",
     },
     {
       id: "avg-project-roi",
       icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
+      // No direct match, keeping default
       value: "14%",
       label: "Avg Project ROI",
     },
@@ -831,27 +494,30 @@ const Dashboard = () => {
       icon: (
         <HiOutlineLightningBolt className="inline w-7 h-7 text-secondary" />
       ),
+      // No direct match, keeping default
       value: "88%",
       label: "Team Productivity",
     },
     {
       id: "urgent-tasks",
       icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
-      value: ((tasksQuery.data as Task[]) ?? []).filter(
-        (t) => t.priority === "Critical" || t.priority === "High"
-      ).length,
+      value:
+        dashboardCardQuery.data?.urgentTasks ??
+        ((tasksQuery.data as Task[]) ?? []).filter(
+          (t) => t.priority === "Critical" || t.priority === "High"
+        ).length,
       label: "Urgent Tasks",
     },
     {
       id: "tasks-complete",
       icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
-      value: completedTasks,
+      value: dashboardCardQuery.data?.tasksComplete ?? "--",
       label: "Tasks Complete",
     },
     {
       id: "active-crew",
       icon: <HiOutlineUser className="inline w-7 h-7 text-secondary" />,
-      value: 18,
+      value: dashboardCardQuery.data?.activeCrew ?? 18,
       label: "Active Crew",
     },
     {
@@ -859,33 +525,38 @@ const Dashboard = () => {
       icon: (
         <HiOutlineDocumentReport className="inline w-7 h-7 text-secondary" />
       ),
-      // TODO: no hook for RFIs in hooks folder; add a placeholder comment
-      value: "--", // no hook for RFIs
+      value: dashboardCardQuery.data?.openRFIs ?? "--",
       label: "Open RFIs",
     },
     {
       id: "conversation-awaiting",
       icon: <HiOutlineChatAlt2 className="inline w-7 h-7 text-secondary" />,
-      // Conversations/threads: derive from projects threads count if available
-      value: projectsQuery.data?.data
-        ? (projectsQuery.data?.data as ProjectWithOptional[]).reduce(
-            (acc: number, p: ProjectWithOptional) =>
-              acc + (p._count?.threads || 0),
-            0
-          )
-        : "--",
+      // Using notifications as alternative for conversations
+      value:
+        dashboardCardQuery.data?.notifications ??
+        (projectsQuery.data?.data
+          ? (projectsQuery.data?.data as ProjectWithOptional[]).reduce(
+              (acc: number, p: ProjectWithOptional) =>
+                acc + (p._count?.threads || 0),
+              0
+            )
+          : "--"), // Comment: Using notifications as alternative
       label: "Conversation Awaiting",
     },
     {
       id: "notifications",
       icon: <HiOutlineBell className="inline w-7 h-7 text-secondary" />,
-      value: (notificationsQuery.data ?? []).length ?? 0,
+      value:
+        dashboardCardQuery.data?.notifications ??
+        (notificationsQuery.data ?? []).length ??
+        0,
       label: "Notifications",
     },
     {
       id: "active-rfis",
       icon: <HiOutlineDocumentText className="inline w-7 h-7 text-secondary" />,
-      value: 9,
+      // Using openRFIs as alternative for active RFIs
+      value: dashboardCardQuery.data?.openRFIs ?? 9, // Comment: Using openRFIs as alternative
       label: "Active RFIs",
     },
     {
@@ -893,7 +564,7 @@ const Dashboard = () => {
       icon: (
         <HiOutlineClipboardList className="inline w-7 h-7 text-secondary" />
       ),
-      value: "--", // no hook for approvals
+      value: dashboardCardQuery.data?.approvalsPending ?? "--",
       label: "Approvals Pending",
     },
     {
@@ -901,25 +572,29 @@ const Dashboard = () => {
       icon: (
         <HiOutlineDocumentDuplicate className="inline w-7 h-7 text-secondary" />
       ),
-      value: 2,
+      value: dashboardCardQuery.data?.drawingRevisions ?? 2,
       label: "Drawing Revisions",
     },
     {
       id: "calculations",
       icon: <HiOutlineCalculator className="inline w-7 h-7 text-secondary" />,
-      value: 15,
+      // Using averageExpense as alternative for calculations
+      value: dashboardCardQuery.data?.averageExpense
+        ? `$${dashboardCardQuery.data.averageExpense.toFixed(2)}`
+        : 15, // Comment: Using averageExpense as alternative
       label: "Calculations",
     },
     {
       id: "active-jobs",
       icon: <HiOutlineCollection className="inline w-7 h-7 text-secondary" />,
+      // No direct match, keeping default
       value: 6,
       label: "Active Jobs",
     },
     {
       id: "hours-this-week",
       icon: <HiOutlineClock className="inline w-7 h-7 text-secondary" />,
-      value: weeklyWorkforceHours.formattedTotalHours,
+      value: dashboardCardQuery.data?.manHoursThisWeek ?? 99,
       label: "Man Hours This Week",
     },
     {
@@ -927,28 +602,31 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      value: expenseCountInfo.count,
+      // Using averageExpense as alternative
+      value: dashboardCardQuery.data?.averageExpense
+        ? `$${dashboardCardQuery.data.averageExpense.toFixed(2)}`
+        : 15, // Comment: Using averageExpense as alternative
       label: "Average Invoices",
     },
     {
       id: "completion-rate",
       icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
-      // show computed completion rate derived from project phases across all projects
-      value: completionRateValue,
+      value: dashboardCardQuery.data?.completionRate
+        ? `${dashboardCardQuery.data.completionRate}%`
+        : 49,
       label: "Completion Rate",
     },
     {
       id: "overall-progress",
       icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
-      // show computed average phase progress across all projects
-      value: overallProgressValue,
+      value: dashboardCardQuery.data?.overallProgress ?? 49,
       label: "Overall Progress",
     },
     {
       id: "timeline",
       icon: <HiOutlineCalendar className="inline w-7 h-7 text-secondary" />,
-      // Use schedule-based status computed from project phases
-      value: timelineStatusInfo.status,
+      // Using overallProgress as alternative for timeline status
+      value: dashboardCardQuery.data?.overallProgress ?? 49, // Comment: Using overallProgress as alternative
       label: "TimeLine",
     },
     {
@@ -956,14 +634,17 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      // Use outstanding value and an overall status computed from project budgets/spent
-      value: `${budgetStatusInfo.formattedOutstanding} (${budgetStatusInfo.status})`,
+      value: dashboardCardQuery.data?.budgetStatus
+        ? `$${dashboardCardQuery.data.budgetStatus.remaining.toLocaleString()} (${
+            dashboardCardQuery.data.budgetStatus.status
+          })`
+        : `--`, // Using budgetStatusInfo as alternative
       label: "Budget Status",
     },
     {
       id: "milestones",
       icon: <HiOutlineFlag className="inline w-7 h-7 text-secondary" />,
-      value: milestonesCount,
+      value: dashboardCardQuery.data?.milestones ?? "--",
       label: "Milestones",
     },
   ];
@@ -1302,7 +983,7 @@ const Dashboard = () => {
       chartKeys: ["client-satisfaction", "rfi-response-time"],
     },
     {
-      role: "Project Manager1",
+      role: "Project Manager",
       statCardIds: [
         "hours-this-week",
         "pending-invoices",
@@ -1333,7 +1014,7 @@ const Dashboard = () => {
     },
     // add a custom rool with all the statCards and charts for testing
     {
-      role: "Project Manager",
+      role: "Test Role",
       statCardIds: statCards.map((card) => card.id),
       chartKeys: chartsGrid.map(
         (chart) => chart.key || chart.title?.toLowerCase().replace(/\s/g, "-")
