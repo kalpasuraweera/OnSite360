@@ -30,6 +30,7 @@ model User {
   userProjects     UserProject[] // Explicit many-to-many relationship with projects
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
+  lastTokenAt     DateTime? // For tracking last token issuance time
   dailyLogs        DailyLog[]
   reportedIssues   Issue[] // Issues reported by the user
   taggedInIssues   Issue[]             @relation("IssueTaggedUsers") // Issues where the user is tagged

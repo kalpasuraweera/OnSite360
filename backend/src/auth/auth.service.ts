@@ -35,6 +35,11 @@ export class AuthService {
       user,
     };
 
+    // Update user's lastTokenAt timestamp (non-blocking)
+    this.usersService.updateLastTokenAt(user.id).catch((err) => {
+      console.error('Failed to update lastTokenAt on signIn:', err);
+    });
+
     // Non-blocking: create a sign-in notification for the user
     // Do not fail the sign-in flow if notification creation fails
     this.notifications
@@ -61,6 +66,11 @@ export class AuthService {
     // Save user to database through UsersService
     const savedUser = await this.usersService.create(user);
     const payload = { sub: savedUser.id, email: savedUser.email };
+
+    // Update user's lastTokenAt timestamp (non-blocking)
+    this.usersService.updateLastTokenAt(savedUser.id).catch((err) => {
+      console.error('Failed to update lastTokenAt on register:', err);
+    });
 
     return {
       accessToken: await this.jwtService.signAsync(
@@ -96,6 +106,11 @@ export class AuthService {
 
       // Generate new tokens
       const newPayload = { sub: user.id, email: user.email };
+
+      // Update user's lastTokenAt timestamp (non-blocking)
+      this.usersService.updateLastTokenAt(user.id).catch((err) => {
+        console.error('Failed to update lastTokenAt on refreshToken:', err);
+      });
 
       return {
         accessToken: await this.jwtService.signAsync(

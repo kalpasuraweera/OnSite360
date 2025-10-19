@@ -263,4 +263,21 @@ export class UsersService {
       data: { isRead: true, updatedAt: new Date() },
     });
   }
+
+  /**
+   * Update the user's lastTokenAt timestamp to the current time.
+   * This is used after issuing tokens (sign in / register / refresh).
+   * Non-throwing: errors are logged and swallowed to avoid breaking auth flows.
+   */
+  async updateLastTokenAt(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastTokenAt: new Date() },
+      });
+    } catch (err) {
+      // Minimal logging; don't surface to client flows
+      console.error(`Failed to update lastTokenAt for user ${userId}:`, err);
+    }
+  }
 }

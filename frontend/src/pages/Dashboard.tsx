@@ -259,6 +259,21 @@ const Dashboard = () => {
   const totalProjects = (projectsQuery.data?.data as Project[])?.length ?? 0;
   const totalTasks = (tasksQuery.data as Task[])?.length ?? 0;
 
+  // Count users whose updatedAt is today (local date)
+  const activeToday = (() => {
+    const users: User[] = (usersQuery.data as User[]) ?? [];
+    const now = new Date();
+    return users.filter((u) => {
+      if (!u.updatedAt) return false;
+      const d = new Date(u.updatedAt);
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    }).length;
+  })();
+
   const completedTasks = ((tasksQuery.data as Task[]) ?? []).filter(
     (t) => t.status === "Completed"
   ).length;
@@ -283,9 +298,9 @@ const Dashboard = () => {
     {
       id: "active-sessions",
       icon: <HiOutlineUserCircle className="inline w-7 h-7 text-secondary" />,
-      // No API for active sessions in the hooks; keep placeholder and comment
-      value: "--", // TODO: no hook for active sessions
-      label: "Active Sessions",
+      // Count of users updated today (uses usersQuery.updatedAt)
+      value: activeToday,
+      label: "Active Today",
     },
     {
       id: "system-health",
