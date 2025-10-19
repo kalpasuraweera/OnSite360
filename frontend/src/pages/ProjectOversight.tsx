@@ -37,9 +37,8 @@ const ProjectOversight = () => {
   const [activeTab, setActiveTab] = useState("projects");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  // Add state for logo and photo previews
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Single image preview for project (replaces logo + featured photo)
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // New: state for location coordinates
   const [locationCoords, setLocationCoords] = useState<{
@@ -69,8 +68,7 @@ const ProjectOversight = () => {
   ];
 
   // Refs for file inputs to support drag-and-drop
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleViewProject = (project: Project) => {
     setSelectedProject(project);
@@ -80,9 +78,8 @@ const ProjectOversight = () => {
   const handleEditProject = (project: Project) => {
     setSelectedProject(project);
     setActiveTab("edit_project");
-    // Reset previews when editing a project
-    setLogoPreview(null);
-    setPhotoPreview(null);
+    // Reset preview when editing a project
+    setImagePreview(null);
     setLocationText(project.location || "");
     setLocationCoords(project.coordinates || null);
     // Set selected users if available
@@ -189,50 +186,28 @@ const ProjectOversight = () => {
   };
 
   const resetForm = () => {
-    setLogoPreview(null);
-    setPhotoPreview(null);
+    setImagePreview(null);
     setLocationCoords(null);
     setLocationText("");
     setSelectedUsers([]);
   };
 
-  // Handle file input change for logo
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Single image handlers (replace logo/photo handlers)
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLogoPreview(URL.createObjectURL(file));
+      setImagePreview(URL.createObjectURL(file));
     } else {
-      setLogoPreview(null);
+      setImagePreview(null);
     }
   };
 
-  // Handle file input change for photo
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoPreview(URL.createObjectURL(file));
-    } else {
-      setPhotoPreview(null);
-    }
-  };
-
-  // Drag and drop handlers for logo
-  const handleLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file && logoInputRef.current) {
-      logoInputRef.current.files = e.dataTransfer.files;
-      setLogoPreview(URL.createObjectURL(file));
-    }
-  };
-
-  // Drag and drop handlers for photo
-  const handlePhotoDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && photoInputRef.current) {
-      photoInputRef.current.files = e.dataTransfer.files;
-      setPhotoPreview(URL.createObjectURL(file));
+    if (file && imageInputRef.current) {
+      imageInputRef.current.files = e.dataTransfer.files;
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -1033,23 +1008,23 @@ const ProjectOversight = () => {
                 {/* Media Upload Section */}
                 <div className="bg-base-100 p-4 rounded-xl">
                   <h3 className="text-lg font-semibold mb-4">Media</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                     <div>
                       <label className="label">
-                        <span className="label-text font-medium">Logo</span>
+                        <span className="label-text font-medium">Project Image</span>
                       </label>
                       <div
                         className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
-                        onDrop={handleLogoDrop}
+                        onDrop={handleImageDrop}
                         onDragOver={preventDefault}
                         onDragEnter={preventDefault}
-                        onClick={() => logoInputRef.current?.click()}
+                        onClick={() => imageInputRef.current?.click()}
                         style={{ minHeight: 120 }}
                       >
-                        {logoPreview ? (
+                        {imagePreview ? (
                           <img
-                            src={logoPreview}
-                            alt="Logo Preview"
+                            src={imagePreview}
+                            alt="Image Preview"
                             className="max-h-24 object-contain mb-2"
                           />
                         ) : (
@@ -1068,67 +1043,17 @@ const ProjectOversight = () => {
                               />
                             </svg>
                             <span className="text-gray-400 text-sm">
-                              Drag & drop logo here, or click to select
+                              Drag & drop an image here, or click to select
                             </span>
                           </div>
                         )}
                         <input
                           type="file"
                           className="hidden"
-                          name="logo"
+                          name="image"
                           accept="image/*"
-                          ref={logoInputRef}
-                          onChange={handleLogoChange}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Featured Photo
-                        </span>
-                      </label>
-                      <div
-                        className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
-                        onDrop={handlePhotoDrop}
-                        onDragOver={preventDefault}
-                        onDragEnter={preventDefault}
-                        onClick={() => photoInputRef.current?.click()}
-                        style={{ minHeight: 120 }}
-                      >
-                        {photoPreview ? (
-                          <img
-                            src={photoPreview}
-                            alt="Photo Preview"
-                            className="max-h-24 object-contain mb-2"
-                          />
-                        ) : (
-                          <div className="text-center">
-                            <svg
-                              className="w-8 h-8 mx-auto mb-2 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <span className="text-gray-400 text-sm">
-                              Drag & drop photo here, or click to select
-                            </span>
-                          </div>
-                        )}
-                        <input
-                          type="file"
-                          className="hidden"
-                          name="photo"
-                          accept="image/*"
-                          ref={photoInputRef}
-                          onChange={handlePhotoChange}
+                          ref={imageInputRef}
+                          onChange={handleImageChange}
                         />
                       </div>
                     </div>
@@ -1471,23 +1396,23 @@ const ProjectOversight = () => {
                   {/* Media Upload Section */}
                   <div className="bg-base-100 p-4 rounded-xl">
                     <h3 className="text-lg font-semibold mb-4">Media</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                       <div>
                         <label className="label">
-                          <span className="label-text font-medium">Logo</span>
+                          <span className="label-text font-medium">Project Image</span>
                         </label>
                         <div
                           className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
-                          onDrop={handleLogoDrop}
+                          onDrop={handleImageDrop}
                           onDragOver={preventDefault}
                           onDragEnter={preventDefault}
-                          onClick={() => logoInputRef.current?.click()}
+                          onClick={() => imageInputRef.current?.click()}
                           style={{ minHeight: 120 }}
                         >
-                          {logoPreview ? (
+                          {imagePreview ? (
                             <img
-                              src={logoPreview}
-                              alt="Logo Preview"
+                              src={imagePreview}
+                              alt="Image Preview"
                               className="max-h-24 object-contain mb-2"
                             />
                           ) : (
@@ -1506,67 +1431,17 @@ const ProjectOversight = () => {
                                 />
                               </svg>
                               <span className="text-gray-400 text-sm">
-                                Drag & drop logo here, or click to select
+                                Drag & drop an image here, or click to select
                               </span>
                             </div>
                           )}
                           <input
                             type="file"
                             className="hidden"
-                            name="logo"
+                            name="image"
                             accept="image/*"
-                            ref={logoInputRef}
-                            onChange={handleLogoChange}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="label">
-                          <span className="label-text font-medium">
-                            Featured Photo
-                          </span>
-                        </label>
-                        <div
-                          className="border border-dashed border-base-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer bg-base-50 hover:bg-base-100 transition-colors"
-                          onDrop={handlePhotoDrop}
-                          onDragOver={preventDefault}
-                          onDragEnter={preventDefault}
-                          onClick={() => photoInputRef.current?.click()}
-                          style={{ minHeight: 120 }}
-                        >
-                          {photoPreview ? (
-                            <img
-                              src={photoPreview}
-                              alt="Photo Preview"
-                              className="max-h-24 object-contain mb-2"
-                            />
-                          ) : (
-                            <div className="text-center">
-                              <svg
-                                className="w-8 h-8 mx-auto mb-2 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                              <span className="text-gray-400 text-sm">
-                                Drag & drop photo here, or click to select
-                              </span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            className="hidden"
-                            name="photo"
-                            accept="image/*"
-                            ref={photoInputRef}
-                            onChange={handlePhotoChange}
+                            ref={imageInputRef}
+                            onChange={handleImageChange}
                           />
                         </div>
                       </div>
