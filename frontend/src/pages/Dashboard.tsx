@@ -14,6 +14,7 @@ import {
   HiOutlineDocumentReport,
   HiOutlineChatAlt2,
   HiOutlineDocumentText,
+  HiOutlineBell,
   HiOutlineClock,
   HiOutlineCalculator,
   HiOutlineCollection,
@@ -38,7 +39,13 @@ import StatCard from "../components/StatCard";
 import { useAuthStore } from "../stores/useAuthStore";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useProjects } from "../hooks/useProjects";
+import type { Project } from "../hooks/useProjects";
+import { useUsers, useUserNotifications } from "../hooks/useUsers";
+import type { User } from "../hooks/useUsers";
+import { useTasks } from "../hooks/useTasks";
+import type { Task } from "../hooks/useTasks";
 
 ChartJS.register(
   CategoryScale,
@@ -84,58 +91,134 @@ const Dashboard = () => {
     // Logic for canceling location selection
   };
   // Chart data configurations
-  const projectStatusData = {
-    labels: ["Active", "Completed", "On Hold", "Planning"],
-    datasets: [
-      {
-        data: [32, 18, 5, 12],
-        backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#6B7280"],
-        borderWidth: 0,
-      },
-    ],
+  // Fetch data from API hooks
+  const projectsQuery = useProjects();
+  const usersQuery = useUsers();
+  const tasksQuery = useTasks();
+  const authUser = useAuthStore((s) => s.user);
+  const notificationsQuery = useUserNotifications(authUser?.id ?? "");
+
+  // Local type: some backend responses include status/state or _count
+  type ProjectWithOptional = Project & {
+    status?: string;
+    state?: string;
+    _count?: { threads?: number };
   };
 
-  const monthlyActivityData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        label: "Projects Started",
-        data: [8, 12, 15, 10, 18, 14],
-        backgroundColor: "rgba(59, 130, 246, 0.8)",
-        borderColor: "rgba(59, 130, 246, 1)",
-        borderWidth: 1,
-      },
-      {
-        label: "Projects Completed",
-        data: [5, 8, 10, 12, 15, 16],
-        backgroundColor: "rgba(16, 185, 129, 0.8)",
-        borderColor: "rgba(16, 185, 129, 1)",
-        borderWidth: 1,
-      },
-    ],
-  };
+  // Chart: project status breakdown (derive from projects when possible)
+  const projectStatusData = useMemo(() => {
+    const labels = ["Active", "Completed", "On Hold", "Planning"];
+    const counts = [0, 0, 0, 0];
 
-  const performanceData = {
-    labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-    datasets: [
-      {
-        label: "System Performance (%)",
-        data: [95, 98, 92, 96],
-        borderColor: "rgba(16, 185, 129, 1)",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-      {
-        label: "User Activity (%)",
-        data: [88, 85, 90, 87],
-        borderColor: "rgba(59, 130, 246, 1)",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+    const projects = projectsQuery.data?.data ?? [];
+    // Try to infer status from project fields if available. If not available, leave zeroes and show comment.
+    (projects as ProjectWithOptional[]).forEach((p) => {
+      // Some projects may not have a status; fall back to heuristics
+      const status = p.status ?? p.state ?? "Active";
+      if (/completed/i.test(String(status))) counts[1]++;
+      else if (/hold|on hold/i.test(String(status))) counts[2]++;
+      else if (/plan|planning/i.test(String(status))) counts[3]++;
+      else counts[0]++;
+    });
+
+    // Fallback to small defaults if no projects exist
+    const data = counts.map((c) => c ?? 0);
+
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#6B7280"],
+          borderWidth: 0,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data]);
+
+  // Monthly activity chart - derive from project start/end dates if available
+  const monthlyActivityData = useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const startedCounts = new Array(12).fill(0);
+    const completedCounts = new Array(12).fill(0);
+
+    const projects = projectsQuery.data?.data ?? [];
+    (projects as Project[]).forEach((p) => {
+      if (p.startDate) {
+        const d = new Date(p.startDate as string);
+        startedCounts[d.getMonth()] = (startedCounts[d.getMonth()] || 0) + 1;
+      }
+      if (p.endDate) {
+        const d = new Date(p.endDate as string);
+        completedCounts[d.getMonth()] = (completedCounts[d.getMonth()] || 0) + 1;
+      }
+    });
+
+    // Use first 6 months as the original UI did; if not enough data, zeros are OK
+    const labels = months.slice(0, 6);
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Projects Started",
+          data: startedCounts.slice(0, 6),
+          backgroundColor: "rgba(59, 130, 246, 0.8)",
+          borderColor: "rgba(59, 130, 246, 1)",
+          borderWidth: 1,
+        },
+        {
+          label: "Projects Completed",
+          data: completedCounts.slice(0, 6),
+          backgroundColor: "rgba(16, 185, 129, 0.8)",
+          borderColor: "rgba(16, 185, 129, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data]);
+
+  // Performance data: derive from tasks (user activity) and placeholder for system performance (no API)
+  const performanceData = useMemo(() => {
+    const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+    // Derive user activity as percentage of completed tasks over total tasks per week (simple heuristic)
+    const tasks: Task[] = (tasksQuery.data as Task[]) ?? [];
+    const weekCompleted: number[] = [0, 0, 0, 0];
+    const weekTotal: number[] = [0, 0, 0, 0];
+
+    tasks.forEach((t) => {
+      const created = new Date(t.createdAt);
+      const day = created.getDate();
+      const weekIndex = Math.min(3, Math.floor((day - 1) / 7));
+      weekTotal[weekIndex]++;
+      if (t.status === "Completed") weekCompleted[weekIndex]++;
+    });
+
+    const userActivity = weekTotal.map((tot, i) => (tot === 0 ? 0 : Math.round((weekCompleted[i] / tot) * 100)));
+    // System performance - no API available; keep placeholder but add comment
+    const systemPerformance = [95, 95, 95, 95]; // NOTE: no hook/api for real system uptime/perf
+
+    return {
+      labels: weeks,
+      datasets: [
+        {
+          label: "System Performance (%)",
+          data: systemPerformance,
+          borderColor: "rgba(16, 185, 129, 1)",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          fill: true,
+          tension: 0.4,
+        },
+        {
+          label: "User Activity (%)",
+          data: userActivity,
+          borderColor: "rgba(59, 130, 246, 1)",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [tasksQuery.data]);
 
   const chartOptions = {
     responsive: true,
@@ -165,23 +248,34 @@ const Dashboard = () => {
   ];
 
   // Summary statistics cards
+  // Derived statistic cards using API data where possible
+  const totalUsers = (usersQuery.data as User[])?.length ?? 0;
+  const totalProjects = (projectsQuery.data?.data as Project[])?.length ?? 0;
+  const totalTasks = (tasksQuery.data as Task[])?.length ?? 0;
+
+  const completedTasks = ((tasksQuery.data as Task[]) ?? []).filter((t) => t.status === "Completed").length;
+
+  const avgProgress = totalTasks === 0 ? 0 : Math.round((((tasksQuery.data as Task[]) ?? []).reduce((acc: number, t: Task) => acc + (t.progress || 0), 0) / totalTasks));
+
   const statCards = [
     {
       id: "total-users",
       icon: <HiOutlineUsers className="inline w-7 h-7 text-secondary" />,
-      value: 247,
+      value: totalUsers,
       label: "Total Users",
     },
     {
       id: "active-sessions",
       icon: <HiOutlineUserCircle className="inline w-7 h-7 text-secondary" />,
-      value: 89,
+      // No API for active sessions in the hooks; keep placeholder and comment
+      value: "--", // TODO: no hook for active sessions
       label: "Active Sessions",
     },
     {
       id: "system-health",
       icon: <HiOutlineChartBar className="inline w-7 h-7 text-secondary" />,
-      value: "98%",
+      // System health / uptime has no hook; show placeholder
+      value: "--", // no hook for system health
       label: "System Health",
     },
     {
@@ -207,13 +301,13 @@ const Dashboard = () => {
     {
       id: "active-projects",
       icon: <HiOutlineBriefcase className="inline w-7 h-7 text-secondary" />,
-      value: 12,
+      value: totalProjects,
       label: "Active Projects",
     },
     {
       id: "avg-progress",
       icon: <HiOutlineTrendingUp className="inline w-7 h-7 text-secondary" />,
-      value: "76%",
+      value: `${avgProgress}%`,
       label: "Avg Progress",
     },
     {
@@ -221,7 +315,12 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      value: "$2.4M",
+      // If projects have budget field, sum them; otherwise note no budget info
+      value: (() => {
+  const projects: Project[] = (projectsQuery.data?.data as Project[]) ?? [];
+  const sum = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0);
+        return sum > 0 ? `$${(sum / 1_000_000).toFixed(1)}M` : "--"; // display in millions
+      })(),
       label: "Total Value",
     },
     {
@@ -241,7 +340,7 @@ const Dashboard = () => {
     {
       id: "team-members",
       icon: <HiOutlineUserGroup className="inline w-7 h-7 text-secondary" />,
-      value: 34,
+      value: totalUsers,
       label: "Team Members",
     },
     {
@@ -275,13 +374,13 @@ const Dashboard = () => {
     {
       id: "urgent-tasks",
       icon: <HiOutlineExclamation className="inline w-7 h-7 text-secondary" />,
-      value: 5,
+      value: ((tasksQuery.data as Task[]) ?? []).filter((t) => t.priority === 'Critical' || t.priority === 'High').length,
       label: "Urgent Tasks",
     },
     {
       id: "tasks-complete",
       icon: <HiOutlineCheckCircle className="inline w-7 h-7 text-secondary" />,
-      value: 120,
+      value: completedTasks,
       label: "Tasks Complete",
     },
     {
@@ -295,14 +394,22 @@ const Dashboard = () => {
       icon: (
         <HiOutlineDocumentReport className="inline w-7 h-7 text-secondary" />
       ),
-      value: 7,
+      // TODO: no hook for RFIs in hooks folder; add a placeholder comment
+      value: "--", // no hook for RFIs
       label: "Open RFIs",
     },
     {
       id: "conversation-awaiting",
       icon: <HiOutlineChatAlt2 className="inline w-7 h-7 text-secondary" />,
-      value: 4,
+      // Conversations/threads: derive from projects threads count if available
+      value: projectsQuery.data?.data ? ((projectsQuery.data?.data as ProjectWithOptional[]).reduce((acc: number, p: ProjectWithOptional) => acc + ((p._count?.threads) || 0), 0)) : "--",
       label: "Conversation Awaiting",
+    },
+    {
+      id: "notifications",
+      icon: <HiOutlineBell className="inline w-7 h-7 text-secondary" />,
+      value: (notificationsQuery.data ?? []).length ?? 0,
+      label: "Notifications",
     },
     {
       id: "active-rfis",
@@ -315,7 +422,7 @@ const Dashboard = () => {
       icon: (
         <HiOutlineClipboardList className="inline w-7 h-7 text-secondary" />
       ),
-      value: 3,
+      value: "--", // no hook for approvals
       label: "Approvals Pending",
     },
     {
@@ -341,7 +448,7 @@ const Dashboard = () => {
     {
       id: "hours-this-week",
       icon: <HiOutlineClock className="inline w-7 h-7 text-secondary" />,
-      value: 320,
+      value: "--", // no attendance/time tracking hook used here
       label: "Hours This Week",
     },
     {
