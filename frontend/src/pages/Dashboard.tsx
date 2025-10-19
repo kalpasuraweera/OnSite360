@@ -288,6 +288,19 @@ const Dashboard = () => {
           ) / totalTasks
         );
 
+  const lastAdminActivity = useMemo(() => {
+    // derive most recent updatedAt from users whose role name includes "admin"
+    const users: User[] = (usersQuery.data as User[]) ?? [];
+    const admins = users.filter((u) => !!u.role?.name && /admin/i.test(u.role.name));
+    if (admins.length === 0) return "--";
+    const latest = admins.reduce((prev, cur) => {
+      const pd = prev.updatedAt ? new Date(prev.updatedAt).getTime() : 0;
+      const cd = cur.updatedAt ? new Date(cur.updatedAt).getTime() : 0;
+      return cd > pd ? cur : prev;
+    }, admins[0]);
+    return latest.updatedAt ? new Date(latest.updatedAt).toLocaleString() : "--";
+  }, [usersQuery.data]);
+
   const statCards = [
     {
       id: "total-users",
@@ -303,11 +316,11 @@ const Dashboard = () => {
       label: "Active Today",
     },
     {
-      id: "system-health",
-      icon: <HiOutlineChartBar className="inline w-7 h-7 text-secondary" />,
-      // System health / uptime has no hook; show placeholder
-      value: "--", // no hook for system health
-      label: "System Health",
+      id: "admin-activity",
+      icon: <HiOutlineUserGroup className="inline w-7 h-7 text-secondary" />,
+      // Shows the most recent updatedAt for any user with "admin" in their role name
+      value: lastAdminActivity,
+      label: "Admin Activity",
     },
     {
       id: "alerts",
@@ -741,7 +754,7 @@ const Dashboard = () => {
       statCardIds: [
         "total-users",
         "active-sessions",
-        "system-health",
+        "admin-activity", // updated id
         "alerts",
       ],
       chartKeys: ["project-status", "monthly-activity", "performance-overview"],
