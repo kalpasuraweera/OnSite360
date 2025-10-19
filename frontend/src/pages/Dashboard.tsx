@@ -50,6 +50,7 @@ import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
 import { useUsers, useUserNotifications } from "../hooks/useUsers";
+import { useRFIs } from "../hooks/useCommunication"; // <-- add this import
 import type { User } from "../hooks/useUsers";
 import { useTasks } from "../hooks/useTasks";
 import type { Task } from "../hooks/useTasks";
@@ -74,6 +75,7 @@ const Dashboard = () => {
   const tasksQuery = useTasks();
   const authUser = useAuthStore((s) => s.user);
   const notificationsQuery = useUserNotifications(authUser?.id ?? "");
+  const rfisQuery = useRFIs(); // <-- fetch RFIs
 
   // Local type: some backend responses include status/state or _count
   type ProjectWithOptional = Project & {
@@ -123,51 +125,130 @@ const Dashboard = () => {
 
   // Monthly activity chart - derive from project start/end dates if available
   const monthlyActivityData = useMemo(() => {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const startedCounts = new Array(12).fill(0);
-    const completedCounts = new Array(12).fill(0);
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
+    // collect valid start/end dates
+    const starts: Date[] = [];
+    const ends: Date[] = [];
 
-    const projects = projectsQuery.data?.data ?? [];
-    (projects as Project[]).forEach((p) => {
+    projects.forEach((p) => {
       if (p.startDate) {
         const d = new Date(p.startDate as string);
-        startedCounts[d.getMonth()] = (startedCounts[d.getMonth()] || 0) + 1;
+        if (!isNaN(d.getTime())) starts.push(d);
       }
       if (p.endDate) {
         const d = new Date(p.endDate as string);
-        completedCounts[d.getMonth()] =
-          (completedCounts[d.getMonth()] || 0) + 1;
+        if (!isNaN(d.getTime())) ends.push(d);
       }
     });
 
-    // Use first 6 months as the original UI did; if not enough data, zeros are OK
-    const labels = months.slice(0, 6);
+    // fallback: if no dates, use the next 6 months from now (keeps previous UX)
+    if (starts.length === 0 && ends.length === 0) {
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const labels = months.slice(0, 6);
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Projects Started",
+            data: new Array(labels.length).fill(0),
+            backgroundColor: "rgba(59, 130, 246, 0.8)",
+            borderColor: "rgba(59, 130, 246, 1)",
+            borderWidth: 1,
+          },
+          {
+            label: "Projects Completed",
+            data: new Array(labels.length).fill(0),
+            backgroundColor: "rgba(16, 185, 129, 0.8)",
+            borderColor: "rgba(16, 185, 129, 1)",
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+
+    // determine range: earliest start, latest end (or use latest start if no ends)
+    const minDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date(Math.min(...ends.map(d => d.getTime())));
+    const maxDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date(Math.max(...starts.map(d => d.getTime())));
+
+    // Normalize to first of month for iteration
+    const startMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const endMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+
+    // Build month keys and labels between startMonth and endMonth (inclusive)
+    const monthKeys: string[] = [];
+    const labels: string[] = [];
+    const keyToIndex = new Map<string, number>();
+    const maxMonths = 12; // cap to 12 months for chart readability
+
+    let cur = new Date(startMonth);
+    while (cur <= endMonth && monthKeys.length < maxMonths) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`; // e.g. 2025-10
+      monthKeys.push(key);
+      labels.push(cur.toLocaleString(undefined, { month: "short", year: "numeric" })); // "Oct 2025"
+      keyToIndex.set(key, monthKeys.length - 1);
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+
+    // If computed range is empty (defensive), fallback to last 6 months
+    if (monthKeys.length === 0) {
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        monthKeys.push(key);
+        labels.push(d.toLocaleString(undefined, { month: "short", year: "numeric" }));
+        keyToIndex.set(key, monthKeys.length - 1);
+      }
+    }
+
+    const startedCounts = new Array(monthKeys.length).fill(0);
+    const completedCounts = new Array(monthKeys.length).fill(0);
+
+    projects.forEach((p) => {
+      if (p.startDate) {
+        const sd = new Date(p.startDate as string);
+        if (!isNaN(sd.getTime())) {
+          const key = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, "0")}`;
+          const idx = keyToIndex.get(key);
+          if (typeof idx === "number") startedCounts[idx]++;
+        }
+      }
+      if (p.endDate) {
+        const ed = new Date(p.endDate as string);
+        if (!isNaN(ed.getTime())) {
+          const key = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, "0")}`;
+          const idx = keyToIndex.get(key);
+          if (typeof idx === "number") completedCounts[idx]++;
+        }
+      }
+    });
+
     return {
       labels,
       datasets: [
         {
           label: "Projects Started",
-          data: startedCounts.slice(0, 6),
+          data: startedCounts,
           backgroundColor: "rgba(59, 130, 246, 0.8)",
           borderColor: "rgba(59, 130, 246, 1)",
           borderWidth: 1,
         },
         {
           label: "Projects Completed",
-          data: completedCounts.slice(0, 6),
+          data: completedCounts,
           backgroundColor: "rgba(16, 185, 129, 0.8)",
           borderColor: "rgba(16, 185, 129, 1)",
           borderWidth: 1,
@@ -688,18 +769,34 @@ const Dashboard = () => {
     ],
   };
 
-  const rfiResponseTimeData = {
-    labels: ["RFI-101", "RFI-102", "RFI-103", "RFI-104", "RFI-105"],
-    datasets: [
-      {
-        label: "Response Time (days)",
-        data: [2, 4, 1, 3, 2],
-        backgroundColor: "rgba(59,130,246,0.7)",
-        borderColor: "#2563eb",
-        borderWidth: 2,
-      },
-    ],
-  };
+  // replace rfiResponseTimeData with a memo that counts RFIs per project
+const rfiCountPerProjectData = useMemo(() => {
+	const projects = (projectsQuery.data?.data ?? []) as any[];
+	const rfis = (rfisQuery.data ?? []) as any[];
+	const maxItems = 12;
+	const slice = projects.slice(0, maxItems);
+
+	const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+	const data = slice.map((p) => {
+		// count rfis where rfi.project?.id or rfi.projectId matches project id
+		return rfis.filter(
+			(r: any) => (r.project?.id ?? r.projectId ?? "") === p.id
+		).length;
+	});
+
+	return {
+		labels,
+		datasets: [
+			{
+				label: "Open RFIs",
+				data,
+				backgroundColor: "rgba(59,130,246,0.7)",
+				borderColor: "#2563eb",
+				borderWidth: 2,
+			},
+		],
+	};
+}, [projectsQuery.data?.data, rfisQuery.data]);
 
   // Chart grid configuration
   const chartsGrid = [
@@ -795,10 +892,10 @@ const Dashboard = () => {
     },
     {
       key: "rfi-response-time",
-      title: "RFI Response Time (System Admin/Subcontractor)",
+      title: "RFI Count per Project",
       chart: (
         <Bar
-          data={rfiResponseTimeData}
+          data={rfiCountPerProjectData}
           options={{
             ...chartOptions,
             plugins: {
