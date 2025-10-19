@@ -197,7 +197,11 @@ const AddTaskModal = ({
       };
 
       // Validation: require phase if the project has phases
-      if (projectPhases && projectPhases.length > 0 && !taskData.projectPhaseId) {
+      if (
+        projectPhases &&
+        projectPhases.length > 0 &&
+        !taskData.projectPhaseId
+      ) {
         setPhaseError("Please select a project phase.");
         setIsSubmitting(false);
         return;
@@ -232,14 +236,12 @@ const AddTaskModal = ({
         <div className="modal-box w-11/12 max-w-md">
           <h3 className="font-bold text-lg mb-2">Cannot create task</h3>
           <p className="text-sm text-base-content/70 mb-4">
-            This project has no defined phases. Tasks must be assigned to a project phase.
-            Please create project phases first in the Schedule / Phases section before adding tasks.
+            This project has no defined phases. Tasks must be assigned to a
+            project phase. Please create project phases first in the Schedule /
+            Phases section before adding tasks.
           </p>
           <div className="modal-action">
-            <button
-              className="btn"
-              onClick={() => setShowAddModal(false)}
-            >
+            <button className="btn" onClick={() => setShowAddModal(false)}>
               Close
             </button>
           </div>
@@ -253,7 +255,7 @@ const AddTaskModal = ({
       <div className="modal-box w-11/12 max-w-2xl">
         <h3 className="font-bold text-lg mb-4">Add New Task</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">
                 Task Title <span className="text-error">*</span>
@@ -261,7 +263,7 @@ const AddTaskModal = ({
             </label>
             <input
               type="text"
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               value={newTask.title}
               onChange={(e) =>
@@ -405,12 +407,12 @@ const AddTaskModal = ({
             </div>
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Description</span>
             </label>
             <textarea
-              className="textarea textarea-bordered"
+              className="textarea textarea-bordered w-full"
               rows={3}
               value={newTask.description}
               onChange={(e) =>
@@ -433,12 +435,14 @@ const AddTaskModal = ({
             />
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
-              <span className="label-text">Phase <span className="text-error">*</span></span>
+              <span className="label-text">
+                Phase <span className="text-error">*</span>
+              </span>
             </label>
             <select
-              className="select select-bordered"
+              className="select select-bordered w-full"
               value={newTask.projectPhaseId || ""}
               onChange={(e) => {
                 setNewTask((t) => ({
@@ -480,7 +484,9 @@ const AddTaskModal = ({
               className={`btn ${submitSuccess ? "btn-success" : "btn-primary"}`}
               disabled={
                 isSubmitting ||
-                (projectPhases && projectPhases.length > 0 && !newTask.projectPhaseId)
+                (projectPhases &&
+                  projectPhases.length > 0 &&
+                  !newTask.projectPhaseId)
               }
             >
               {submitSuccess ? (
@@ -626,7 +632,7 @@ const EditTaskModal = ({
       <div className="modal-box w-11/12 max-w-2xl">
         <h3 className="font-bold text-lg mb-4">Edit Task</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">
                 Task Title <span className="text-error">*</span>
@@ -634,7 +640,7 @@ const EditTaskModal = ({
             </label>
             <input
               type="text"
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               value={editTask.title}
               onChange={(e) =>
@@ -725,6 +731,7 @@ const EditTaskModal = ({
                   setEditTask((t) => ({ ...t, dueDate: e.target.value }))
                 }
                 disabled={isSubmitting}
+                min={new Date().toISOString().split("T")[0]} // Prevent past dates
               />
             </div>
           </div>
@@ -800,12 +807,12 @@ const EditTaskModal = ({
             </div>
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Description</span>
             </label>
             <textarea
-              className="textarea textarea-bordered"
+              className="textarea textarea-bordered w-full"
               rows={3}
               value={editTask.description}
               onChange={(e) =>
@@ -828,12 +835,12 @@ const EditTaskModal = ({
             />
           </div>
 
-          <div className="form-control">
+          <div className="flex flex-col w-full form-control">
             <label className="label">
               <span className="label-text">Phase (optional)</span>
             </label>
             <select
-              className="select select-bordered"
+              className="select select-bordered w-full"
               value={editTask.projectPhaseId || ""}
               onChange={(e) =>
                 setEditTask((t) => ({
@@ -985,22 +992,18 @@ const TaskDetails = ({
     <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <button
-            className="btn btn-soft btn-sm"
-            onClick={() => setMainTab("all-tasks")}
-          >
-            Back to Tasks
-          </button>
           <h1 className="text-2xl font-bold">{selectedTask.title}</h1>
         </div>
         <div className="flex gap-2">
+          {/* download */}
           <button
             className="btn btn-success btn-sm"
             onClick={handleDownloadTask}
           >
             <MdDownload />
-            Download
+            <span className="hidden sm:inline">Download</span>
           </button>
+          {/* edit */}
           <button
             className="btn btn-primary btn-sm"
             onClick={() => {
@@ -1008,8 +1011,9 @@ const TaskDetails = ({
             }}
           >
             <MdEdit />
-            Edit
+            <span className="hidden sm:inline">Edit</span>
           </button>
+          {/* delete */}
           <button
             className="btn btn-error btn-sm"
             onClick={handleDeleteTask}
@@ -1020,7 +1024,7 @@ const TaskDetails = ({
             ) : (
               <MdDelete />
             )}
-            Delete
+            <span className="hidden sm:inline">Delete</span>
           </button>
         </div>
       </div>
@@ -1830,16 +1834,9 @@ const TaskManagement = () => {
         : 0;
 
     return (
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <MdBarChart />
-            Task Analytics
-          </h2>
-        </div>
-
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200 shadow-xl shadow-neutral-400/20">
             <div className="stat ">
               <div className="stat-figure text-primary">
                 <MdAssignment className="text-2xl" />
@@ -1849,7 +1846,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-success">
                 <MdTrendingUp className="text-2xl" />
@@ -1861,7 +1858,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-warning">
                 <MdSchedule className="text-2xl" />
@@ -1873,7 +1870,7 @@ const TaskManagement = () => {
             </div>
           </div>
 
-          <div className="stats shadow-xl shadow-neutral-400/20">
+          <div className="stats bg-base-200  shadow-xl shadow-neutral-400/20">
             <div className="stat">
               <div className="stat-figure text-info">
                 <MdCalendarToday className="text-2xl" />
@@ -1885,128 +1882,129 @@ const TaskManagement = () => {
             </div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Status Distribution */}
-          <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Status Distribution</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Pending</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-neutral h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.pending / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.pending}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">In Progress</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-warning h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.inProgress / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.inProgress}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Completed</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-success h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.completed / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.completed}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Cancelled</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 bg-base-300 rounded-full h-2">
-                    <div
-                      className="bg-error h-2 rounded-full"
-                      style={{
-                        width: `${
-                          totalTasks > 0
-                            ? (statusCounts.cancelled / totalTasks) * 100
-                            : 0
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm w-8 text-right">
-                    {statusCounts.cancelled}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Priority Distribution */}
-          <div className="bg-base-100 p-4 rounded-xl">
-            <h3 className="font-semibold mb-4">Priority Distribution</h3>
-            <div className="space-y-3">
-              {Object.entries(priorityCounts).map(([priority, count]) => (
-                <div
-                  key={priority}
-                  className="flex justify-between items-center"
-                >
-                  <span className="text-sm capitalize">{priority}</span>
+        <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Status Distribution */}
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Status Distribution</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Pending</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 bg-base-300 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${
-                          priority === "critical"
-                            ? "bg-error"
-                            : priority === "high"
-                            ? "bg-warning"
-                            : priority === "medium"
-                            ? "bg-info"
-                            : "bg-success"
-                        }`}
+                        className="bg-neutral h-2 rounded-full"
                         style={{
                           width: `${
-                            totalTasks > 0 ? (count / totalTasks) * 100 : 0
+                            totalTasks > 0
+                              ? (statusCounts.pending / totalTasks) * 100
+                              : 0
                           }%`,
                         }}
                       ></div>
                     </div>
-                    <span className="text-sm w-8 text-right">{count}</span>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.pending}
+                    </span>
                   </div>
                 </div>
-              ))}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">In Progress</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-warning h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.inProgress / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.inProgress}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Completed</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-success h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.completed / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.completed}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Cancelled</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-base-300 rounded-full h-2">
+                      <div
+                        className="bg-error h-2 rounded-full"
+                        style={{
+                          width: `${
+                            totalTasks > 0
+                              ? (statusCounts.cancelled / totalTasks) * 100
+                              : 0
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-sm w-8 text-right">
+                      {statusCounts.cancelled}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Priority Distribution */}
+            <div className="bg-base-100 p-4 rounded-xl">
+              <h3 className="font-semibold mb-4">Priority Distribution</h3>
+              <div className="space-y-3">
+                {Object.entries(priorityCounts).map(([priority, count]) => (
+                  <div
+                    key={priority}
+                    className="flex justify-between items-center"
+                  >
+                    <span className="text-sm capitalize">{priority}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-base-300 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            priority === "critical"
+                              ? "bg-error"
+                              : priority === "high"
+                              ? "bg-warning"
+                              : priority === "medium"
+                              ? "bg-info"
+                              : "bg-success"
+                          }`}
+                          style={{
+                            width: `${
+                              totalTasks > 0 ? (count / totalTasks) * 100 : 0
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm w-8 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -2039,7 +2037,7 @@ const TaskManagement = () => {
   }
 
   return (
-    <div className="p-8 relative">
+    <div className="p-4 sm:p-6 lg:p-8 relative">
       {/* Global loading overlay for mutations */}
       {(updateTaskMutation.isPending ||
         deleteTaskMutation.isPending ||
@@ -2170,10 +2168,10 @@ const TaskManagement = () => {
             {/* Filters */}
             {showFilters && <FilterPanel />}
 
-            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+            <div className="bg-base-200 border border-base-300 p-4 rounded-2xl">
               {/* Controls */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center justify-between mb-4">
+                <div className="flex items-center gap-4 mb-2">
                   <button
                     className="btn btn-primary flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -2181,11 +2179,11 @@ const TaskManagement = () => {
                       !selectedProject ||
                       projectDataLoading ||
                       createTaskMutation.isPending ||
-                      phasesLoading ||                    // NEW: disable while phases loading
+                      phasesLoading || // NEW: disable while phases loading
                       (!phasesLoading && projectPhases.length === 0) // NEW: disable if no phases
                     }
                     title={
-                      (!phasesLoading && projectPhases.length === 0)
+                      !phasesLoading && projectPhases.length === 0
                         ? "Create project phases first"
                         : undefined
                     }
@@ -2198,8 +2196,7 @@ const TaskManagement = () => {
                     Add Task
                   </button>
                   <button
-
-                    className="btn btn-outline flex items-center gap-2"
+                    className="btn btn-soft flex items-center gap-2"
                     onClick={handleExport}
                     disabled={filteredTasks.length === 0}
                   >
@@ -2211,7 +2208,7 @@ const TaskManagement = () => {
                 <div className="flex gap-2">
                   <button
                     className={`btn btn-sm ${
-                      viewMode === "kanban" ? "btn-primary" : "btn-outline"
+                      viewMode === "kanban" ? "btn-neutral" : "btn-outline"
                     }`}
                     onClick={() => setViewMode("kanban")}
                   >
@@ -2220,7 +2217,7 @@ const TaskManagement = () => {
                   </button>
                   <button
                     className={`btn btn-sm ${
-                      viewMode === "table" ? "btn-primary" : "btn-outline"
+                      viewMode === "table" ? "btn-neutral" : "btn-outline"
                     }`}
                     onClick={() => setViewMode("table")}
                   >
@@ -2252,7 +2249,10 @@ const TaskManagement = () => {
                       <button
                         className="btn btn-primary"
                         onClick={() => setShowAddModal(true)}
-                        disabled={phasesLoading || (!phasesLoading && projectPhases.length === 0)}
+                        disabled={
+                          phasesLoading ||
+                          (!phasesLoading && projectPhases.length === 0)
+                        }
                         title={
                           !phasesLoading && projectPhases.length === 0
                             ? "Create project phases first"
@@ -2260,7 +2260,9 @@ const TaskManagement = () => {
                         }
                       >
                         <MdAddTask className="mr-2" />
-                        {!phasesLoading && projectPhases.length === 0 ? "Create Phases First" : "Add First Task"}
+                        {!phasesLoading && projectPhases.length === 0
+                          ? "Create Phases First"
+                          : "Add First Task"}
                       </button>
                     )}
                   </div>
