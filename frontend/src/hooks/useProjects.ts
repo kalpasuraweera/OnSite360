@@ -390,8 +390,7 @@ export interface CreateProjectDto {
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };
-  logoUrl?: string;
-  featuredImageUrl?: string;
+  image: File | null;
   startDate?: string;
   endDate?: string;
   users?: {
@@ -409,8 +408,7 @@ export interface UpdateProjectDto {
   squareFeet?: number;
   location?: string;
   coordinates?: { lat: number; lng: number };
-  logoUrl?: string;
-  featuredImageUrl?: string;
+  image?: File | null;
   startDate?: string;
   endDate?: string;
   users?: {
@@ -424,8 +422,11 @@ export const useCreateProject = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newProject: CreateProjectDto) => {
-      const { data } = await instance.post("/projects", newProject);
+    // Accept a FormData and post as multipart/form-data
+    mutationFn: async (formData: FormData) => {
+      const { data } = await instance.post("/projects", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       return data;
     },
     onSuccess: () => {
@@ -439,8 +440,11 @@ export const useUpdateProject = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: UpdateProjectDto & { id: string }) => {
-      const { data } = await instance.patch(`/projects/${id}`, updateData);
+    // Expect an object { id, formData } so we can target /projects/:id
+    mutationFn: async ({ id, formData }: { id: string; formData: FormData }) => {
+      const { data } = await instance.patch(`/projects/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       return data;
     },
     onSuccess: (data) => {

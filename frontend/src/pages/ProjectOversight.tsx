@@ -7,8 +7,6 @@ import {
   useCreateProject,
   useUpdateProject,
   type Project,
-  type CreateProjectDto,
-  type UpdateProjectDto,
 } from "../hooks/useProjects";
 import { useUsers, type User } from "../hooks/useUsers";
 
@@ -108,35 +106,54 @@ const ProjectOversight = () => {
 
   const handleCreateProject = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const formEl = event.currentTarget;
+    const formDataRaw = new FormData(formEl);
 
-    const newProject: CreateProjectDto = {
-      name: formData.get("projectName") as string,
-      description: formData.get("description") as string,
-      type: formData.get("type") as string,
-      budget: Number(formData.get("budget")) || undefined,
-      squareFeet: Number(formData.get("squareFeet")) || undefined,
-      location: locationText || undefined,
-      coordinates: locationCoords || undefined,
-      // logoUrl: "", // Set after upload if needed
-      // featuredImageUrl: "", // Set after upload if needed
-      startDate: (formData.get("startDate") as string) || undefined,
-      endDate: (formData.get("endDate") as string) || undefined,
-      users:
-        selectedUsers.length > 0
-          ? selectedUsers.map((user) => ({
-              userId: user.userId,
-              projectRole: user.projectRole,
-              accessLevel: user.accessLevel,
-            }))
-          : undefined,
-    };
+    // Build FormData for multipart upload
+    const payload = new FormData();
+    // scalar fields from the form
+    const name = formDataRaw.get("projectName") as string;
+    if (name) payload.append("name", name);
 
-    createProject.mutate(newProject, {
+    const description = formDataRaw.get("description") as string;
+    if (description) payload.append("description", description);
+
+    const type = formDataRaw.get("type") as string;
+    if (type) payload.append("type", type);
+
+    const budget = formDataRaw.get("budget");
+    if (budget) payload.append("budget", String(budget));
+
+    const squareFeet = formDataRaw.get("squareFeet");
+    if (squareFeet) payload.append("squareFeet", String(squareFeet));
+
+    if (locationText) payload.append("location", locationText);
+    if (locationCoords) payload.append("coordinates", JSON.stringify(locationCoords));
+
+    const startDate = formDataRaw.get("startDate") as string;
+    if (startDate) payload.append("startDate", startDate);
+
+    const endDate = formDataRaw.get("endDate") as string;
+    if (endDate) payload.append("endDate", endDate);
+
+    // users (send as JSON string)
+    if (selectedUsers.length > 0) {
+      payload.append("users", JSON.stringify(selectedUsers.map((u) => ({
+        userId: u.userId,
+        projectRole: u.projectRole,
+        accessLevel: u.accessLevel,
+      }))));
+    }
+
+    // image file from input ref
+    const file = imageInputRef.current?.files?.[0] ?? null;
+    if (file) payload.append("image", file);
+
+    createProject.mutate(payload, {
       onSuccess: () => {
         console.log("Project created successfully!");
         setActiveTab("projects");
-        (event.target as HTMLFormElement).reset();
+        formEl.reset();
         resetForm();
       },
       onError: (error) => {
@@ -149,40 +166,59 @@ const ProjectOversight = () => {
     event.preventDefault();
     if (!selectedProject) return;
 
-    const formData = new FormData(event.currentTarget);
+    const formEl = event.currentTarget;
+    const formDataRaw = new FormData(formEl);
 
-    const updatedProject: UpdateProjectDto & { id: string } = {
-      id: selectedProject.id,
-      name: formData.get("projectName") as string,
-      description: formData.get("description") as string,
-      type: formData.get("type") as string,
-      budget: Number(formData.get("budget")) || undefined,
-      squareFeet: Number(formData.get("squareFeet")) || undefined,
-      location: locationText || undefined,
-      coordinates: locationCoords || undefined,
-      logoUrl: selectedProject.logoUrl, // Keep existing logo for now
-      featuredImageUrl: selectedProject.featuredImageUrl, // Keep existing image for now
-      startDate: (formData.get("startDate") as string) || undefined,
-      endDate: (formData.get("endDate") as string) || undefined,
-      users:
-        selectedUsers.length > 0
-          ? selectedUsers.map((user) => ({
-              userId: user.userId,
-              projectRole: user.projectRole,
-              accessLevel: user.accessLevel,
-            }))
-          : undefined,
-    };
+    const payload = new FormData();
+    const name = formDataRaw.get("projectName") as string;
+    if (name) payload.append("name", name);
 
-    updateProject.mutate(updatedProject, {
-      onSuccess: () => {
-        console.log("Project updated successfully!");
-        setActiveTab("project_details");
-      },
-      onError: (error) => {
-        console.error("Failed to update project:", error);
-      },
-    });
+    const description = formDataRaw.get("description") as string;
+    if (description) payload.append("description", description);
+
+    const type = formDataRaw.get("type") as string;
+    if (type) payload.append("type", type);
+
+    const budget = formDataRaw.get("budget");
+    if (budget) payload.append("budget", String(budget));
+
+    const squareFeet = formDataRaw.get("squareFeet");
+    if (squareFeet) payload.append("squareFeet", String(squareFeet));
+
+    if (locationText) payload.append("location", locationText);
+    if (locationCoords) payload.append("coordinates", JSON.stringify(locationCoords));
+
+    const startDate = formDataRaw.get("startDate") as string;
+    if (startDate) payload.append("startDate", startDate);
+
+    const endDate = formDataRaw.get("endDate") as string;
+    if (endDate) payload.append("endDate", endDate);
+
+    // users (send as JSON string)
+    if (selectedUsers.length > 0) {
+      payload.append("users", JSON.stringify(selectedUsers.map((u) => ({
+        userId: u.userId,
+        projectRole: u.projectRole,
+        accessLevel: u.accessLevel,
+      }))));
+    }
+
+    // If user selected a new image
+    const file = imageInputRef.current?.files?.[0] ?? null;
+    if (file) payload.append("image", file);
+
+    updateProject.mutate(
+      { id: selectedProject.id, formData: payload },
+      {
+        onSuccess: () => {
+          console.log("Project updated successfully!");
+          setActiveTab("project_details");
+        },
+        onError: (error) => {
+          console.error("Failed to update project:", error);
+        },
+      }
+    );
   };
 
   const resetForm = () => {
