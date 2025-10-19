@@ -55,6 +55,7 @@ import {
   useUserProjects,
 } from "../hooks/useUsers";
 import { useRFIs } from "../hooks/useCommunication"; // <-- add this import
+import { useProjectPhasesForProjects } from "../hooks/useSchedule"; // NEW: bulk phases hook
 import type { User } from "../hooks/useUsers";
 import { useTasks } from "../hooks/useTasks";
 import type { Task } from "../hooks/useTasks";
@@ -509,6 +510,13 @@ const Dashboard = () => {
     }).format(sumOutstanding || 0);
   }, [projectsQuery.data?.data]);
 
+  // remove previous milestonesCount useMemo and replace with hook-backed count
+  const userProjectIds = (userProjectsQuery.data ?? [])
+    .map((p: any) => p.id)
+    .filter(Boolean);
+  const userProjectPhasesQuery = useProjectPhasesForProjects(userProjectIds);
+  const milestonesCount = userProjectPhasesQuery.data?.length ?? 0;
+
   const statCards = [
     {
       id: "total-users",
@@ -754,7 +762,7 @@ const Dashboard = () => {
     {
       id: "milestones",
       icon: <HiOutlineFlag className="inline w-7 h-7 text-secondary" />,
-      value: 11,
+      value: milestonesCount,
       label: "Milestones",
     },
   ];
@@ -1093,7 +1101,7 @@ const Dashboard = () => {
       chartKeys: ["client-satisfaction", "rfi-response-time"],
     },
     {
-      role: "Project Manager",
+      role: "Project Manager1",
       statCardIds: [
         "hours-this-week",
         "pending-invoices",
@@ -1121,6 +1129,14 @@ const Dashboard = () => {
         "milestones",
       ],
       chartKeys: ["monthly-activity", "cost-breakdown", "performance-overview"],
+    },
+    // add a custom rool with all the statCards and charts for testing
+    {
+      role: "Project Manager",
+      statCardIds: statCards.map((card) => card.id),
+      chartKeys: chartsGrid.map(
+        (chart) => chart.key || chart.title?.toLowerCase().replace(/\s/g, "-")
+      ),
     },
   ];
 

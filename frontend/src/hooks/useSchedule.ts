@@ -251,6 +251,27 @@ export const useProjectPhase = (id: string) => {
   });
 };
 
+// NEW: Get project phases for multiple projects (bulk)
+export const useProjectPhasesForProjects = (projectIds: string[]) => {
+  return useQuery({
+    queryKey: ["project-phases", "bulk", ...(projectIds || [])],
+    queryFn: async () => {
+      if (!projectIds || projectIds.length === 0) return [] as ProjectPhase[];
+      // fetch phases for each project and flatten results
+      const results = await Promise.all(
+        projectIds.map((id) =>
+          instance
+            .get(`/schedule/project-phases?projectId=${id}`)
+            .then((res) => res.data as ProjectPhase[])
+            .catch(() => [] as ProjectPhase[])
+        )
+      );
+      return results.flat() as ProjectPhase[];
+    },
+    enabled: Array.isArray(projectIds) && projectIds.length > 0,
+  });
+};
+
 // Create a new project phase
 export const useCreateProjectPhase = () => {
   const queryClient = useQueryClient();
