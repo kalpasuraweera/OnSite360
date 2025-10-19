@@ -21,6 +21,7 @@ export class DocumentsService {
     // Defensive: ensure file path is within uploads directory
     const uploadsDir = path.join(process.cwd(), 'uploads');
     const destPath = path.resolve(file.path);
+
     if (!destPath.startsWith(uploadsDir)) {
       throw new NotFoundException('Invalid file path');
     }
@@ -39,7 +40,11 @@ export class DocumentsService {
         mimeType: file.mimetype ?? null,
         uploadedById: user?.sub || null,
         description: createDocumentDto.description ?? null,
-        tags: createDocumentDto.tags ?? [],
+        tags: createDocumentDto.tags
+          ? Array.isArray(createDocumentDto.tags)
+            ? createDocumentDto.tags
+            : [createDocumentDto.tags]
+          : [],
       },
       include: { uploader: true },
     });
