@@ -2821,4 +2821,18 @@ export default ProjectOversight;
                     </button>
                   </div>
 
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => setActiveTab("projects")}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      Save Changes
+                    </button>
+                  </div>
+
 
