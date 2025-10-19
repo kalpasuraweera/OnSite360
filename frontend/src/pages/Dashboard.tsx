@@ -707,49 +707,77 @@ const Dashboard = () => {
   ];
 
   // Additional charts data for various roles
-  const resourceAllocationData = {
-    labels: ["Labor", "Equipment", "Materials", "Subcontractors"],
-    datasets: [
-      {
-        label: "Allocation (%)",
-        data: [40, 25, 20, 15],
-        backgroundColor: ["#f87171", "#60a5fa", "#34d399", "#fbbf24"],
-        borderWidth: 1,
-      },
-    ],
-  };
+  const resourceAllocationData = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const maxItems = 12;
+    const slice = projects.slice(0, maxItems);
 
-  const safetyIncidentsData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        label: "Incidents",
-        data: [2, 1, 3, 0, 2, 1],
-        backgroundColor: "rgba(251, 191, 36, 0.7)",
-        borderColor: "#f59e42",
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+    const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+    const data = slice.map((p) => Number(p._count?.tasks ?? 0));
 
-  const clientSatisfactionData = {
-    labels: ["Site A", "Site B", "Site C", "Site D"],
-    datasets: [
-      {
-        label: "Satisfaction (%)",
-        data: [92, 85, 78, 88],
-        backgroundColor: [
-          "rgba(96,165,250,0.7)",
-          "rgba(16,185,129,0.7)",
-          "rgba(251,113,133,0.7)",
-          "rgba(253,224,71,0.7)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Task Count",
+          data,
+          backgroundColor: labels.map((_, i) =>
+            ["#f87171", "#60a5fa", "#34d399", "#fbbf24", "#f97316", "#8b5cf6"][i % 6]
+          ),
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data]);
+
+  const safetyIncidentsData = useMemo(() => {
+    // Use document counts per project
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const maxItems = 12;
+    const slice = projects.slice(0, maxItems);
+
+    const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+    const data = slice.map((p) => Number(p._count?.documents ?? 0));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Document Count",
+          data,
+          backgroundColor: "rgba(251,191,36,0.7)",
+          borderColor: "#f59e42",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data]);
+
+  const clientSatisfactionData = useMemo(() => {
+    // Use thread counts per project
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const maxItems = 12;
+    const slice = projects.slice(0, maxItems);
+
+    const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+    const data = slice.map((p) => Number(p._count?.threads ?? 0));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Thread Count",
+          data,
+          backgroundColor: labels.map((_, i) =>
+            ["rgba(96,165,250,0.7)", "rgba(16,185,129,0.7)", "rgba(251,113,133,0.7)", "rgba(253,224,71,0.7)"][i % 4]
+          ),
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [projectsQuery.data?.data]);
 
   // replace the static costBreakdownData with a memoized per-project cost dataset
 const costBreakdownData = useMemo(() => {
@@ -1005,7 +1033,7 @@ const rfiCountPerProjectData = useMemo(() => {
         "completion-rate",
         "overall-progress",
       ],
-      chartKeys: ["cost-breakdown", "rfi-response-time"],
+      chartKeys: ["cost-breakdown", "rfi-response-time", "resource-allocation","safety-incidents", "client-satisfaction"],
     },
     {
       role: "Executive Admin",
