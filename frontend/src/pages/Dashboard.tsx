@@ -751,23 +751,58 @@ const Dashboard = () => {
     ],
   };
 
-  const costBreakdownData = {
-    labels: ["Labor", "Materials", "Equipment", "Overheads", "Misc"],
+  // replace the static costBreakdownData with a memoized per-project cost dataset
+const costBreakdownData = useMemo(() => {
+  const projects = (projectsQuery.data?.data ?? []) as any[];
+  if (!projects || projects.length === 0) {
+    return {
+      labels: [],
+      datasets: [
+        {
+          label: "Project Cost ($)",
+          data: [],
+          backgroundColor: [],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }
+
+  const maxItems = 12;
+  const slice = projects.slice(0, maxItems);
+
+  const labels = slice.map((p) => p.name ?? p.id ?? "Project");
+  const values = slice.map((p) =>
+    Number(p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0)
+  );
+
+  const palette = [
+    "#6366f1",
+    "#f472b6",
+    "#facc15",
+    "#34d399",
+    "#60a5fa",
+    "#f97316",
+    "#ef4444",
+    "#7c3aed",
+    "#06b6d4",
+    "#f43f5e",
+    "#10b981",
+    "#8b5cf6",
+  ];
+
+  return {
+    labels,
     datasets: [
       {
-        label: "Cost ($K)",
-        data: [120, 90, 60, 30, 10],
-        backgroundColor: [
-          "#6366f1",
-          "#f472b6",
-          "#facc15",
-          "#34d399",
-          "#60a5fa",
-        ],
+        label: "Project Cost ($)",
+        data: values,
+        backgroundColor: values.map((_, i) => palette[i % palette.length]),
         borderWidth: 1,
       },
     ],
   };
+}, [projectsQuery.data?.data]);
 
   // replace rfiResponseTimeData with a memo that counts RFIs per project
 const rfiCountPerProjectData = useMemo(() => {
