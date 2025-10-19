@@ -229,7 +229,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
               key={mode}
               onClick={() => handleViewModeChange(mode)}
               className={`btn btn-sm ${
-                viewMode === mode ? "btn-primary" : "btn-outline"
+                viewMode === mode ? "btn-neutral" : "btn-outline"
               }`}
               disabled
             >
@@ -266,7 +266,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
               key={mode}
               onClick={() => handleViewModeChange(mode)}
               className={`btn btn-sm ${
-                viewMode === mode ? "btn-primary" : "btn-outline"
+                viewMode === mode ? "btn-neutral" : "btn-outline"
               }`}
               disabled={isLoading}
             >
@@ -298,7 +298,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
 
       {/* Gantt Chart Container */}
       <div
-        className="relative w-[1100px] overflow-x-auto border border-base-300 rounded-lg"
+        className="relative w-full overflow-x-auto border border-base-300 rounded-lg"
         style={{ minHeight: "400px" }}
       >
         {isLoading && (
@@ -310,7 +310,7 @@ const GanttChart = ({ tasks }: { tasks: GanttTask[] }) => {
         <div
           ref={ganttRef}
           className="gantt-target w-full h-full"
-          style={{ minHeight: "400px" }}
+          style={{ minHeight: "400px", maxWidth: "100%" }}
         />
       </div>
     </div>
@@ -874,7 +874,7 @@ const ScheduleManagement = () => {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold">Schedule Management</h1>
@@ -944,12 +944,12 @@ const ScheduleManagement = () => {
           Daily Logs
         </button>
       </div>
-      <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+      <div className="bg-base-200 border border-base-300 p-4 sm:p-6 lg:p-6 rounded-2xl">
         {/* Tab Content */}
-        <div className="mt-4">
+        <div className="">
           {/* Gantt Chart */}
           {activeTab === "gantt" && (
-            <div className="bg-base-100 border border-base-300 rounded-2xl p-6">
+            <div className="bg-base-100 border border-base-300 rounded-2xl p-4 sm:p-6 lg:p-6">
               {phasesLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="loading loading-spinner loading-lg"></div>
@@ -1070,6 +1070,23 @@ const ScheduleManagement = () => {
                               Sub-phase
                             </div>
                           )}
+                          {/* buttons */}
+                          <div className="flex gap-2">
+                            {/* edit phase */}
+                            <button
+                              className="btn btn-md btn-ghost rounded-2xl bg-base-200"
+                              onClick={() => handleEditPhase(phase)}
+                            >
+                              <MdEdit />
+                            </button>
+                            {/* delete phase */}
+                            <button
+                              className="btn btn-md bg-base-200 rounded-2xl btn-ghost text-error"
+                              onClick={() => handleDeletePhase(phase.id)}
+                            >
+                              <MdDelete />
+                            </button>
+                          </div>
                         </div>
                         {phase.description && (
                           <p className="text-base-content/70 mb-2">
@@ -1104,20 +1121,6 @@ const ScheduleManagement = () => {
                             style={{ width: `${phase.progress}%` }}
                           ></div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-md btn-ghost rounded-2xl bg-base-200"
-                          onClick={() => handleEditPhase(phase)}
-                        >
-                          <MdEdit />
-                        </button>
-                        <button
-                          className="btn btn-md bg-base-200 rounded-2xl btn-ghost text-error"
-                          onClick={() => handleDeletePhase(phase.id)}
-                        >
-                          <MdDelete />
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -1747,13 +1750,13 @@ const ScheduleManagement = () => {
               {editingPhase ? "Edit Phase" : "Add New Phase"}
             </h3>
             <form onSubmit={handlePhaseSubmit} className="space-y-4">
-              <div className="form-control">
+              <div className="flex flex-col w-full form-control">
                 <label className="label">
                   <span className="label-text">Phase Name</span>
                 </label>
                 <input
                   type="text"
-                  className="input input-bordered"
+                  className="input input-bordered w-full"
                   value={phaseForm.name}
                   onChange={(e) =>
                     setPhaseForm((prev) => ({ ...prev, name: e.target.value }))
@@ -1761,12 +1764,12 @@ const ScheduleManagement = () => {
                   required
                 />
               </div>
-              <div className="form-control">
+              <div className="flex flex-col w-full form-control">
                 <label className="label">
                   <span className="label-text">Description</span>
                 </label>
                 <textarea
-                  className="textarea textarea-bordered"
+                  className="textarea w-full textarea-bordered"
                   value={phaseForm.description}
                   onChange={(e) =>
                     setPhaseForm((prev) => ({
@@ -1777,12 +1780,12 @@ const ScheduleManagement = () => {
                   rows={3}
                 />
               </div>
-              <div className="form-control">
+              <div className="flex flex-col w-full form-control">
                 <label className="label">
                   <span className="label-text">Parent Phase (Optional)</span>
                 </label>
                 <select
-                  className="select select-bordered"
+                  className="select w-full select-bordered"
                   value={phaseForm.parentId || ""}
                   onChange={(e) =>
                     setPhaseForm((prev) => ({
@@ -1840,12 +1843,14 @@ const ScheduleManagement = () => {
                     type="datetime-local"
                     className="input input-bordered"
                     value={phaseForm.endDate}
-                    onChange={(e) =>
+                    min={phaseForm.startDate} // Prevent selecting a date earlier than the start date
+                    onChange={(e) => {
+                      const endDate = e.target.value;
                       setPhaseForm((prev) => ({
                         ...prev,
-                        endDate: e.target.value,
-                      }))
-                    }
+                        endDate,
+                      }));
+                    }}
                     required
                   />
                 </div>
