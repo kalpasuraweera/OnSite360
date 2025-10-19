@@ -510,12 +510,79 @@ const Dashboard = () => {
     }).format(sumOutstanding || 0);
   }, [projectsQuery.data?.data]);
 
-  // remove previous milestonesCount useMemo and replace with hook-backed count
   const userProjectIds = (userProjectsQuery.data ?? [])
     .map((p: any) => p.id)
     .filter(Boolean);
   const userProjectPhasesQuery = useProjectPhasesForProjects(userProjectIds);
   const milestonesCount = userProjectPhasesQuery.data?.length ?? 0;
+
+  // NEW: compute overall budget status using project budgets and spent amounts
+  const budgetStatusInfo = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    let totalBudget = 0;
+    let totalSpent = 0;
+
+    projects.forEach((p) => {
+      const budgetRaw = p.budget ?? p.projectBudget ?? null;
+      const costRaw =
+        p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0;
+
+      const budget =
+        typeof budgetRaw === "number"
+          ? budgetRaw
+          : budgetRaw
+          ? Number(budgetRaw)
+          : 0;
+      const spent =
+        typeof costRaw === "number" ? costRaw : costRaw ? Number(costRaw) : 0;
+
+      if (!Number.isNaN(budget)) totalBudget += budget;
+      if (!Number.isNaN(spent)) totalSpent += spent;
+    });
+
+    let status = "N/A";
+    if (totalBudget === 0 && totalSpent === 0) status = "N/A";
+    else if (totalSpent > totalBudget) status = "Over";
+    else if (totalSpent === totalBudget) status = "On Budget";
+    else status = "Under";
+
+    return {
+      status,
+      totalSpent,
+      totalBudget,
+      formattedOutstanding: outstandingValue, // reuse formatted outstandingValue
+    };
+  }, [projectsQuery.data?.data, outstandingValue]);
+
+  const timelineStatusInfo = useMemo(() => {
+    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const now = new Date();
+    let hasPhases = false;
+    let hasOverdueIncomplete = false;
+
+    // Get all project IDs to fetch their phases
+    const projectIds = projects.map(p => p.id).filter(Boolean);
+    
+    // Use the useProjectPhasesForProjects hook to get all phases for these projects
+    const allProjectPhases = userProjectPhasesQuery.data || [];
+    
+    if (allProjectPhases.length > 0) {
+      hasPhases = true;
+      
+      // Check for overdue incomplete phases
+      hasOverdueIncomplete = allProjectPhases.some(phase => {
+        if (!phase.endDate) return false;
+        const endDate = new Date(phase.endDate);
+        return endDate < now && phase.progress < 100;
+      });
+    }
+
+    let status = "No Schedule";
+    if (hasOverdueIncomplete) status = "Delayed";
+    else if (hasPhases) status = "On Track";
+
+    return { status, hasPhases, hasOverdueIncomplete };
+  }, [projectsQuery.data?.data, userProjectPhasesQuery.data]);
 
   const statCards = [
     {
@@ -748,7 +815,8 @@ const Dashboard = () => {
     {
       id: "timeline",
       icon: <HiOutlineCalendar className="inline w-7 h-7 text-secondary" />,
-      value: "On Track",
+      // Use schedule-based status computed from project phases
+      value: timelineStatusInfo.status,
       label: "TimeLine",
     },
     {
@@ -756,7 +824,8 @@ const Dashboard = () => {
       icon: (
         <HiOutlineCurrencyDollar className="inline w-7 h-7 text-secondary" />
       ),
-      value: "Under",
+      // Use outstanding value and an overall status computed from project budgets/spent
+      value: `${budgetStatusInfo.formattedOutstanding} (${budgetStatusInfo.status})`,
       label: "Budget Status",
     },
     {
