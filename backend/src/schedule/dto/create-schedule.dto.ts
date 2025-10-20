@@ -299,16 +299,16 @@ export class CreateDailyActivityDto {
   @IsOptional()
   endTime?: string;
 
-  @ApiPropertyOptional({
-    description: 'Progress percentage (0-100)',
-    example: 75,
-    minimum: 0,
-    maximum: 100,
-  })
-  @IsNumber()
+  // @ApiPropertyOptional({
+  //   description: 'Progress percentage (0-100)',
+  //   example: 75,
+  //   minimum: 0,
+  //   maximum: 100,
+  // })
+  // @IsNumber()
   @IsOptional()
-  @Min(0)
-  @Max(100)
+  // @Min(0)
+  // @Max(100)
   progress?: number;
 
   @ApiPropertyOptional({
