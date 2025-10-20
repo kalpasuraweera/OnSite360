@@ -870,11 +870,16 @@ export class ScheduleService {
 
     const { startTime, endTime, ...activityData } = createDailyActivityDto;
 
+    const progress = parseFloat(
+      createDailyActivityDto.progress?.toString() || '0',
+    );
+
     return this.prisma.dailyActivity.create({
       data: {
         ...activityData,
         startTime: startTime ? new Date(startTime) : undefined,
         endTime: endTime ? new Date(endTime) : undefined,
+        progress: isNaN(progress) ? 0 : progress,
         // persist taskId if provided
         ...(taskConnect ? { taskId: createDailyActivityDto.taskId } : {}),
         // Store file URLs directly in the files array
