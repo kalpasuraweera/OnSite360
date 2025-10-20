@@ -529,7 +529,7 @@ export default function DailyLogsManagement() {
     coordinates: { lat: number; lng: number } | null
   ) => {
     if (!coordinates) return null;
-    return `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`;
+    return `${coordinates?.lat?.toFixed(6)}, ${coordinates?.lng?.toFixed(6)}`;
   };
 
   // Function to get a link to Google Maps for coordinates
