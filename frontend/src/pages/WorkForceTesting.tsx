@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   MdPersonAdd,
   MdEdit,
@@ -11,7 +11,6 @@ import {
   MdNoteAdd,
   MdCheck,
 } from "react-icons/md";
-import React from "react";
 import TagsInput from "../components/TagsInput";
 import {
   useProjectCrewMembers,
@@ -207,6 +206,9 @@ const WorkforceManagement = () => {
   const [attendanceDate, setAttendanceDate] = useState<string>(todayStr);
   const [showAddWorker, setShowAddWorker] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  // Selection state for bulk operations
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   // API hooks
   const { user } = useAuthStore();
@@ -224,7 +226,7 @@ const WorkforceManagement = () => {
   } = useProjectAttendanceByDate(selectedProject || "", attendanceDate);
 
   // Extract crew members from response - handle both .data and direct array
-  const crewMembers = React.useMemo(() => {
+  const crewMembers = useMemo(() => {
     if (!crewMembersResponse) return [];
 
     let assignments: CrewAssignment[] = [];
@@ -318,7 +320,7 @@ const WorkforceManagement = () => {
   const assignCrewMemberToProjectMutation = useAssignCrewMemberToProject();
 
   // Set default project when projects are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       Array.isArray(projects) &&
       projects.length > 0 &&
@@ -341,7 +343,7 @@ const WorkforceManagement = () => {
   });
 
   // Update attendance state when attendance data is fetched
-  React.useEffect(() => {
+  useEffect(() => {
     // Set loading state when attendance is being fetched
     if (attendanceLoading) {
       setAttendanceDataStatus({
@@ -426,7 +428,7 @@ const WorkforceManagement = () => {
   }, [attendanceResponse, attendanceError, attendanceLoading]);
 
   // Reset attendance state when project changes
-  React.useEffect(() => {
+  useEffect(() => {
     setAttendanceState({});
     setAttendanceDataStatus({
       loading: false,
@@ -651,6 +653,65 @@ const WorkforceManagement = () => {
   const handleDeleteWorker = (workerId: string) => {
     setWorkerToDelete(workerId);
     setShowDeleteConfirm(true);
+  };
+
+  // Toggle select worker for bulk operations
+  const toggleSelectWorker = (workerId: string) => {
+    setSelectedWorkerIds((prev) =>
+      prev.includes(workerId) ? prev.filter((id) => id !== workerId) : [...prev, workerId]
+    );
+  };
+
+  const selectAllVisible = () => {
+    const ids = (filteredWorkers || []).map((w: CrewMember) => w.id);
+    setSelectedWorkerIds(ids);
+  };
+
+  const clearSelection = () => setSelectedWorkerIds([]);
+
+  const bulkDeleteSelected = async () => {
+    if (!selectedWorkerIds.length) return;
+    try {
+      await Promise.all(selectedWorkerIds.map((id) => deleteCrewMemberMutation.mutateAsync(id)));
+      setSelectedWorkerIds([]);
+    } catch (error) {
+      console.error("Bulk delete failed:", error);
+    }
+  };
+
+  // Quick add inline form handlers
+  const [quickAddName, setQuickAddName] = useState("");
+  const [quickAddRole, setQuickAddRole] = useState("");
+
+  const handleQuickAdd = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!quickAddName || !quickAddRole) return;
+    if (!selectedProject) {
+      alert("Select a project before adding a worker");
+      return;
+    }
+    try {
+      const created = await createCrewMemberMutation.mutateAsync({
+        name: quickAddName,
+        role: quickAddRole,
+        phone: "",
+        email: "",
+        skills: [],
+        isActive: true,
+        hireDate: new Date().toISOString().slice(0, 10),
+      });
+      await assignCrewMemberToProjectMutation.mutateAsync({
+        projectId: selectedProject,
+        crewMemberId: created.data?.id,
+        notes: `Quick-added via UI on ${new Date().toLocaleDateString()}`,
+      });
+      setQuickAddName("");
+      setQuickAddRole("");
+      setShowQuickAdd(false);
+    } catch (error) {
+      console.error("Quick add failed:", error);
+      alert("Failed to add worker");
+    }
   };
 
   // Confirm delete worker
@@ -896,6 +957,29 @@ const WorkforceManagement = () => {
             </button>
             <button
               className="btn btn-outline flex items-center gap-2"
+              onClick={() => setShowQuickAdd((s) => !s)}
+            >
+              Quick Add
+            </button>
+            <div className="divider divider-vertical" />
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => selectAllVisible()}
+            >
+              Select All
+            </button>
+            <button className="btn btn-sm btn-ghost" onClick={clearSelection}>
+              Clear
+            </button>
+            <button
+              className="btn btn-sm btn-error"
+              onClick={bulkDeleteSelected}
+              disabled={!selectedWorkerIds.length}
+            >
+              Delete Selected ({selectedWorkerIds.length})
+            </button>
+            <button
+              className="btn btn-outline flex items-center gap-2"
               onClick={handleExport}
             >
               <MdFileDownload />
@@ -919,6 +1003,36 @@ const WorkforceManagement = () => {
             />
           </div>
         </div>
+
+        {/* Quick Add inline form */}
+        {showQuickAdd && (
+          <div className="mb-4 bg-base-100 p-4 rounded-lg border border-base-300">
+            <form className="flex gap-2 items-center" onSubmit={handleQuickAdd}>
+              <input
+                className="input input-sm input-bordered"
+                placeholder="Name"
+                value={quickAddName}
+                onChange={(e) => setQuickAddName(e.target.value)}
+              />
+              <input
+                className="input input-sm input-bordered"
+                placeholder="Role"
+                value={quickAddRole}
+                onChange={(e) => setQuickAddRole(e.target.value)}
+              />
+              <button className="btn btn-sm btn-primary" type="submit">
+                Add
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setShowQuickAdd(false)}
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Main content area - show loading contextually */}
         {projectsLoading || crewMembersLoading || attendanceLoading ? (
@@ -1719,6 +1833,16 @@ const WorkforceManagement = () => {
                 <table className="table w-full bg-base-100 border border-base-300 rounded-2xl">
                   <thead>
                     <tr>
+                      <th className="w-10">
+                        <input
+                          type="checkbox"
+                          checked={
+                            selectedWorkerIds.length > 0 &&
+                            (filteredWorkers || []).every((w: CrewMember) => selectedWorkerIds.includes(w.id))
+                          }
+                          onChange={(e) => (e.target.checked ? selectAllVisible() : clearSelection())}
+                        />
+                      </th>
                       <th>Name</th>
                       <th>Role</th>
                       {activeTab === "attendance" ? (
@@ -1930,8 +2054,17 @@ const WorkforceManagement = () => {
 
                         if (activeTab === "attendance") {
                           // Enhanced attendance view with toggle buttons and notes
+                          const isSelected = selectedWorkerIds.includes(worker.id);
                           return (
                             <tr key={worker.id} className="hover:bg-base-200">
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectWorker(worker.id)}
+                                  className="checkbox checkbox-sm"
+                                />
+                              </td>
                               <td className="font-medium flex items-center gap-2">
                                 <div className="w-8 h-8 min-w-8 rounded-full bg-primary/20 flex items-center justify-center">
                                   <span className="text-xs font-medium text-primary">
@@ -2070,8 +2203,17 @@ const WorkforceManagement = () => {
                         }
 
                         if (activeTab === "all") {
+                          const isSelected = selectedWorkerIds.includes(worker.id);
                           return (
                             <tr key={worker.id} className="hover:bg-base-200">
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectWorker(worker.id)}
+                                  className="checkbox checkbox-sm"
+                                />
+                              </td>
                               <td className="font-medium flex items-center gap-2">
                                 <div className="w-8 h-8 min-w-8 rounded-full bg-primary/20 flex items-center justify-center">
                                   <span className="text-xs font-medium text-primary">

@@ -1,0 +1,4486 @@
+import { useState, type KeyboardEvent } from 'react';
+
+interface TagsInputProps {
+  value: string[];
+  onChange: (tags: string[]) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  maxTags?: number;
+}
+
+const TagsInput = ({ 
+  value = [], 
+  onChange, 
+  placeholder = "Type and press Enter to add tags",
+  disabled = false,
+  className = "",
+  maxTags
+}: TagsInputProps) => {
+  const [inputValue, setInputValue] = useState('');
+
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !value.includes(trimmedTag)) {
+      if (!maxTags || value.length < maxTags) {
+        onChange([...value, trimmedTag]);
+      }
+    }
+    setInputValue('');
+  };
+
+  const removeTag = (indexToRemove: number) => {
+    onChange(value.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag(inputValue);
+    } else if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
+      // Remove last tag when backspace is pressed on empty input
+      removeTag(value.length - 1);
+    } else if (e.key === ',' || e.key === ';') {
+      e.preventDefault();
+      addTag(inputValue);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    // Prevent adding comma or semicolon to input
+    if (newValue.includes(',') || newValue.includes(';')) {
+      addTag(newValue.replace(/[,;]/g, ''));
+    } else {
+      setInputValue(newValue);
+    }
+  };
+
+  return (
+    <div className={`tags-input-container ${className}`}>
+      <div className="flex flex-wrap gap-2 p-3 border border-base-300 rounded-lg bg-base-100 min-h-[48px] focus-within:outline-2 focus-within:outline-primary focus-within:outline-offset-2">
+        {/* Render existing tags */}
+        {value.map((tag, index) => (
+          <span
+            key={index}
+            className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-content rounded-md text-sm"
+          >
+            {tag}
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => removeTag(index)}
+                className="ml-1 hover:bg-primary-focus rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                aria-label={`Remove ${tag} tag`}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+        
+        {/* Input field */}
+        {(!maxTags || value.length < maxTags) && (
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={value.length === 0 ? placeholder : ""}
+            disabled={disabled}
+            className="flex-1 min-w-[120px] bg-transparent outline-none text-base-content placeholder-base-content/50"
+          />
+        )}
+      </div>
+      
+      {/* Helper text */}
+      <div className="text-xs text-base-content/60 mt-1">
+        {maxTags && (
+          <span className="mr-4">
+            {value.length}/{maxTags} tags
+          </span>
+        )}
+        Press Enter, comma, or semicolon to add tags
+      </div>
+    </div>
+  );
+};
+
+export default TagsInput;
+import React from "react";
+import { FaArrowLeftLong } from "react-icons/fa6";
+import { useNavigate } from "react-router-dom";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  className?: string;
+  variant?: "default" | "back";
+  children?: React.ReactNode;
+}
+
+const Button: React.FC<ButtonProps> = ({
+  className = "",
+  variant = "default",
+  children,
+  ...props
+}) => {
+  const navigate = useNavigate();
+
+  if (variant === "back") {
+    return (
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className={`bg-base-100 p-4 rounded-full w-20 border border-base-300 ${className}`}
+        {...props}
+      >
+        <FaArrowLeftLong />
+      </button>
+    );
+  }
+
+  return (
+    <button className={`btn rounded-xl mt-3 ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+export default Button;
+
+
+import { useState, useMemo } from "react";
+import {
+  useThreads,
+  useCreateThread,
+  useUpdateThread,
+  useThreadMessages,
+  useSendMessage,
+  useSendMessageWithAttachments,
+  useRFIs,
+  useCreateRFI,
+  useUpdateRFI,
+  useDeleteRFI,
+  type Thread,
+  type CreateThreadDto,
+  type CreateRFIDto,
+  type UpdateThreadDto,
+  type UpdateRFIDto,
+  type RFI,
+} from "../hooks/useCommunication";
+import { type Project } from "../hooks/useProjects";
+import { useUsers, useUserProjects } from "../hooks/useUsers";
+import { useAuthStore } from "../stores/useAuthStore";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from "chart.js";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { IoClose } from "react-icons/io5";
+import { IoAttach } from "react-icons/io5";
+import { IoCamera } from "react-icons/io5";
+import { IoInformationCircle } from "react-icons/io5";
+import { IoDocument, IoImage, IoTrash } from "react-icons/io5";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+);
+
+const Communication = () => {
+  // Auth store
+  const { user: currentUser } = useAuthStore();
+
+  // API hooks
+  const {
+    data: threads = [],
+    isLoading: threadsLoading,
+    error: threadsError,
+  } = useThreads();
+  const { data: projects = [] } = useUserProjects(currentUser?.id || "");
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: rfis = [], isLoading: rfisLoading } = useRFIs();
+
+  const createThreadMutation = useCreateThread();
+  const updateThreadMutation = useUpdateThread();
+  const sendMessageMutation = useSendMessage();
+  const sendMessageWithAttachmentsMutation = useSendMessageWithAttachments();
+  const createRFIMutation = useCreateRFI();
+  const updateRFIMutation = useUpdateRFI();
+  const deleteRFIMutation = useDeleteRFI();
+
+  // State
+  const [activeTab, setActiveTab] = useState("threads");
+  const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+
+  // Create thread modal state
+  const [showCreateThreadModal, setShowCreateThreadModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+
+  // Create RFI modal state
+  const [showCreateRFIModal, setShowCreateRFIModal] = useState(false);
+  const [selectedRFIThread, setSelectedRFIThread] = useState<string>("");
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+
+  // Edit/Update RFI modal state
+  const [showEditRFIModal, setShowEditRFIModal] = useState(false);
+  const [editingRFI, setEditingRFI] = useState<RFI | null>(null);
+  const [editRFISelectedAssignees, setEditRFISelectedAssignees] = useState<
+    string[]
+  >([]);
+
+  // Update thread modal state
+  const [showEditThreadModal, setShowEditThreadModal] = useState(false);
+  const [editingThread, setEditingThread] = useState<Thread | null>(null);
+  const [editThreadSelectedUsers, setEditThreadSelectedUsers] = useState<
+    string[]
+  >([]);
+
+  // Thread info section state
+  const [showThreadInfo, setShowThreadInfo] = useState(false);
+
+  // Delete confirmation state
+  const [showDeleteRFIModal, setShowDeleteRFIModal] = useState(false);
+  const [deletingRFI, setDeletingRFI] = useState<RFI | null>(null);
+
+  // File attachment state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  // Get messages for selected thread
+  const { data: messages = [] } = useThreadMessages(selectedThread?.id || "");
+
+  // Get RFIs for the selected thread
+  const selectedThreadRFIs = rfis.filter(
+    (rfi) => rfi.threadId === selectedThread?.id
+  );
+
+  // Analytics calculations
+  const analyticsData = useMemo(() => {
+    const now = new Date();
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // RFI status breakdown
+    const rfisByStatus = rfis.reduce((acc, rfi) => {
+      const status = rfi.status || "Unknown";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // RFI priority breakdown
+    const rfisByPriority = rfis.reduce((acc, rfi) => {
+      const priority = rfi.priority || "Unknown";
+      acc[priority] = (acc[priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // RFI category breakdown
+    const rfisByCategory = rfis.reduce((acc, rfi) => {
+      const category = rfi.category || "Other";
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Recent activity (last 7 days)
+    const recentThreads = threads.filter(
+      (thread) => new Date(thread.createdAt) > lastWeek
+    ).length;
+
+    const recentRFIs = rfis.filter(
+      (rfi) => new Date(rfi.createdAt) > lastWeek
+    ).length;
+
+    // Thread activity by project
+    const threadsByProject = threads.reduce((acc, thread) => {
+      const projectName = thread.project?.name || "Unknown";
+      acc[projectName] = (acc[projectName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calculate average response time (mock data for now)
+    const avgResponseTime =
+      rfis.length > 0
+        ? Math.round(
+            rfis.reduce((acc, rfi) => {
+              if (rfi.answeredAt && rfi.createdAt) {
+                const responseTime =
+                  new Date(rfi.answeredAt).getTime() -
+                  new Date(rfi.createdAt).getTime();
+                return acc + responseTime / (1000 * 60 * 60 * 24); // Convert to days
+              }
+              return acc;
+            }, 0) / rfis.filter((rfi) => rfi.answeredAt).length
+          )
+        : 0;
+
+    return {
+      rfisByStatus,
+      rfisByPriority,
+      rfisByCategory,
+      threadsByProject,
+      recentThreads,
+      recentRFIs,
+      avgResponseTime: avgResponseTime || 2.5,
+      totalMessages: messages.length,
+      activeUsers: users.filter((user) =>
+        threads.some((thread) => thread.users.some((u) => u.id === user.id))
+      ).length,
+    };
+  }, [rfis, threads, messages, users]);
+
+  // Chart data configurations
+  const rfiStatusChartData = {
+    labels: Object.keys(analyticsData.rfisByStatus),
+    datasets: [
+      {
+        data: Object.values(analyticsData.rfisByStatus),
+        backgroundColor: [
+          "#ef4444", // red for Open
+          "#f59e0b", // amber for In Review
+          "#10b981", // emerald for Resolved
+          "#6b7280", // gray for others
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const rfiPriorityChartData = {
+    labels: ["Low", "Medium", "High", "Critical"],
+    datasets: [
+      {
+        label: "RFIs by Priority",
+        data: [
+          analyticsData.rfisByPriority.Low || 0,
+          analyticsData.rfisByPriority.Medium || 0,
+          analyticsData.rfisByPriority.High || 0,
+          analyticsData.rfisByPriority.Critical || 0,
+        ],
+        backgroundColor: ["#3b82f6", "#f59e0b", "#ef4444", "#dc2626"],
+        borderRadius: 4,
+      },
+    ],
+  };
+
+  const threadActivityChartData = {
+    labels: Object.keys(analyticsData.threadsByProject).slice(0, 5), // Top 5 projects
+    datasets: [
+      {
+        label: "Threads",
+        data: Object.values(analyticsData.threadsByProject).slice(0, 5),
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom" as const,
+        labels: {
+          padding: 20,
+          usePointStyle: true,
+        },
+      },
+    },
+  };
+
+  const handleSelectThread = (thread: Thread) => {
+    setSelectedThread(thread);
+    setActiveTab("chat");
+  };
+
+  // Create thread handlers
+  const handleCreateThread = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    const newThread: CreateThreadDto = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      projectId: formData.get("projectId") as string,
+      participantIds: selectedUsers,
+    };
+
+    createThreadMutation.mutate(newThread, {
+      onSuccess: () => {
+        setShowCreateThreadModal(false);
+        (event.target as HTMLFormElement).reset();
+        setSelectedUsers([]);
+      },
+      onError: (error) => {
+        console.error("Failed to create thread:", error);
+      },
+    });
+  };
+
+  const handleAddUser = (userId: string) => {
+    if (!selectedUsers.includes(userId)) {
+      setSelectedUsers((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((id) => id !== userId));
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Open":
+        return "badge-error";
+      case "In Review":
+      case "In Progress":
+        return "badge-warning";
+      case "Resolved":
+        return "badge-success";
+      case "Answered":
+        return "badge-success";
+      default:
+        return "badge-neutral";
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "High":
+      case "Critical":
+        return "badge-error";
+      case "Medium":
+        return "badge-warning";
+      case "Low":
+        return "badge-info";
+      default:
+        return "badge-neutral";
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((newMessage.trim() || selectedFiles.length > 0) && selectedThread) {
+      if (selectedFiles.length > 0) {
+        // Send message with attachments
+        sendMessageWithAttachmentsMutation.mutate(
+          {
+            message: {
+              content: newMessage || " ", // Ensure content is not empty
+              threadId: selectedThread.id,
+            },
+            files: selectedFiles,
+          },
+          {
+            onSuccess: () => {
+              setNewMessage("");
+              setSelectedFiles([]);
+            },
+            onError: (error) => {
+              console.error("Failed to send message with attachments:", error);
+            },
+          }
+        );
+      } else {
+        // Send regular message
+        sendMessageMutation.mutate(
+          {
+            content: newMessage,
+            threadId: selectedThread.id,
+          },
+          {
+            onSuccess: () => {
+              setNewMessage("");
+            },
+            onError: (error) => {
+              console.error("Failed to send message:", error);
+            },
+          }
+        );
+      }
+    }
+  };
+
+  // File and Camera handlers
+  const handleFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif';
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files) {
+        const fileArray = Array.from(files);
+        setSelectedFiles(prev => [...prev, ...fileArray]);
+      }
+    };
+    input.click();
+  };
+
+  const handleCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera by default
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        setSelectedFiles(prev => [...prev, files[0]]);
+      }
+    };
+    input.click();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Helper functions for file handling
+  const isImageFile = (filename: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  };
+
+  const getFileIcon = (filename: string) => {
+    if (isImageFile(filename)) {
+      return <IoImage className="text-blue-500" />;
+    }
+    return <IoDocument className="text-gray-500" />;
+  };
+
+  const getAttachmentUrl = (attachment: string): string => {
+    // If attachment starts with http, it's already a full URL
+    if (attachment.startsWith('http')) {
+      return attachment;
+    }
+    // Otherwise, construct the URL using the backend base URL
+    return `${import.meta.env.VITE_DOCUMENTS_URL || 'http://localhost:3000'}${attachment}`;
+  };
+
+  // Create RFI handlers
+  const handleCreateRFI = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      let threadId = selectedRFIThread;
+      let projectId = formData.get("projectId") as string;
+
+      // If no thread is selected, create a new thread automatically
+      if (!selectedRFIThread) {
+        const title = formData.get("title") as string;
+        const newThreadData: CreateThreadDto = {
+          title: `RFI: ${title}`,
+          description: formData.get("description") as string,
+          projectId: projectId,
+          participantIds: selectedAssignees,
+        };
+        const newThread = await createThreadMutation.mutateAsync(newThreadData);
+        threadId = newThread.id;
+      } else {
+        // If linking to existing thread, use the thread's project ID
+        const existingThread = threads.find((t) => t.id === selectedRFIThread);
+        if (existingThread) {
+          projectId = existingThread.projectId;
+        }
+      }
+
+      const newRFI: CreateRFIDto = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: (formData.get("category") as string) || undefined,
+        priority: (formData.get("priority") as string) || undefined,
+        projectId: projectId,
+        assignedToIds: selectedAssignees,
+        threadId: threadId || undefined,
+        dueDate: (formData.get("dueDate") as string) || undefined,
+      };
+
+      createRFIMutation.mutate(newRFI, {
+        onSuccess: () => {
+          setShowCreateRFIModal(false);
+          (event.target as HTMLFormElement).reset();
+          setSelectedRFIThread("");
+          setSelectedAssignees([]);
+        },
+        onError: (error) => {
+          console.error("Failed to create RFI:", error);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create thread for RFI:", error);
+    }
+  };
+
+  const handleAddAssignee = (userId: string) => {
+    if (!selectedAssignees.includes(userId)) {
+      setSelectedAssignees((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveAssignee = (userId: string) => {
+    setSelectedAssignees((prev) => prev.filter((id) => id !== userId));
+  };
+
+  // RFI Edit handlers
+  const handleEditRFI = (rfi: RFI) => {
+    setEditingRFI(rfi);
+    // Extract assignee IDs from assignees array
+    const assigneeIds = rfi.assignees
+      ? rfi.assignees.map((assignee) => assignee.id)
+      : [];
+    setEditRFISelectedAssignees(assigneeIds);
+    setShowEditRFIModal(true);
+  };
+
+  const handleAddEditAssignee = (userId: string) => {
+    if (!editRFISelectedAssignees.includes(userId)) {
+      setEditRFISelectedAssignees((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditAssignee = (userId: string) => {
+    setEditRFISelectedAssignees((prev) => prev.filter((id) => id !== userId));
+  };
+
+  // RFI Delete handlers
+  const handleDeleteRFI = (rfi: RFI) => {
+    setDeletingRFI(rfi);
+    setShowDeleteRFIModal(true);
+  };
+
+  const confirmDeleteRFI = () => {
+    if (!deletingRFI) return;
+
+    deleteRFIMutation.mutate(deletingRFI.id, {
+      onSuccess: () => {
+        setShowDeleteRFIModal(false);
+        setDeletingRFI(null);
+      },
+      onError: (error) => {
+        console.error("Failed to delete RFI:", error);
+      },
+    });
+  };
+
+  // Thread Edit handlers
+  const handleEditThread = (thread: Thread) => {
+    setEditingThread(thread);
+    setEditThreadSelectedUsers(thread.users?.map((u) => u.id) || []);
+    setShowEditThreadModal(true);
+  };
+
+  const handleAddEditThreadUser = (userId: string) => {
+    if (!editThreadSelectedUsers.includes(userId)) {
+      setEditThreadSelectedUsers((prev) => [...prev, userId]);
+    }
+  };
+
+  const handleRemoveEditThreadUser = (userId: string) => {
+    setEditThreadSelectedUsers((prev) => prev.filter((id) => id !== userId));
+  };
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-1">Communication</h1>
+      <p className="text-gray-500 mb-6">
+        Team discussions, RFIs, and analytics dashboard
+      </p>
+
+      {/* Tabs navigation */}
+      <div className="tabs tabs-border">
+        <input
+          type="radio"
+          name="comm_tab_group"
+          className="tab"
+          aria-label="Threads"
+          checked={activeTab === "threads"}
+          onChange={() => setActiveTab("threads")}
+        />
+        {activeTab === "threads" && (
+          <div className="tab-content p-5">
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Discussion Threads</h2>
+                  <p className="text-neutral-500">
+                    Group conversations and project discussions
+                  </p>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowCreateThreadModal(true)}
+                >
+                  + New Thread
+                </button>
+              </div>
+
+              {threadsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : threadsError ? (
+                <div className="text-center py-8 text-error">
+                  Failed to load threads. Please try again.
+                </div>
+              ) : threads.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No threads found. Create your first thread to get started.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {threads.map((thread) => (
+                    <div
+                      key={thread.id}
+                      className="flex flex-col lg:flex-row lg:items-center justify-between border border-base-300 bg-base-100 rounded-2xl p-4"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-lg">
+                            {thread.title}
+                          </div>
+                          {thread.project && (
+                            <span className="badge badge-neutral badge-sm">
+                              {thread.project.name}
+                            </span>
+                          )}
+                        </div>
+                        {thread.description && (
+                          <div className="text-gray-500 text-sm mb-2">
+                            {thread.description}
+                          </div>
+                        )}
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className="text-xs text-accent">
+                            Created:{" "}
+                            {new Date(thread.createdAt).toLocaleString()}
+                          </span>
+                          <span className="text-xs badge badge-success text-base-200 font-medium">
+                            Participants: {thread.users.length}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4 lg:mt-0">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleSelectThread(thread)}
+                        >
+                          Join Chat
+                        </button>
+                        <button
+                          className="btn btn-soft btn-sm"
+                          onClick={() => handleEditThread(thread)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <input
+          type="radio"
+          name="comm_tab_group"
+          className="tab"
+          aria-label="Chat"
+          checked={activeTab === "chat"}
+          onChange={() => setActiveTab("chat")}
+        />
+        {activeTab === "chat" && selectedThread && (
+          <div className="tab-content p-5 w-full">
+            <div className="flex flex-col lg:flex-row gap-3 w-full h-[calc(100vh-300px)]">
+              {/* Thread Information Panel */}
+              <div
+                id="thread-info"
+                className={`bg-base-200 border border-base-300 rounded-2xl p-4 lg:w-1/3 w-full transition-all duration-300 flex flex-col ${
+                  showThreadInfo ? "block" : "hidden"
+                }`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Thread Information</h2>
+                  <button
+                    className="btn btn-circle"
+                    onClick={() => setShowThreadInfo(false)}
+                  >
+                    <IoClose size={15} />
+                  </button>
+                </div>
+
+                <div className="space-y-4 overflow-y-auto flex-1">
+                  {/* Thread Details */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h3 className="font-bold text-lg mb-2">{selectedThread.title}</h3>
+                    {selectedThread.description && (
+                      <p className="text-sm text-gray-600 mb-3">{selectedThread.description}</p>
+                    )}
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Type:</span>
+                        <span>General</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Status:</span>
+                        <span className="badge badge-sm badge-success">
+                          Active
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Privacy:</span>
+                        <span>Public</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Messages:</span>
+                        <span>{messages.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Created:</span>
+                        <span>{new Date(selectedThread.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Project Info */}
+                  {selectedThread.project && (
+                    <div className="bg-base-100 p-4 rounded-xl">
+                      <h4 className="font-bold mb-2">Project</h4>
+                      <p className="text-sm">{selectedThread.project.name}</p>
+                    </div>
+                  )}
+
+                  {/* Participants */}
+                  <div className="bg-base-100 p-4 rounded-xl">
+                    <h4 className="font-bold mb-2">Participants ({selectedThread.users.length})</h4>
+                    <div className="space-y-2">
+                      {selectedThread.users.map((user) => (
+                        <div key={user.id} className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-xs font-medium text-primary">
+                              {user.firstName.charAt(0)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <div className="font-medium">{user.firstName} {user.lastName}</div>
+                            <div className="text-gray-500 text-xs">{user.email}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Chat Screen */}
+              <div className={`bg-base-200 border border-base-300 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col ${
+                showThreadInfo ? 'lg:w-2/3 w-full' : 'w-full'
+              }`}>
+                <div className="bg-primary p-4 border-b border-base-300">
+                  <div className="flex flex-col sm:flex-row justify-between text-primary-content items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <div className="flex-1 sm:flex-initial">
+                        <button
+                          className="text-lg sm:text-xl font-bold hover:underline cursor-pointer text-left"
+                          onClick={() => setShowThreadInfo(!showThreadInfo)}
+                          title="Click to view thread information"
+                        >
+                          {selectedThread.title}
+                        </button>
+                        <p className="text-xs sm:text-sm">
+                          Participants:{" "}
+                          <span className="hidden sm:inline">
+                            {selectedThread.users
+                              .map((u) => `${u.firstName} ${u.lastName}`)
+                              .join(", ")}
+                          </span>
+                          <span className="sm:hidden">
+                            {selectedThread.users.length} member{selectedThread.users.length !== 1 ? 's' : ''}
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        className="btn btn-ghost btn-circle btn-sm"
+                        onClick={() => setShowThreadInfo(!showThreadInfo)}
+                        title="Thread Information"
+                      >
+                        <IoInformationCircle size={20} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <button
+                        className="btn btn-active btn-sm sm:btn-md w-full sm:w-auto"
+                        onClick={() => setActiveTab("threads")}
+                      >
+                        <span className="hidden sm:inline">Export Thread</span>
+                        <span className="sm:hidden">Export</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Display RFIs associated with this thread */}
+                {selectedThreadRFIs.length > 0 && (
+                  <div className="bg-base-300 p-4 border-b border-base-300">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                      Related RFIs ({selectedThreadRFIs.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedThreadRFIs.map((rfi) => (
+                        <div
+                          key={rfi.id}
+                          className="flex items-center justify-between bg-base-200 p-4 rounded-xl"
+                        >
+                          <div className="flex-1">
+                            <span className="text-lg font-medium">
+                              {rfi.title}
+                            </span>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="badge badge-sm badge-neutral">
+                                {rfi.id}
+                              </span>
+                              {rfi.status && (
+                                <span
+                                  className={`badge badge-sm ${getStatusBadge(
+                                    rfi.status
+                                  )}`}
+                                >
+                                  {rfi.status}
+                                </span>
+                              )}
+                              {rfi.priority && (
+                                <span
+                                  className={`badge badge-xs ${getPriorityBadge(
+                                    rfi.priority
+                                  )}`}
+                                >
+                                  {rfi.priority}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            className="btn btn-xs btn-outline"
+                            onClick={() => setActiveTab("rfis")}
+                          >
+                            View RFI
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      No messages yet. Start the conversation!
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      const isCurrentUser =
+                        currentUser?.id === message.senderId;
+                      return (
+                        <div
+                          key={message.id}
+                          className={`chat ${
+                            isCurrentUser ? "chat-end" : "chat-start"
+                          }`}
+                        >
+                          <div className="chat-header text-xs sm:text-sm">
+                            <span className="hidden sm:inline">
+                              {message.sender.firstName} {message.sender.lastName}
+                            </span>
+                            <span className="sm:hidden">
+                              {message.sender.firstName}
+                            </span>
+                            <time className="text-xs opacity-50 ml-2">
+                              {formatTime(message.createdAt)}
+                            </time>
+                          </div>
+                          <div className="chat-bubble bg-neutral text-neutral-content text-sm sm:text-base max-w-xs sm:max-w-md">
+                            {message.content}
+                            {message.attachment && (
+                              <div className="mt-2">
+                                {isImageFile(message.attachment) ? (
+                                  <img
+                                    src={getAttachmentUrl(message.attachment)}
+                                    alt="Attachment"
+                                    className="max-w-full h-auto rounded-lg cursor-pointer"
+                                    onClick={() => window.open(getAttachmentUrl(message.attachment!), '_blank')}
+                                  />
+                                ) : (
+                                  <a
+                                    href={getAttachmentUrl(message.attachment)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+                                  >
+                                    {getFileIcon(message.attachment)}
+                                    <span className="text-xs">
+                                      {message.attachment.split('/').pop()}
+                                    </span>
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Attachment Preview */}
+                {selectedFiles.length > 0 && (
+                  <div className="px-3 sm:px-4 py-2 bg-base-200 border-t border-base-300">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-600">
+                        {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFiles([])}
+                        className="btn btn-ghost btn-xs"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm"
+                        >
+                          <div className="flex items-center gap-1">
+                            {getFileIcon(file.name)}
+                            <span className="text-xs max-w-20 truncate">
+                              {file.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(index)}
+                            className="btn btn-ghost btn-circle btn-xs text-red-500 hover:bg-red-100"
+                          >
+                            <IoTrash size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleSendMessage}
+                  className="p-3 sm:p-4 border-t border-base-300 bg-base-300"
+                >
+                  <div className="flex gap-2 items-end">
+                    {/* File and Camera Actions */}
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-1">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-circle btn-sm sm:btn-md bg-base-200 rounded-full p-1"
+                        onClick={handleFileUpload}
+                        title="Upload Documents"
+                      >
+                        <div className="flex items-center justify-center">
+                          <IoAttach size={18} />
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-circle btn-sm sm:btn-md bg-base-200 rounded-full p-1"
+                        onClick={handleCameraCapture}
+                        title="Take Photo"
+                      >
+                        <div className="flex items-center justify-center">
+                          <IoCamera size={18} />
+                        </div>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      className="input input-bordered input-sm sm:input-md flex-1"
+                      placeholder="Type your message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      disabled={sendMessageMutation.isPending || sendMessageWithAttachmentsMutation.isPending}
+                    />
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm sm:btn-md"
+                      disabled={
+                        sendMessageMutation.isPending || 
+                        sendMessageWithAttachmentsMutation.isPending || 
+                        (!newMessage.trim() && selectedFiles.length === 0)
+                      }
+                    >
+                      {(sendMessageMutation.isPending || sendMessageWithAttachmentsMutation.isPending) ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        <span className="hidden sm:inline">Send</span>
+                      )}
+                      <span className="sm:hidden">📤</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <input
+          type="radio"
+          name="comm_tab_group"
+          className="tab"
+          aria-label="RFIs"
+          checked={activeTab === "rfis"}
+          onChange={() => setActiveTab("rfis")}
+        />
+        {activeTab === "rfis" && (
+          <div className="tab-content p-5">
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    Request for Information (RFI)
+                  </h2>
+                  <p className="text-neutral-500">
+                    Track information requests and responses
+                  </p>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowCreateRFIModal(true)}
+                >
+                  + New RFI
+                </button>
+              </div>
+
+              {rfisLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              ) : rfis.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No RFIs found. Create your first RFI to get started.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rfis.map((rfi) => (
+                    <div
+                      key={rfi.id}
+                      className="border border-base-300 bg-base-100 rounded-2xl p-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="badge badge-neutral">
+                              {rfi.id}
+                            </span>
+                            {rfi.priority && (
+                              <span
+                                className={`badge ${getPriorityBadge(
+                                  rfi.priority
+                                )}`}
+                              >
+                                {rfi.priority}
+                              </span>
+                            )}
+                            {rfi.status && (
+                              <span
+                                className={`badge ${getStatusBadge(
+                                  rfi.status
+                                )}`}
+                              >
+                                {rfi.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-semibold text-lg mb-1">
+                            {rfi.title}
+                          </div>
+                          <div className="text-gray-500 text-sm mb-2">
+                            {rfi.description}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Thread:</span>{" "}
+                            {rfi.thread?.title || "No thread linked"} |
+                            <span className="font-medium"> Created by:</span>{" "}
+                            {rfi.requester
+                              ? `${rfi.requester.firstName} ${rfi.requester.lastName}`
+                              : "Unknown"}
+                            {rfi.assignees && rfi.assignees.length > 0 && (
+                              <>
+                                |{" "}
+                                <span className="font-medium">
+                                  {" "}
+                                  Assigned to:
+                                </span>{" "}
+                                {rfi.assignees
+                                  .map((a) => `${a.firstName} ${a.lastName}`)
+                                  .join(", ")}
+                              </>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Created:</span>{" "}
+                            {new Date(rfi.createdAt).toLocaleDateString()} |
+                            <span className="font-medium"> Updated:</span>{" "}
+                            {new Date(rfi.updatedAt).toLocaleDateString()}
+                            {rfi.dueDate && (
+                              <>
+                                | <span className="font-medium"> Due:</span>{" "}
+                                {new Date(rfi.dueDate).toLocaleDateString()}
+                              </>
+                            )}
+                          </div>
+                          {rfi.answer && (
+                            <div className="mt-2 p-2 bg-base-200 rounded text-sm">
+                              <span className="font-medium">Answer:</span>{" "}
+                              {rfi.answer}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {rfi.threadId && (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                const thread = threads.find(
+                                  (t) => t.id === rfi.threadId
+                                );
+                                if (thread) {
+                                  handleSelectThread(thread);
+                                }
+                              }}
+                            >
+                              Open Chat
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-soft btn-sm"
+                            onClick={() => handleEditRFI(rfi)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-error btn-sm"
+                            onClick={() => handleDeleteRFI(rfi)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <input
+          type="radio"
+          name="comm_tab_group"
+          className="tab"
+          aria-label="Analytics"
+          checked={activeTab === "analytics"}
+          onChange={() => setActiveTab("analytics")}
+        />
+        {activeTab === "analytics" && (
+          <div className="tab-content p-5">
+            <div className="bg-base-200 border border-base-300 p-6 rounded-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    Communication Analytics
+                  </h2>
+                  <p className="text-neutral-500">
+                    Comprehensive insights into communication performance and
+                    trends
+                  </p>
+                </div>
+                <div className="badge badge-neutral badge-lg">Last 30 Days</div>
+              </div>
+
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="stat bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-blue-100">Active Threads</div>
+                  <div className="stat-value">{threads.length}</div>
+                  <div className="stat-desc text-blue-200">
+                    +{analyticsData.recentThreads} this week
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path
+                        fillRule="evenodd"
+                        d="M4 5a2 2 0 012-2v1a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2V3a2 2 0 012-2 2 2 0 012 2v8a4 4 0 01-4 4H6a4 4 0 01-4-4V5z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-amber-100">Open RFIs</div>
+                  <div className="stat-value">
+                    {analyticsData.rfisByStatus.Open || 0}
+                  </div>
+                  <div className="stat-desc text-amber-200">
+                    {rfis.filter((r) => r.status === "Open").length} pending
+                    responses
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-emerald-100">
+                    Resolution Rate
+                  </div>
+                  <div className="stat-value">
+                    {rfis.length > 0
+                      ? Math.round(
+                          ((analyticsData.rfisByStatus.Resolved || 0) /
+                            rfis.length) *
+                            100
+                        )
+                      : 0}
+                    %
+                  </div>
+                  <div className="stat-desc text-emerald-200">
+                    {analyticsData.rfisByStatus.Resolved || 0} resolved RFIs
+                  </div>
+                </div>
+
+                <div className="stat bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl shadow-lg">
+                  <div className="stat-figure">
+                    <svg
+                      className="w-8 h-8"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title text-purple-100">Active Users</div>
+                  <div className="stat-value">{analyticsData.activeUsers}</div>
+                  <div className="stat-desc text-purple-200">
+                    Participating in discussions
+                  </div>
+                </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* RFI Status Distribution */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      RFI Status Distribution
+                    </h3>
+                    <div className="badge badge-neutral badge-sm">
+                      {rfis.length} Total
+                    </div>
+                  </div>
+                  <div className="h-64">
+                    {Object.keys(analyticsData.rfisByStatus).length > 0 ? (
+                      <Doughnut
+                        data={rfiStatusChartData}
+                        options={chartOptions}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No RFI data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RFI Priority Breakdown */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      RFI Priority Breakdown
+                    </h3>
+                    <div className="badge badge-neutral badge-sm">
+                      By Priority
+                    </div>
+                  </div>
+                  <div className="h-64">
+                    {Object.keys(analyticsData.rfisByPriority).length > 0 ? (
+                      <Bar data={rfiPriorityChartData} options={chartOptions} />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No priority data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Thread Activity by Project */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Thread Activity by Project
+                  </h3>
+                  <div className="h-48">
+                    {Object.keys(analyticsData.threadsByProject).length > 0 ? (
+                      <Line
+                        data={threadActivityChartData}
+                        options={chartOptions}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        No project data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Performance Metrics */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Performance Metrics
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">
+                        Avg RFI Response Time
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">
+                          {analyticsData.avgResponseTime}
+                        </span>
+                        <span className="text-sm text-gray-500">days</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            (analyticsData.avgResponseTime / 5) * 100,
+                            100
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">
+                        Thread Engagement
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">
+                          {(
+                            analyticsData.totalMessages / threads.length || 0
+                          ).toFixed(1)}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          msgs/thread
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            ((analyticsData.totalMessages / threads.length ||
+                              0) /
+                              10) *
+                              100,
+                            100
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">
+                        Recent Activity
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">
+                          {analyticsData.recentRFIs +
+                            analyticsData.recentThreads}
+                        </span>
+                        <span className="text-sm text-gray-500">this week</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-purple-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(
+                            ((analyticsData.recentRFIs +
+                              analyticsData.recentThreads) /
+                              20) *
+                              100,
+                            100
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RFI Categories */}
+                <div className="bg-base-100 rounded-xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold mb-4">RFI Categories</h3>
+                  <div className="space-y-3">
+                    {Object.entries(analyticsData.rfisByCategory)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 6)
+                      .map(([category, count]) => (
+                        <div
+                          key={category}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="text-sm font-medium">
+                            {category}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-indigo-600 h-2 rounded-full"
+                                style={{
+                                  width: `${
+                                    (count /
+                                      Math.max(
+                                        ...Object.values(
+                                          analyticsData.rfisByCategory
+                                        )
+                                      )) *
+                                    100
+                                  }%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold w-8 text-right">
+                              {count}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    {Object.keys(analyticsData.rfisByCategory).length === 0 && (
+                      <div className="text-center text-gray-500 py-4">
+                        No category data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Create Thread Modal */}
+      {showCreateThreadModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.2)",
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New Thread</h3>
+
+            <form onSubmit={handleCreateThread} className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Thread Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter thread title..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">
+                    Add Participants
+                  </span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">
+                      No users available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {selectedUsers.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveUser(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddUser(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedUsers.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Selected: {selectedUsers.length} participant(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowCreateThreadModal(false);
+                    setSelectedUsers([]);
+                  }}
+                  disabled={createThreadMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createThreadMutation.isPending}
+                >
+                  {createThreadMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Thread"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create RFI Modal */}
+      {showCreateRFIModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.2)",
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New RFI</h3>
+
+            <form onSubmit={handleCreateRFI} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">RFI Title *</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    className="input input-bordered w-full"
+                    placeholder="Enter RFI title..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Project *</span>
+                  </label>
+                  <select
+                    name="projectId"
+                    className="select select-bordered w-full"
+                    required={!selectedRFIThread}
+                    disabled={!!selectedRFIThread}
+                    value={
+                      selectedRFIThread
+                        ? threads.find((t) => t.id === selectedRFIThread)
+                            ?.projectId || ""
+                        : undefined
+                    }
+                  >
+                    <option value="">
+                      {selectedRFIThread
+                        ? `Project: ${
+                            threads.find((t) => t.id === selectedRFIThread)
+                              ?.project?.name || "Unknown"
+                          }`
+                        : "Select a project"}
+                    </option>
+                    {!selectedRFIThread &&
+                      projects.map((project: Project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                  </select>
+                  {selectedRFIThread && (
+                    <div className="label">
+                      <span className="label-text-alt text-info">
+                        Project is set by the selected thread
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description *</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Describe the information you need..."
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Category</span>
+                  </label>
+                  <select
+                    name="category"
+                    className="select select-bordered w-full"
+                  >
+                    <option value="">Select category</option>
+                    <option value="Design">Design</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Materials">Materials</option>
+                    <option value="Specifications">Specifications</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Priority</span>
+                  </label>
+                  <select
+                    name="priority"
+                    className="select select-bordered w-full"
+                  >
+                    <option value="">Select priority</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Due Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    className="input input-bordered w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Thread Selection */}
+              <div className="divider">Thread Association</div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">
+                    Link to Existing Thread
+                  </span>
+                </label>
+                <select
+                  value={selectedRFIThread}
+                  onChange={(e) => setSelectedRFIThread(e.target.value)}
+                  className="select select-bordered w-full"
+                >
+                  <option value="">Create new thread for this RFI</option>
+                  {threads.map((thread) => (
+                    <option key={thread.id} value={thread.id}>
+                      {thread.title} ({thread.project?.name || "No project"})
+                    </option>
+                  ))}
+                </select>
+                <div className="label">
+                  <span className="label-text-alt text-gray-500">
+                    {selectedRFIThread
+                      ? "RFI will be linked to the selected thread"
+                      : "A new thread will be created automatically for this RFI"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Assignees Selection */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Assign To</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">
+                      No users available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {selectedAssignees.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveAssignee(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddAssignee(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedAssignees.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Assigned to: {selectedAssignees.length} user(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowCreateRFIModal(false);
+                    setSelectedRFIThread("");
+                    setSelectedAssignees([]);
+                  }}
+                  disabled={
+                    createRFIMutation.isPending ||
+                    createThreadMutation.isPending
+                  }
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    createRFIMutation.isPending ||
+                    createThreadMutation.isPending
+                  }
+                >
+                  {createRFIMutation.isPending ||
+                  createThreadMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create RFI"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit RFI Modal */}
+      {showEditRFIModal && editingRFI && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Edit RFI</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingRFI) {
+                  const formData = new FormData(e.currentTarget);
+                  const updatedRFI: UpdateRFIDto = {
+                    title: formData.get("title") as string,
+                    description: formData.get("description") as string,
+                    category: (formData.get("category") as string) || undefined,
+                    priority: (formData.get("priority") as string) || undefined,
+                    status: (formData.get("status") as string) || undefined,
+                    assignedToIds: editRFISelectedAssignees,
+                    dueDate: (formData.get("dueDate") as string) || undefined,
+                    answer: (formData.get("answer") as string) || undefined,
+                  };
+                  updateRFIMutation.mutate(
+                    { id: editingRFI.id, rfi: updatedRFI },
+                    {
+                      onSuccess: () => {
+                        setShowEditRFIModal(false);
+                        setEditingRFI(null);
+                        setEditRFISelectedAssignees([]);
+                      },
+                      onError: (error) => {
+                        console.error("Failed to update RFI:", error);
+                      },
+                    }
+                  );
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">RFI Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter RFI title..."
+                  defaultValue={editingRFI.title}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  defaultValue={editingRFI.projectId}
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                  defaultValue={editingRFI.description}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Category</span>
+                  </label>
+                  <select
+                    name="category"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.category}
+                  >
+                    <option value="">Select category</option>
+                    <option value="Design">Design</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Materials">Materials</option>
+                    <option value="Specifications">Specifications</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Quality">Quality</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Priority</span>
+                  </label>
+                  <select
+                    name="priority"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.priority}
+                  >
+                    <option value="">Select priority</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Status</span>
+                  </label>
+                  <select
+                    name="status"
+                    className="select select-bordered w-full"
+                    defaultValue={editingRFI.status}
+                  >
+                    <option value="">Select status</option>
+                    <option value="Open">Open</option>
+                    <option value="In Review">In Review</option>
+                    <option value="Answered">Answered</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-medium">Due Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    className="input input-bordered w-full"
+                    defaultValue={
+                      editingRFI.dueDate
+                        ? new Date(editingRFI.dueDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : ""
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Answer field for RFI */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Answer</span>
+                </label>
+                <textarea
+                  name="answer"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Provide answer to this RFI..."
+                  defaultValue={editingRFI.answer || ""}
+                />
+              </div>
+
+              {/* Assignees Selection */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Assign To</span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">
+                      No users available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {editRFISelectedAssignees.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() => handleRemoveEditAssignee(user.id)}
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddEditAssignee(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editRFISelectedAssignees.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Assigned to: {editRFISelectedAssignees.length} user(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowEditRFIModal(false);
+                    setEditingRFI(null);
+                    setEditRFISelectedAssignees([]);
+                  }}
+                  disabled={updateRFIMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={updateRFIMutation.isPending}
+                >
+                  {updateRFIMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update RFI"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Thread Modal */}
+      {showEditThreadModal && editingThread && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Update Thread</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingThread) {
+                  const formData = new FormData(e.currentTarget);
+                  const updatedThread: UpdateThreadDto = {
+                    title: formData.get("title") as string,
+                    description: formData.get("description") as string,
+                    projectId: formData.get("projectId") as string,
+                    participantIds: editThreadSelectedUsers,
+                  };
+                  updateThreadMutation.mutate(
+                    { id: editingThread.id, thread: updatedThread },
+                    {
+                      onSuccess: () => {
+                        setShowEditThreadModal(false);
+                        setEditingThread(null);
+                        setEditThreadSelectedUsers([]);
+                      },
+                      onError: (error) => {
+                        console.error("Failed to update thread:", error);
+                      },
+                    }
+                  );
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Thread Title *</span>
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  className="input input-bordered w-full"
+                  placeholder="Enter thread title..."
+                  defaultValue={editingThread.title}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  name="description"
+                  className="textarea textarea-bordered w-full h-24"
+                  placeholder="Optional description..."
+                  defaultValue={editingThread.description}
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">Project *</span>
+                </label>
+                <select
+                  name="projectId"
+                  className="select select-bordered w-full"
+                  defaultValue={editingThread.projectId}
+                  required
+                >
+                  <option value="">Select a project</option>
+                  {projects.map((project: Project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text font-medium">
+                    Add Participants
+                  </span>
+                </label>
+                <div className="border border-base-300 rounded-lg p-3 min-h-[100px] max-h-32 overflow-y-auto">
+                  {usersLoading ? (
+                    <div className="text-center text-gray-500">
+                      Loading users...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center text-gray-500">
+                      No users available
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </span>
+                          {editThreadSelectedUsers.includes(user.id) ? (
+                            <button
+                              type="button"
+                              className="btn btn-error btn-xs"
+                              onClick={() =>
+                                handleRemoveEditThreadUser(user.id)
+                              }
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-xs"
+                              onClick={() => handleAddEditThreadUser(user.id)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {editThreadSelectedUsers.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-600">
+                      Selected: {editThreadSelectedUsers.length} participant(s)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setShowEditThreadModal(false);
+                    setEditingThread(null);
+                    setEditThreadSelectedUsers([]);
+                  }}
+                  disabled={updateThreadMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={updateThreadMutation.isPending}
+                >
+                  {updateThreadMutation.isPending ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Thread"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete RFI Confirmation Modal */}
+      {showDeleteRFIModal && deletingRFI && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to delete this RFI? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowDeleteRFIModal(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-error" onClick={confirmDeleteRFI}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Communication;
+
+
+import React from "react";
+
+const NotAllowed: React.FC = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh]">
+    <div className="alert alert-error shadow-lg max-w-md">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="stroke-current flex-shrink-0 h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728"
+        />
+      </svg>
+      <span className="font-bold">Access Denied</span>
+    </div>
+    <p className="mt-4 text-lg text-center text-gray-600">
+      You do not have permission to view this page.
+    </p>
+  </div>
+);
+
+export default NotAllowed;
+
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { IoAdd, IoRemove, IoClose, IoCopy, IoEye, IoSave, IoRefresh, IoSettings, IoDownload, IoShare, IoPlay, IoPause, IoStop, IoSkipBackward, IoSkipForward, IoShuffle, IoRepeat, IoVolumeMedium, IoVolumeHigh, IoVolumeLow, IoVolumeOff, IoColorPalette, IoGrid, IoList, IoBarChart, IoLineChart, IoPieChart, IoStatsChart, IoTrendingUp, IoTrendingDown, IoAnalytics, IoFilter, IoSearch, IoCalendar, IoTime, IoLayers, IoResize, IoBrush, IoText, IoMove, IoRotate } from 'react-icons/io5';
+
+export type ChartType = 
+  | 'line' | 'area' | 'bar' | 'column' | 'pie' | 'doughnut' | 'scatter' | 'bubble'
+  | 'candlestick' | 'ohlc' | 'heatmap' | 'treemap' | 'sunburst' | 'radar'
+  | 'polar' | 'gauge' | 'funnel' | 'waterfall' | 'box' | 'violin'
+  | 'histogram' | 'density' | 'sankey' | 'chord' | 'network' | 'force'
+  | 'timeline' | 'gantt' | 'calendar' | 'map' | 'choropleth' | '3d';
+
+export type DataType = 'number' | 'string' | 'date' | 'boolean' | 'category' | 'time' | 'geo';
+
+export type AggregationType = 'sum' | 'avg' | 'count' | 'min' | 'max' | 'median' | 'mode' | 'stddev' | 'variance';
+
+export type AnimationType = 
+  | 'none' | 'fade' | 'slide' | 'bounce' | 'elastic' | 'spring' | 'scale'
+  | 'rotate' | 'flip' | 'zoom' | 'wave' | 'pulse' | 'glow' | 'shimmer';
+
+export type ColorScheme = 
+  | 'default' | 'pastel' | 'vibrant' | 'monochrome' | 'analogous' | 'complementary'
+  | 'triadic' | 'tetradic' | 'split-complementary' | 'warm' | 'cool' | 'earth'
+  | 'ocean' | 'sunset' | 'forest' | 'purple' | 'rainbow' | 'custom';
+
+export type DataSource = {
+  type: 'static' | 'api' | 'csv' | 'json' | 'database' | 'websocket' | 'realtime';
+  url?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: Record<string, string>;
+  params?: Record<string, unknown>;
+  body?: unknown;
+  transform?: (data: unknown) => ChartDataPoint[];
+  refreshInterval?: number;
+  cache?: boolean;
+  authentication?: {
+    type: 'bearer' | 'basic' | 'api-key' | 'oauth';
+    token?: string;
+    username?: string;
+    password?: string;
+    apiKey?: string;
+    apiKeyHeader?: string;
+  };
+  pagination?: {
+    enabled: boolean;
+    pageSize: number;
+    pageParam: string;
+    totalParam: string;
+  };
+  errorHandling?: {
+    retries: number;
+    retryDelay: number;
+    fallbackData?: ChartDataPoint[];
+    onError?: (error: Error) => void;
+  };
+};
+
+export type ChartDataPoint = {
+  x: string | number | Date;
+  y: number | number[];
+  z?: number; // for bubble charts
+  category?: string;
+  label?: string;
+  color?: string;
+  size?: number;
+  metadata?: Record<string, unknown>;
+  timestamp?: Date;
+  coordinates?: [number, number]; // for geo charts
+  children?: ChartDataPoint[]; // for hierarchical charts
+};
+
+export type ChartSeries = {
+  id: string;
+  name: string;
+  type?: ChartType;
+  data: ChartDataPoint[];
+  color?: string;
+  visible?: boolean;
+  yAxis?: number; // for multiple y-axes
+  stack?: string; // for stacked charts
+  smooth?: boolean;
+  step?: boolean;
+  fill?: boolean;
+  opacity?: number;
+  lineWidth?: number;
+  pointSize?: number;
+  pattern?: 'solid' | 'dashed' | 'dotted' | 'dash-dot';
+  gradient?: {
+    type: 'linear' | 'radial';
+    stops: Array<{ offset: number; color: string }>;
+    direction?: 'horizontal' | 'vertical' | 'diagonal';
+  };
+  animation?: {
+    type: AnimationType;
+    duration: number;
+    delay: number;
+    easing: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce';
+  };
+  marker?: {
+    enabled: boolean;
+    shape: 'circle' | 'square' | 'triangle' | 'diamond' | 'star' | 'custom';
+    size: number;
+    color?: string;
+    borderColor?: string;
+    borderWidth?: number;
+  };
+  label?: {
+    enabled: boolean;
+    position: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'auto';
+    format?: string;
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    rotation?: number;
+  };
+  dataLabels?: {
+    enabled: boolean;
+    format?: string;
+    position: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'inside' | 'outside';
+    color?: string;
+    fontSize?: number;
+    background?: string;
+    border?: string;
+  };
+  tooltip?: {
+    enabled: boolean;
+    format?: string;
+    headerFormat?: string;
+    pointFormat?: string;
+    footerFormat?: string;
+    backgroundColor?: string;
+    borderColor?: string;
+    textColor?: string;
+    shadow?: boolean;
+    animation?: boolean;
+  };
+  events?: {
+    onHover?: (point: ChartDataPoint, series: ChartSeries) => void;
+    onClick?: (point: ChartDataPoint, series: ChartSeries) => void;
+    onDoubleClick?: (point: ChartDataPoint, series: ChartSeries) => void;
+    onSelect?: (points: ChartDataPoint[], series: ChartSeries) => void;
+  };
+};
+
+export type ChartAxis = {
+  id: string;
+  type: 'linear' | 'logarithmic' | 'datetime' | 'category' | 'ordinal';
+  position: 'left' | 'right' | 'top' | 'bottom';
+  title?: {
+    text: string;
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    rotation?: number;
+    offset?: number;
+  };
+  min?: number | Date | string;
+  max?: number | Date | string;
+  step?: number;
+  tickInterval?: number;
+  labels?: {
+    enabled: boolean;
+    format?: string;
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    rotation?: number;
+    offset?: number;
+    step?: number;
+    formatter?: (value: unknown) => string;
+  };
+  gridLines?: {
+    enabled: boolean;
+    color?: string;
+    width?: number;
+    style?: 'solid' | 'dashed' | 'dotted';
+    opacity?: number;
+  };
+  tickMarks?: {
+    enabled: boolean;
+    color?: string;
+    width?: number;
+    length?: number;
+    position: 'inside' | 'outside' | 'cross';
+  };
+  crosshair?: {
+    enabled: boolean;
+    color?: string;
+    width?: number;
+    style?: 'solid' | 'dashed' | 'dotted';
+    snap?: boolean;
+  };
+  plotBands?: Array<{
+    from: number | Date | string;
+    to: number | Date | string;
+    color?: string;
+    opacity?: number;
+    label?: string;
+  }>;
+  plotLines?: Array<{
+    value: number | Date | string;
+    color?: string;
+    width?: number;
+    style?: 'solid' | 'dashed' | 'dotted';
+    label?: string;
+  }>;
+  breaks?: Array<{
+    from: number | Date | string;
+    to: number | Date | string;
+    breakSize?: number;
+  }>;
+  reversed?: boolean;
+  opposite?: boolean;
+  offset?: number;
+  startOnTick?: boolean;
+  endOnTick?: boolean;
+  showFirstLabel?: boolean;
+  showLastLabel?: boolean;
+  minorTicks?: {
+    enabled: boolean;
+    interval?: number;
+    color?: string;
+    width?: number;
+    length?: number;
+  };
+  zones?: Array<{
+    value: number;
+    color?: string;
+    fillColor?: string;
+    dashStyle?: 'solid' | 'dashed' | 'dotted';
+  }>;
+};
+
+export type ChartLegend = {
+  enabled: boolean;
+  position: 'top' | 'bottom' | 'left' | 'right' | 'floating';
+  align: 'left' | 'center' | 'right';
+  verticalAlign: 'top' | 'middle' | 'bottom';
+  layout: 'horizontal' | 'vertical';
+  floating?: boolean;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  shadow?: boolean;
+  itemStyle?: {
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    textDecoration?: 'none' | 'underline' | 'line-through';
+  };
+  itemHoverStyle?: {
+    color?: string;
+  };
+  itemDistance?: number;
+  symbolWidth?: number;
+  symbolHeight?: number;
+  symbolPadding?: number;
+  symbolRadius?: number;
+  useHTML?: boolean;
+  labelFormatter?: (series: ChartSeries) => string;
+  navigation?: {
+    enabled: boolean;
+    style?: Record<string, string>;
+    activeColor?: string;
+    inactiveColor?: string;
+  };
+  pagination?: {
+    enabled: boolean;
+    maxPages?: number;
+  };
+  title?: {
+    text: string;
+    style?: Record<string, string>;
+  };
+  bubbleLegend?: {
+    enabled: boolean;
+    ranges?: Array<{
+      value: number;
+      color?: string;
+    }>;
+  };
+};
+
+export type ChartTooltip = {
+  enabled: boolean;
+  shared?: boolean;
+  split?: boolean;
+  crosshairs?: boolean | Array<{
+    width?: number;
+    color?: string;
+    style?: 'solid' | 'dashed' | 'dotted';
+  }>;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  shadow?: boolean;
+  style?: Record<string, string>;
+  useHTML?: boolean;
+  headerFormat?: string;
+  pointFormat?: string;
+  footerFormat?: string;
+  formatter?: (tooltip: unknown) => string;
+  positioner?: (labelWidth: number, labelHeight: number, point: ChartDataPoint) => { x: number; y: number };
+  outside?: boolean;
+  followPointer?: boolean;
+  followTouchMove?: boolean;
+  hideDelay?: number;
+  padding?: number;
+  snap?: number;
+  stickOnContact?: boolean;
+  valueDecimals?: number;
+  valuePrefix?: string;
+  valueSuffix?: string;
+  xDateFormat?: string;
+  changeDecimals?: number;
+  dateTimeLabelFormats?: Record<string, string>;
+  distance?: number;
+  animation?: {
+    duration: number;
+    easing?: string;
+  };
+};
+
+export type ChartExport = {
+  enabled: boolean;
+  formats: Array<'png' | 'jpg' | 'pdf' | 'svg' | 'csv' | 'json' | 'excel'>;
+  filename?: string;
+  scale?: number;
+  width?: number;
+  height?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  allowHTML?: boolean;
+  backgroundColor?: string;
+  fallbackToExportServer?: boolean;
+  printMaxWidth?: number;
+  libURL?: string;
+  buttons?: {
+    contextButton?: {
+      enabled: boolean;
+      text?: string;
+      symbol?: string;
+      symbolStroke?: string;
+      symbolFill?: string;
+      theme?: Record<string, unknown>;
+      titleKey?: string;
+      menuItems?: string[];
+    };
+  };
+  menuItemDefinitions?: Record<string, {
+    textKey?: string;
+    text?: string;
+    onclick?: () => void;
+    separator?: boolean;
+  }>;
+};
+
+export type ChartInteraction = {
+  zoom?: {
+    type: 'x' | 'y' | 'xy' | 'pinch';
+    enabled: boolean;
+    resetButton?: {
+      enabled: boolean;
+      position: 'top' | 'bottom' | 'left' | 'right';
+      theme?: Record<string, unknown>;
+    };
+    key?: 'alt' | 'ctrl' | 'meta' | 'shift';
+    mouseWheel?: {
+      enabled: boolean;
+      sensitivity: number;
+    };
+  };
+  pan?: {
+    enabled: boolean;
+    key?: 'alt' | 'ctrl' | 'meta' | 'shift';
+  };
+  selection?: {
+    enabled: boolean;
+    mode: 'x' | 'y' | 'xy';
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    onSelect?: (event: unknown) => void;
+  };
+  brush?: {
+    enabled: boolean;
+    xAxis?: Array<{
+      min: number | Date;
+      max: number | Date;
+    }>;
+    yAxis?: Array<{
+      min: number;
+      max: number;
+    }>;
+  };
+  crossfilter?: {
+    enabled: boolean;
+    dimensions: string[];
+    onFilter?: (filters: Record<string, unknown>) => void;
+  };
+  drill?: {
+    enabled: boolean;
+    series?: ChartSeries[];
+    drillUpButton?: {
+      enabled: boolean;
+      position: 'top' | 'bottom' | 'left' | 'right';
+      theme?: Record<string, unknown>;
+    };
+    onDrillDown?: (point: ChartDataPoint) => ChartSeries[];
+    onDrillUp?: () => void;
+  };
+};
+
+export type ChartAnnotation = {
+  id: string;
+  type: 'text' | 'line' | 'rectangle' | 'circle' | 'arrow' | 'callout' | 'image';
+  x?: number | string | Date;
+  y?: number;
+  x2?: number | string | Date;
+  y2?: number;
+  text?: string;
+  color?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  fontSize?: number;
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  textAlign?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  rotation?: number;
+  opacity?: number;
+  shadow?: boolean;
+  draggable?: boolean;
+  linked?: boolean;
+  crop?: boolean;
+  overflow?: 'allow' | 'justify';
+  useHTML?: boolean;
+  zIndex?: number;
+  events?: {
+    onAdd?: (annotation: ChartAnnotation) => void;
+    onEdit?: (annotation: ChartAnnotation) => void;
+    onRemove?: (annotation: ChartAnnotation) => void;
+    onDrag?: (annotation: ChartAnnotation) => void;
+  };
+  shapeOptions?: {
+    stroke?: string;
+    strokeWidth?: number;
+    fill?: string;
+    r?: number; // for circles
+    ry?: number; // for ellipses
+  };
+  labelOptions?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    borderRadius?: number;
+    borderWidth?: number;
+    padding?: number;
+    shadow?: boolean;
+    style?: Record<string, string>;
+    useHTML?: boolean;
+    x?: number;
+    y?: number;
+  };
+  markerEnd?: string;
+  markerStart?: string;
+};
+
+export type ChartTheme = {
+  name: string;
+  colors: string[];
+  chart?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    borderWidth?: number;
+    borderRadius?: number;
+    plotBackgroundColor?: string;
+    plotBorderColor?: string;
+    plotBorderWidth?: number;
+    plotShadow?: boolean;
+    className?: string;
+    style?: Record<string, string>;
+  };
+  title?: {
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    fontFamily?: string;
+  };
+  subtitle?: {
+    color?: string;
+    fontSize?: number;
+    fontWeight?: 'normal' | 'bold';
+    fontFamily?: string;
+  };
+  xAxis?: Partial<ChartAxis>;
+  yAxis?: Partial<ChartAxis>;
+  legend?: Partial<ChartLegend>;
+  tooltip?: Partial<ChartTooltip>;
+  plotOptions?: {
+    series?: Record<string, unknown>;
+    line?: Record<string, unknown>;
+    area?: Record<string, unknown>;
+    bar?: Record<string, unknown>;
+    column?: Record<string, unknown>;
+    pie?: Record<string, unknown>;
+  };
+  credits?: {
+    enabled: boolean;
+    text?: string;
+    href?: string;
+    style?: Record<string, string>;
+    position?: {
+      align: 'left' | 'center' | 'right';
+      verticalAlign: 'top' | 'middle' | 'bottom';
+      x?: number;
+      y?: number;
+    };
+  };
+  responsive?: {
+    rules: Array<{
+      condition: {
+        maxWidth?: number;
+        minWidth?: number;
+        maxHeight?: number;
+        minHeight?: number;
+        callback?: () => boolean;
+      };
+      chartOptions: Record<string, unknown>;
+    }>;
+  };
+};
+
+export type ChartBuilder = {
+  id: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  type: ChartType;
+  
+  // Data
+  series: ChartSeries[];
+  dataSource?: DataSource;
+  
+  // Axes
+  xAxis: ChartAxis[];
+  yAxis: ChartAxis[];
+  
+  // Visual elements
+  legend: ChartLegend;
+  tooltip: ChartTooltip;
+  colorScheme: ColorScheme;
+  customColors?: string[];
+  
+  // Layout and styling
+  width?: number | string;
+  height?: number | string;
+  margin?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  padding?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  
+  // Theme and appearance
+  theme?: ChartTheme;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  shadow?: boolean;
+  
+  // Features
+  animation?: {
+    enabled: boolean;
+    duration: number;
+    easing: string;
+    delay?: number;
+  };
+  interaction: ChartInteraction;
+  annotations: ChartAnnotation[];
+  export: ChartExport;
+  
+  // Real-time features
+  realtime?: {
+    enabled: boolean;
+    interval: number;
+    maxPoints?: number;
+    onUpdate?: (data: ChartDataPoint[]) => void;
+  };
+  
+  // Responsive design
+  responsive?: {
+    enabled: boolean;
+    breakpoints: Record<string, Partial<ChartBuilder>>;
+  };
+  
+  // Events
+  events?: {
+    onLoad?: (chart: ChartBuilder) => void;
+    onResize?: (chart: ChartBuilder, width: number, height: number) => void;
+    onRender?: (chart: ChartBuilder) => void;
+    onDataUpdate?: (chart: ChartBuilder, newData: ChartDataPoint[]) => void;
+    onSeriesChange?: (chart: ChartBuilder, series: ChartSeries[]) => void;
+    onAxisChange?: (chart: ChartBuilder, axis: ChartAxis) => void;
+  };
+  
+  // Advanced features
+  plugins?: Array<{
+    name: string;
+    enabled: boolean;
+    config?: Record<string, unknown>;
+  }>;
+  
+  // Performance
+  performance?: {
+    enableWebGL?: boolean;
+    turboThreshold?: number;
+    cropThreshold?: number;
+    groupPixelWidth?: number;
+    pointInterval?: number;
+    pointStart?: number;
+  };
+  
+  // Accessibility
+  accessibility?: {
+    enabled: boolean;
+    description?: string;
+    keyboardNavigation?: {
+      enabled: boolean;
+      focusBorder?: {
+        enabled: boolean;
+        hideBrowserFocusOutline?: boolean;
+        style?: Record<string, string>;
+        margin?: number;
+      };
+      order?: string[];
+      wrapAround?: boolean;
+    };
+    point?: {
+      valueDecimals?: number;
+      valueDescriptionFormat?: string;
+      valueSuffix?: string;
+      valuePrefix?: string;
+    };
+    series?: {
+      descriptionFormat?: string;
+      pointDescriptionEnabledThreshold?: number;
+    };
+    screenReaderSection?: {
+      beforeChartFormat?: string;
+      afterChartFormat?: string;
+      beforeRegionLabel?: string;
+      afterRegionLabel?: string;
+      beforeTableFormat?: string;
+      tableFormat?: string;
+      afterTableFormat?: string;
+    };
+    announceNewData?: {
+      enabled: boolean;
+      minAnnounceInterval?: number;
+      announcementFormatter?: (allSeries: ChartSeries[], newSeries?: ChartSeries, newPoint?: ChartDataPoint) => string;
+    };
+  };
+  
+  // Metadata
+  version?: string;
+  author?: string;
+  created?: Date;
+  modified?: Date;
+  tags?: string[];
+  category?: string;
+  
+  // Configuration
+  config?: {
+    autoResize?: boolean;
+    reflow?: boolean;
+    allowDecimalsInYAxis?: boolean;
+    ignoreHiddenSeries?: boolean;
+    spacingTop?: number;
+    spacingRight?: number;
+    spacingBottom?: number;
+    spacingLeft?: number;
+    resetZoomButton?: {
+      theme?: Record<string, unknown>;
+      position?: {
+        align: 'left' | 'center' | 'right';
+        verticalAlign: 'top' | 'middle' | 'bottom';
+        x?: number;
+        y?: number;
+      };
+    };
+    panKey?: 'alt' | 'ctrl' | 'meta' | 'shift';
+    selectionMarkerFill?: string;
+    styledMode?: boolean;
+  };
+};
+
+interface ChartBuilderProps {
+  config: ChartBuilder;
+  data?: ChartDataPoint[];
+  mode?: 'design' | 'view' | 'edit';
+  onConfigChange?: (config: ChartBuilder) => void;
+  onDataChange?: (data: ChartDataPoint[]) => void;
+  onSeriesChange?: (series: ChartSeries[]) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  loading?: boolean;
+  error?: string;
+}
+
+/**
+ * Advanced Chart Builder Component
+ * Creates and displays highly customizable charts with real-time data support
+ */
+const AdvancedChartBuilder: React.FC<ChartBuilderProps> = ({
+  config,
+  data = [],
+  mode = 'view',
+  onConfigChange,
+  onDataChange,
+  onSeriesChange,
+  className = '',
+  style,
+  loading = false,
+  error
+}) => {
+  // State management
+  const [chartData, setChartData] = useState<ChartDataPoint[]>(data);
+  const [isLoading, setIsLoading] = useState(loading);
+  const [chartError, setChartError] = useState<string | null>(error || null);
+  const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [brushSelection, setBrushSelection] = useState<{ start: number; end: number } | null>(null);
+  const [crosshairPosition, setCrosshairPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<ChartDataPoint | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const [colorPalette, setColorPalette] = useState<string[]>([]);
+  const [themeColors, setThemeColors] = useState<string[]>([]);
+  const [animationState, setAnimationState] = useState<'idle' | 'running' | 'paused'>('idle');
+
+  // Refs
+  const chartRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const realtimeIntervalRef = useRef<NodeJS.Timeout>();
+  const animationFrameRef = useRef<number>();
+  const resizeObserverRef = useRef<ResizeObserver>();
+  const dataFetchIntervalRef = useRef<NodeJS.Timeout>();
+
+  // Color schemes
+  const colorSchemes: Record<ColorScheme, string[]> = {
+    default: ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6', '#dd4477', '#66aa00'],
+    pastel: ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e1baff', '#ffd1dc', '#c9ffba'],
+    vibrant: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#fab1a0', '#fd79a8', '#fdcb6e'],
+    monochrome: ['#333333', '#666666', '#999999', '#cccccc', '#e6e6e6', '#f2f2f2', '#f8f8f8', '#ffffff'],
+    analogous: ['#ff6b6b', '#ff8e53', '#ff6b9d', '#c44569', '#f8b500', '#feca57', '#ff9ff3', '#54a0ff'],
+    complementary: ['#ff6b6b', '#4ecdc4', '#feca57', '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff', '#5f27cd'],
+    triadic: ['#ff6b6b', '#4ecdc4', '#feca57', '#ff6b9d', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9ff3'],
+    tetradic: ['#ff6b6b', '#4ecdc4', '#feca57', '#c44569', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9ff3'],
+    'split-complementary': ['#ff6b6b', '#4ecdc4', '#feca57', '#ff6b9d', '#54a0ff', '#c44569', '#00d2d3', '#ff9ff3'],
+    warm: ['#ff6b6b', '#feca57', '#ff9ff3', '#ff8e53', '#f8b500', '#fab1a0', '#fd79a8', '#fdcb6e'],
+    cool: ['#4ecdc4', '#54a0ff', '#5f27cd', '#00d2d3', '#0abde3', '#006ba6', '#3742fa', '#2f3542'],
+    earth: ['#8d6e63', '#a1887f', '#bcaaa4', '#d7ccc8', '#efebe9', '#5d4037', '#795548', '#6d4c41'],
+    ocean: ['#006ba6', '#0496ff', '#ffbc42', '#d81159', '#8f2d56', '#0abde3', '#3742fa', '#2f3542'],
+    sunset: ['#ff6b6b', '#feca57', '#ff9ff3', '#fd79a8', '#fab1a0', '#fdcb6e', '#e17055', '#d63031'],
+    forest: ['#27ae60', '#2ecc71', '#00b894', '#00cec9', '#55a3ff', '#74b9ff', '#0984e3', '#6c5ce7'],
+    purple: ['#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#e17055', '#00b894', '#00cec9', '#74b9ff'],
+    rainbow: ['#ff0000', '#ff8000', '#ffff00', '#80ff00', '#00ff00', '#00ff80', '#00ffff', '#0080ff'],
+    custom: config.customColors || ['#3366cc', '#dc3912', '#ff9900', '#109618', '#990099', '#0099c6']
+  };
+
+  // Memoized calculations
+  const processedData = useMemo(() => {
+    if (!chartData.length) return [];
+    
+    // Apply transformations based on chart type
+    switch (config.type) {
+      case 'bar':
+      case 'column':
+        return chartData.map(point => ({
+          ...point,
+          y: Array.isArray(point.y) ? point.y[0] : point.y
+        }));
+      
+      case 'pie':
+      case 'doughnut':
+        return chartData.map(point => ({
+          ...point,
+          value: Array.isArray(point.y) ? point.y[0] : point.y,
+          name: point.label || String(point.x)
+        }));
+      
+      case 'scatter':
+      case 'bubble':
+        return chartData.filter(point => 
+          typeof point.x === 'number' && typeof point.y === 'number'
+        );
+      
+      case 'candlestick':
+      case 'ohlc':
+        return chartData.filter(point => 
+          Array.isArray(point.y) && point.y.length >= 4
+        ).map(point => ({
+          ...point,
+          open: (point.y as number[])[0],
+          high: (point.y as number[])[1],
+          low: (point.y as number[])[2],
+          close: (point.y as number[])[3]
+        }));
+      
+      default:
+        return chartData;
+    }
+  }, [chartData, config.type]);
+
+  const chartDimensions = useMemo(() => {
+    const containerWidth = chartRef.current?.clientWidth || 800;
+    const containerHeight = chartRef.current?.clientHeight || 400;
+    
+    const width = typeof config.width === 'number' ? config.width : 
+                  typeof config.width === 'string' ? containerWidth : containerWidth;
+    const height = typeof config.height === 'number' ? config.height :
+                   typeof config.height === 'string' ? containerHeight : containerHeight;
+    
+    const margin = config.margin || { top: 20, right: 20, bottom: 30, left: 40 };
+    const padding = config.padding || { top: 10, right: 10, bottom: 10, left: 10 };
+    
+    return {
+      width,
+      height,
+      plotWidth: width - margin.left - margin.right - padding.left - padding.right,
+      plotHeight: height - margin.top - margin.bottom - padding.top - padding.bottom,
+      margin,
+      padding
+    };
+  }, [config.width, config.height, config.margin, config.padding, chartRef.current]);
+
+  const activeColorScheme = useMemo(() => {
+    return colorSchemes[config.colorScheme] || colorSchemes.default;
+  }, [config.colorScheme]);
+
+  // Helper functions
+  const getSeriesColor = useCallback((seriesIndex: number, series: ChartSeries) => {
+    if (series.color) return series.color;
+    return activeColorScheme[seriesIndex % activeColorScheme.length];
+  }, [activeColorScheme]);
+
+  const formatValue = useCallback((value: unknown, format?: string): string => {
+    if (typeof value === 'number') {
+      if (format) {
+        // Apply custom formatting
+        return format.replace('{value}', value.toString());
+      }
+      return value.toLocaleString();
+    }
+    
+    if (value instanceof Date) {
+      if (format) {
+        return format.replace('{value}', value.toLocaleDateString());
+      }
+      return value.toLocaleDateString();
+    }
+    
+    return String(value);
+  }, []);
+
+  const getPointPosition = useCallback((point: ChartDataPoint, seriesIndex: number) => {
+    // Calculate position based on chart type and axes
+    const { plotWidth, plotHeight, margin } = chartDimensions;
+    const xAxis = config.xAxis[0] || {};
+    const yAxis = config.yAxis[0] || {};
+    
+    // This is a simplified calculation - real implementation would be more complex
+    let x = 0;
+    let y = 0;
+    
+    if (typeof point.x === 'number') {
+      const xMin = typeof xAxis.min === 'number' ? xAxis.min : 0;
+      const xMax = typeof xAxis.max === 'number' ? xAxis.max : 100;
+      x = margin.left + (point.x - xMin) / (xMax - xMin) * plotWidth;
+    }
+    
+    if (typeof point.y === 'number') {
+      const yMin = typeof yAxis.min === 'number' ? yAxis.min : 0;
+      const yMax = typeof yAxis.max === 'number' ? yAxis.max : 100;
+      y = margin.top + plotHeight - (point.y - yMin) / (yMax - yMin) * plotHeight;
+    }
+    
+    return { x, y };
+  }, [chartDimensions, config.xAxis, config.yAxis]);
+
+  const animateChart = useCallback(() => {
+    if (!config.animation?.enabled) return;
+    
+    setAnimationState('running');
+    
+    const animate = (timestamp: number) => {
+      // Animation logic would go here
+      // This is a placeholder for the actual animation implementation
+      
+      if (animationState === 'running') {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [config.animation, animationState]);
+
+  const fetchRealtimeData = useCallback(async () => {
+    if (!config.dataSource || !config.realtime?.enabled) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Fetch data from the configured data source
+      let response: Response;
+      
+      if (config.dataSource.type === 'api' && config.dataSource.url) {
+        const fetchOptions: RequestInit = {
+          method: config.dataSource.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...config.dataSource.headers,
+          },
+        };
+        
+        if (config.dataSource.authentication) {
+          const auth = config.dataSource.authentication;
+          switch (auth.type) {
+            case 'bearer':
+              if (auth.token) {
+                fetchOptions.headers = {
+                  ...fetchOptions.headers,
+                  'Authorization': `Bearer ${auth.token}`,
+                };
+              }
+              break;
+            case 'api-key':
+              if (auth.apiKey && auth.apiKeyHeader) {
+                fetchOptions.headers = {
+                  ...fetchOptions.headers,
+                  [auth.apiKeyHeader]: auth.apiKey,
+                };
+              }
+              break;
+          }
+        }
+        
+        if (config.dataSource.body && config.dataSource.method !== 'GET') {
+          fetchOptions.body = JSON.stringify(config.dataSource.body);
+        }
+        
+        response = await fetch(config.dataSource.url, fetchOptions);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        const transformedData = config.dataSource.transform 
+          ? config.dataSource.transform(responseData)
+          : responseData;
+        
+        setChartData(transformedData);
+        onDataChange?.(transformedData);
+        config.events?.onDataUpdate?.(config, transformedData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch realtime data:', error);
+      setChartError(`Failed to fetch data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      if (config.dataSource?.errorHandling?.onError) {
+        config.dataSource.errorHandling.onError(error as Error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [config, onDataChange]);
+
+  const exportChart = useCallback((format: 'png' | 'jpg' | 'pdf' | 'svg' | 'csv' | 'json' | 'excel') => {
+    if (!config.export.enabled || !config.export.formats.includes(format)) return;
+    
+    try {
+      switch (format) {
+        case 'png':
+        case 'jpg':
+          if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            const link = document.createElement('a');
+            link.download = `${config.export.filename || config.id}.${format}`;
+            link.href = canvas.toDataURL(`image/${format}`);
+            link.click();
+          }
+          break;
+          
+        case 'svg':
+          if (svgRef.current) {
+            const svgData = new XMLSerializer().serializeToString(svgRef.current);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            const link = document.createElement('a');
+            link.download = `${config.export.filename || config.id}.svg`;
+            link.href = svgUrl;
+            link.click();
+            URL.revokeObjectURL(svgUrl);
+          }
+          break;
+          
+        case 'json':
+          const jsonData = JSON.stringify({ config, data: chartData }, null, 2);
+          const jsonBlob = new Blob([jsonData], { type: 'application/json' });
+          const jsonUrl = URL.createObjectURL(jsonBlob);
+          const jsonLink = document.createElement('a');
+          jsonLink.download = `${config.export.filename || config.id}.json`;
+          jsonLink.href = jsonUrl;
+          jsonLink.click();
+          URL.revokeObjectURL(jsonUrl);
+          break;
+          
+        case 'csv':
+          const csvData = convertToCSV(chartData);
+          const csvBlob = new Blob([csvData], { type: 'text/csv' });
+          const csvUrl = URL.createObjectURL(csvBlob);
+          const csvLink = document.createElement('a');
+          csvLink.download = `${config.export.filename || config.id}.csv`;
+          csvLink.href = csvUrl;
+          csvLink.click();
+          URL.revokeObjectURL(csvUrl);
+          break;
+      }
+    } catch (error) {
+      console.error('Failed to export chart:', error);
+      setChartError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [config, chartData]);
+
+  const convertToCSV = useCallback((data: ChartDataPoint[]): string => {
+    if (!data.length) return '';
+    
+    const headers = ['x', 'y', 'category', 'label'];
+    const csvHeaders = headers.join(',');
+    
+    const csvRows = data.map(point => [
+      point.x,
+      Array.isArray(point.y) ? point.y.join(';') : point.y,
+      point.category || '',
+      point.label || ''
+    ].join(','));
+    
+    return [csvHeaders, ...csvRows].join('\n');
+  }, []);
+
+  const handleChartClick = useCallback((event: React.MouseEvent) => {
+    if (mode !== 'view') return;
+    
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Find the closest data point
+    let closestPoint: ChartDataPoint | null = null;
+    let closestDistance = Infinity;
+    let closestSeries: ChartSeries | null = null;
+    
+    config.series.forEach((series, seriesIndex) => {
+      series.data.forEach(point => {
+        const position = getPointPosition(point, seriesIndex);
+        const distance = Math.sqrt(
+          Math.pow(x - position.x, 2) + Math.pow(y - position.y, 2)
+        );
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestPoint = point;
+          closestSeries = series;
+        }
+      });
+    });
+    
+    if (closestPoint && closestSeries && closestDistance < 20) {
+      closestSeries.events?.onClick?.(closestPoint, closestSeries);
+    }
+  }, [mode, config.series, getPointPosition]);
+
+  const handleChartMouseMove = useCallback((event: React.MouseEvent) => {
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    setCrosshairPosition({ x, y });
+    
+    // Find hovered point for tooltip
+    let hoveredPoint: ChartDataPoint | null = null;
+    let hoveredSeries: ChartSeries | null = null;
+    let minDistance = Infinity;
+    
+    config.series.forEach((series, seriesIndex) => {
+      if (!series.visible) return;
+      
+      series.data.forEach(point => {
+        const position = getPointPosition(point, seriesIndex);
+        const distance = Math.sqrt(
+          Math.pow(x - position.x, 2) + Math.pow(y - position.y, 2)
+        );
+        
+        if (distance < 15 && distance < minDistance) {
+          minDistance = distance;
+          hoveredPoint = point;
+          hoveredSeries = series;
+        }
+      });
+    });
+    
+    if (hoveredPoint && hoveredSeries) {
+      setHoveredPoint(hoveredPoint);
+      setTooltipPosition({ x, y });
+      hoveredSeries.events?.onHover?.(hoveredPoint, hoveredSeries);
+    } else {
+      setHoveredPoint(null);
+      setTooltipPosition(null);
+    }
+  }, [config.series, getPointPosition]);
+
+  const handleSeriesToggle = useCallback((seriesId: string) => {
+    const newSeries = config.series.map(series => 
+      series.id === seriesId 
+        ? { ...series, visible: !series.visible }
+        : series
+    );
+    
+    const newConfig = { ...config, series: newSeries };
+    onConfigChange?.(newConfig);
+    onSeriesChange?.(newSeries);
+    config.events?.onSeriesChange?.(newConfig, newSeries);
+  }, [config, onConfigChange, onSeriesChange]);
+
+  const addAnnotation = useCallback((annotation: Omit<ChartAnnotation, 'id'>) => {
+    const newAnnotation: ChartAnnotation = {
+      ...annotation,
+      id: `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    const newConfig = {
+      ...config,
+      annotations: [...config.annotations, newAnnotation]
+    };
+    
+    onConfigChange?.(newConfig);
+    newAnnotation.events?.onAdd?.(newAnnotation);
+  }, [config, onConfigChange]);
+
+  const removeAnnotation = useCallback((annotationId: string) => {
+    const annotation = config.annotations.find(a => a.id === annotationId);
+    if (!annotation) return;
+    
+    const newConfig = {
+      ...config,
+      annotations: config.annotations.filter(a => a.id !== annotationId)
+    };
+    
+    onConfigChange?.(newConfig);
+    annotation.events?.onRemove?.(annotation);
+  }, [config, onConfigChange]);
+
+  const togglePlayback = useCallback(() => {
+    setIsPlaying(prev => !prev);
+  }, []);
+
+  const changePlaybackSpeed = useCallback((speed: number) => {
+    setPlaybackSpeed(Math.max(0.1, Math.min(5, speed)));
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Effects
+  useEffect(() => {
+    setChartData(data);
+  }, [data]);
+
+  useEffect(() => {
+    setIsLoading(loading);
+  }, [loading]);
+
+  useEffect(() => {
+    setChartError(error || null);
+  }, [error]);
+
+  useEffect(() => {
+    if (config.realtime?.enabled && config.realtime.interval) {
+      realtimeIntervalRef.current = setInterval(
+        fetchRealtimeData,
+        config.realtime.interval
+      );
+      
+      return () => {
+        if (realtimeIntervalRef.current) {
+          clearInterval(realtimeIntervalRef.current);
+        }
+      };
+    }
+  }, [config.realtime, fetchRealtimeData]);
+
+  useEffect(() => {
+    if (config.animation?.enabled) {
+      animateChart();
+    }
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [config.animation, animateChart]);
+
+  useEffect(() => {
+    setColorPalette(activeColorScheme);
+    setThemeColors(activeColorScheme);
+  }, [activeColorScheme]);
+
+  useEffect(() => {
+    // Set up resize observer
+    if (chartRef.current && config.responsive?.enabled) {
+      resizeObserverRef.current = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          config.events?.onResize?.(config, width, height);
+        }
+      });
+      
+      resizeObserverRef.current.observe(chartRef.current);
+      
+      return () => {
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+        }
+      };
+    }
+  }, [config]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (realtimeIntervalRef.current) {
+        clearInterval(realtimeIntervalRef.current);
+      }
+      if (dataFetchIntervalRef.current) {
+        clearInterval(dataFetchIntervalRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+    };
+  }, []);
+
+  // Render methods
+  const renderChart = useCallback(() => {
+    if (isLoading) {
+      return (
+        <div className="chart-loading">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+          </div>
+          <p>Loading chart data...</p>
+        </div>
+      );
+    }
+    
+    if (chartError) {
+      return (
+        <div className="chart-error">
+          <div className="error-icon">⚠️</div>
+          <p>{chartError}</p>
+          <button 
+            className="btn btn-outline btn-sm"
+            onClick={() => setChartError(null)}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    
+    if (!processedData.length) {
+      return (
+        <div className="chart-empty">
+          <div className="empty-icon">📊</div>
+          <p>No data available</p>
+          <p className="text-sm text-gray-500">Add data to see your chart</p>
+        </div>
+      );
+    }
+    
+    // This would render the actual chart based on the type
+    // For demo purposes, we'll render a simple placeholder
+    return (
+      <div className="chart-content">
+        <canvas
+          ref={canvasRef}
+          width={chartDimensions.width}
+          height={chartDimensions.height}
+          className="chart-canvas"
+        />
+        <svg
+          ref={svgRef}
+          width={chartDimensions.width}
+          height={chartDimensions.height}
+          className="chart-svg"
+          style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+        >
+          {/* SVG annotations and overlays would go here */}
+          {config.annotations.map(annotation => (
+            <g key={annotation.id}>
+              {annotation.type === 'text' && (
+                <text
+                  x={annotation.x}
+                  y={annotation.y}
+                  fill={annotation.color}
+                  fontSize={annotation.fontSize}
+                  fontWeight={annotation.fontWeight}
+                  transform={`rotate(${annotation.rotation || 0})`}
+                >
+                  {annotation.text}
+                </text>
+              )}
+              {annotation.type === 'line' && (
+                <line
+                  x1={annotation.x}
+                  y1={annotation.y}
+                  x2={annotation.x2}
+                  y2={annotation.y2}
+                  stroke={annotation.color}
+                  strokeWidth={annotation.borderWidth}
+                />
+              )}
+              {annotation.type === 'rectangle' && (
+                <rect
+                  x={annotation.x}
+                  y={annotation.y}
+                  width={typeof annotation.x2 === 'number' ? annotation.x2 - Number(annotation.x) : 100}
+                  height={typeof annotation.y2 === 'number' ? annotation.y2 - Number(annotation.y) : 50}
+                  fill={annotation.backgroundColor}
+                  stroke={annotation.borderColor}
+                  strokeWidth={annotation.borderWidth}
+                  rx={annotation.borderRadius}
+                />
+              )}
+            </g>
+          ))}
+        </svg>
+        
+        {/* Crosshair */}
+        {crosshairPosition && config.interaction.zoom?.enabled && (
+          <div
+            className="chart-crosshair"
+            style={{
+              position: 'absolute',
+              left: crosshairPosition.x,
+              top: crosshairPosition.y,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              width: '1px',
+              height: '1px',
+              backgroundColor: '#666',
+              boxShadow: '0 -100px 0 #666, 0 100px 0 #666, -100px 0 0 #666, 100px 0 0 #666'
+            }}
+          />
+        )}
+        
+        {/* Tooltip */}
+        {hoveredPoint && tooltipPosition && config.tooltip.enabled && (
+          <div
+            className="chart-tooltip"
+            style={{
+              position: 'absolute',
+              left: tooltipPosition.x + 10,
+              top: tooltipPosition.y - 10,
+              backgroundColor: config.tooltip.backgroundColor || '#fff',
+              border: `1px solid ${config.tooltip.borderColor || '#ccc'}`,
+              borderRadius: '4px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              zIndex: 1000,
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <div className="tooltip-header">
+              {formatValue(hoveredPoint.x)}
+            </div>
+            <div className="tooltip-body">
+              Value: {formatValue(hoveredPoint.y)}
+              {hoveredPoint.category && (
+                <div>Category: {hoveredPoint.category}</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }, [
+    isLoading, chartError, processedData, chartDimensions, config,
+    crosshairPosition, hoveredPoint, tooltipPosition, formatValue
+  ]);
+
+  const renderLegend = useCallback(() => {
+    if (!config.legend.enabled) return null;
+    
+    return (
+      <div className={`chart-legend ${config.legend.position} ${config.legend.layout}`}>
+        {config.series.map((series, index) => (
+          <div
+            key={series.id}
+            className={`legend-item ${!series.visible ? 'disabled' : ''}`}
+            onClick={() => handleSeriesToggle(series.id)}
+          >
+            <div
+              className="legend-symbol"
+              style={{
+                backgroundColor: getSeriesColor(index, series),
+                width: config.legend.symbolWidth || 12,
+                height: config.legend.symbolHeight || 12
+              }}
+            />
+            <span className="legend-label">{series.name}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }, [config.legend, config.series, handleSeriesToggle, getSeriesColor]);
+
+  const renderControls = useCallback(() => {
+    if (mode !== 'design') return null;
+    
+    return (
+      <div className="chart-controls">
+        <div className="control-group">
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => addAnnotation({
+              type: 'text',
+              x: chartDimensions.width / 2,
+              y: chartDimensions.height / 2,
+              text: 'New Annotation'
+            })}
+          >
+            <IoAdd /> Add Annotation
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => exportChart('png')}
+          >
+            <IoDownload /> Export PNG
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => exportChart('svg')}
+          >
+            <IoDownload /> Export SVG
+          </button>
+        </div>
+        
+        <div className="control-group">
+          <label className="control-label">
+            Chart Type:
+            <select
+              value={config.type}
+              onChange={(e) => {
+                const newConfig = { ...config, type: e.target.value as ChartType };
+                onConfigChange?.(newConfig);
+              }}
+            >
+              <option value="line">Line</option>
+              <option value="area">Area</option>
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="pie">Pie</option>
+              <option value="scatter">Scatter</option>
+            </select>
+          </label>
+          
+          <label className="control-label">
+            Color Scheme:
+            <select
+              value={config.colorScheme}
+              onChange={(e) => {
+                const newConfig = { ...config, colorScheme: e.target.value as ColorScheme };
+                onConfigChange?.(newConfig);
+              }}
+            >
+              <option value="default">Default</option>
+              <option value="pastel">Pastel</option>
+              <option value="vibrant">Vibrant</option>
+              <option value="monochrome">Monochrome</option>
+              <option value="warm">Warm</option>
+              <option value="cool">Cool</option>
+            </select>
+          </label>
+        </div>
+        
+        {config.realtime?.enabled && (
+          <div className="control-group">
+            <button
+              className={`btn btn-sm ${isPlaying ? 'btn-primary' : 'btn-outline'}`}
+              onClick={togglePlayback}
+            >
+              {isPlaying ? <IoPause /> : <IoPlay />}
+              {isPlaying ? 'Pause' : 'Play'}
+            </button>
+            
+            <label className="control-label">
+              Speed:
+              <input
+                type="range"
+                min="0.1"
+                max="5"
+                step="0.1"
+                value={playbackSpeed}
+                onChange={(e) => changePlaybackSpeed(parseFloat(e.target.value))}
+              />
+              <span>{playbackSpeed}x</span>
+            </label>
+          </div>
+        )}
+        
+        {config.interaction.zoom?.enabled && (
+          <div className="control-group">
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={resetZoom}
+              disabled={zoomLevel === 1 && panOffset.x === 0 && panOffset.y === 0}
+            >
+              <IoRefresh /> Reset Zoom
+            </button>
+            
+            <span className="zoom-level">
+              Zoom: {Math.round(zoomLevel * 100)}%
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }, [
+    mode, chartDimensions, config, onConfigChange, addAnnotation, exportChart,
+    isPlaying, playbackSpeed, togglePlayback, changePlaybackSpeed,
+    zoomLevel, panOffset, resetZoom
+  ]);
+
+  return (
+    <div
+      className={`advanced-chart-builder ${mode} ${className}`}
+      style={style}
+      data-chart-id={config.id}
+      data-chart-type={config.type}
+    >
+      {/* Chart header */}
+      {(config.title || config.subtitle) && (
+        <div className="chart-header">
+          {config.title && <h2 className="chart-title">{config.title}</h2>}
+          {config.subtitle && <h3 className="chart-subtitle">{config.subtitle}</h3>}
+          {config.description && <p className="chart-description">{config.description}</p>}
+        </div>
+      )}
+      
+      {/* Chart controls */}
+      {renderControls()}
+      
+      {/* Main chart area */}
+      <div
+        ref={chartRef}
+        className="chart-container"
+        style={{
+          width: config.width,
+          height: config.height,
+          backgroundColor: config.backgroundColor,
+          border: config.borderWidth ? `${config.borderWidth}px solid ${config.borderColor}` : undefined,
+          borderRadius: config.borderRadius,
+          position: 'relative'
+        }}
+        onClick={handleChartClick}
+        onMouseMove={handleChartMouseMove}
+      >
+        {renderChart()}
+      </div>
+      
+      {/* Legend */}
+      {renderLegend()}
+      
+      {/* Chart footer */}
+      {config.export.enabled && (
+        <div className="chart-footer">
+          <div className="export-options">
+            <span className="export-label">Export:</span>
+            {config.export.formats.map(format => (
+              <button
+                key={format}
+                className="btn btn-outline btn-sm"
+                onClick={() => exportChart(format)}
+              >
+                {format.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          
+          {config.theme?.credits?.enabled && (
+            <div className="chart-credits">
+              <a 
+                href={config.theme.credits.href}
+                style={config.theme.credits.style}
+              >
+                {config.theme.credits.text || 'Chart Builder'}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdvancedChartBuilder;
+
+
+import React, { useEffect, useState } from 'react';
+
+export type LoadingSpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type LoadingSpinnerColor = 'primary' | 'secondary' | 'accent' | 'neutral' | 'info' | 'success' | 'warning' | 'error';
+export type LoadingSpinnerVariant = 'spinner' | 'dots' | 'ring' | 'ball' | 'bars' | 'infinity';
+export type LoadingSpinnerPosition = 'center' | 'top' | 'bottom' | 'left' | 'right' | 'inline';
+
+interface LoadingSpinnerProps {
+  /** Size of the spinner */
+  size?: LoadingSpinnerSize;
+  /** Color theme of the spinner */
+  color?: LoadingSpinnerColor;
+  /** Variant/style of the spinner animation */
+  variant?: LoadingSpinnerVariant;
+  /** Loading text to display */
+  text?: string;
+  /** Position of the spinner */
+  position?: LoadingSpinnerPosition;
+  /** Whether to show a backdrop overlay */
+  overlay?: boolean;
+  /** Custom overlay opacity (0-100) */
+  overlayOpacity?: number;
+  /** Whether to blur the background when overlay is shown */
+  blurBackground?: boolean;
+  /** Custom className for the container */
+  className?: string;
+  /** Custom styles for the container */
+  style?: React.CSSProperties;
+  /** Delay before showing the spinner (in milliseconds) */
+  delay?: number;
+  /** Minimum time to show the spinner (in milliseconds) */
+  minDuration?: number;
+  /** Whether the spinner is visible */
+  visible?: boolean;
+  /** Custom aria-label for accessibility */
+  ariaLabel?: string;
+  /** Progress percentage (0-100) for progress variant */
+  progress?: number;
+  /** Whether to show progress percentage text */
+  showProgress?: boolean;
+  /** Custom loading messages that cycle */
+  loadingMessages?: string[];
+  /** Interval for cycling loading messages (in milliseconds) */
+  messageInterval?: number;
+  /** Whether to animate the text */
+  animateText?: boolean;
+  /** Custom icon to display instead of spinner */
+  customIcon?: React.ReactNode;
+  /** Whether to show pulsing animation */
+  pulse?: boolean;
+  /** Test ID for testing purposes */
+  testId?: string;
+}
+
+/**
+ * A comprehensive loading spinner component with multiple variants and customization options
+ * Supports different animations, sizes, colors, positioning, and advanced features like
+ * overlay, progress tracking, cycling messages, and accessibility features
+ */
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = 'md',
+  color = 'primary',
+  variant = 'spinner',
+  text,
+  position = 'inline',
+  overlay = false,
+  overlayOpacity = 50,
+  blurBackground = false,
+  className = '',
+  style,
+  delay = 0,
+  minDuration = 0,
+  visible = true,
+  ariaLabel,
+  progress,
+  showProgress = false,
+  loadingMessages = [],
+  messageInterval = 2000,
+  animateText = true,
+  customIcon,
+  pulse = false,
+  testId = 'loading-spinner'
+}) => {
+  const [showSpinner, setShowSpinner] = useState(!delay);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [startTime] = useState(Date.now());
+
+  // Handle delay and minimum duration
+  useEffect(() => {
+    let delayTimeout: ReturnType<typeof setTimeout>;
+    let minDurationTimeout: ReturnType<typeof setTimeout>;
+
+    if (delay > 0 && visible) {
+      delayTimeout = setTimeout(() => {
+        setShowSpinner(true);
+      }, delay);
+    }
+
+    if (!visible && minDuration > 0) {
+      const elapsed = Date.now() - startTime;
+      const remaining = minDuration - elapsed;
+      
+      if (remaining > 0) {
+        minDurationTimeout = setTimeout(() => {
+          setShowSpinner(false);
+        }, remaining);
+      } else {
+        setShowSpinner(false);
+      }
+    } else if (!visible) {
+      setShowSpinner(false);
+    }
+
+    return () => {
+      if (delayTimeout) clearTimeout(delayTimeout);
+      if (minDurationTimeout) clearTimeout(minDurationTimeout);
+    };
+  }, [visible, delay, minDuration, startTime]);
+
+  // Handle cycling loading messages
+  useEffect(() => {
+    if (loadingMessages.length > 1 && showSpinner) {
+      const interval = setInterval(() => {
+        setCurrentMessageIndex(prev => (prev + 1) % loadingMessages.length);
+      }, messageInterval);
+
+      return () => clearInterval(interval);
+    }
+  }, [loadingMessages.length, messageInterval, showSpinner]);
+
+  // Don't render if not visible
+  if (!visible || !showSpinner) {
+    return null;
+  }
+
+  // Size classes mapping
+  const sizeClasses = {
+    xs: 'loading-xs',
+    sm: 'loading-sm',
+    md: 'loading-md',
+    lg: 'loading-lg',
+    xl: 'loading-xl',
+    '2xl': 'w-16 h-16'
+  };
+
+  // Color classes mapping
+  const colorClasses = {
+    primary: 'text-primary',
+    secondary: 'text-secondary',
+    accent: 'text-accent',
+    neutral: 'text-neutral',
+    info: 'text-info',
+    success: 'text-success',
+    warning: 'text-warning',
+    error: 'text-error'
+  };
+
+  // Variant classes mapping
+  const variantClasses = {
+    spinner: 'loading-spinner',
+    dots: 'loading-dots',
+    ring: 'loading-ring',
+    ball: 'loading-ball',
+    bars: 'loading-bars',
+    infinity: 'loading-infinity'
+  };
+
+  // Position classes mapping
+  const getPositionClasses = () => {
+    switch (position) {
+      case 'center':
+        return 'flex flex-col items-center justify-center h-screen w-full fixed inset-0 z-50';
+      case 'top':
+        return 'flex flex-col items-center justify-start pt-8 w-full';
+      case 'bottom':
+        return 'flex flex-col items-center justify-end pb-8 w-full';
+      case 'left':
+        return 'flex flex-row items-center justify-start pl-8 h-full';
+      case 'right':
+        return 'flex flex-row items-center justify-end pr-8 h-full';
+      case 'inline':
+      default:
+        return 'flex items-center gap-3';
+    }
+  };
+
+  // Get current loading message
+  const getCurrentMessage = () => {
+    if (loadingMessages.length > 0) {
+      return loadingMessages[currentMessageIndex];
+    }
+    return text;
+  };
+
+  // Build spinner classes
+  const spinnerClasses = [
+    'loading',
+    variantClasses[variant],
+    sizeClasses[size],
+    colorClasses[color],
+    pulse ? 'animate-pulse' : ''
+  ].filter(Boolean).join(' ');
+
+  // Build text classes
+  const textClasses = [
+    'text-sm font-medium',
+    colorClasses[color],
+    animateText ? 'animate-pulse' : '',
+    position === 'left' || position === 'right' ? 'ml-2' : 'mt-2'
+  ].filter(Boolean).join(' ');
+
+  // Overlay styles
+  const overlayStyles = overlay ? {
+    backgroundColor: `rgba(0, 0, 0, ${overlayOpacity / 100})`,
+    backdropFilter: blurBackground ? 'blur(4px)' : 'none'
+  } : {};
+
+  // Progress bar component
+  const ProgressBar = () => {
+    if (typeof progress !== 'number') return null;
+    
+    return (
+      <div className="w-full max-w-xs mt-3">
+        <div className="bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-300 bg-${color}`}
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+        {showProgress && (
+          <div className={`text-xs mt-1 text-center ${colorClasses[color]}`}>
+            {Math.round(progress)}%
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Spinner content
+  const SpinnerContent = () => (
+    <div className={`${getPositionClasses()} ${className}`} style={{ ...overlayStyles, ...style }}>
+      <div className="flex flex-col items-center">
+        {customIcon ? (
+          <div className={`${sizeClasses[size]} ${colorClasses[color]} flex items-center justify-center`}>
+            {customIcon}
+          </div>
+        ) : (
+          <span
+            className={spinnerClasses}
+            aria-label={ariaLabel || 'Loading'}
+            data-testid={testId}
+            role="status"
+            aria-live="polite"
+          />
+        )}
+        
+        {getCurrentMessage() && (
+          <span className={textClasses}>
+            {getCurrentMessage()}
+          </span>
+        )}
+
+        <ProgressBar />
+      </div>
+    </div>
+  );
+
+  return <SpinnerContent />;
+};
+
+export default LoadingSpinner;
+
+// Example usage:
+// import LoadingSpinner from '../components/LoadingSpinner';
+// import { useLoadingSpinner } from '../hooks/useLoadingSpinner';
+// import { LoadingSpinnerPresets } from '../utils/loadingSpinnerPresets';
+//
+// // Basic usage
+// <LoadingSpinner />
+//
+// // Advanced usage
+// <LoadingSpinner 
+//   size="lg" 
+//   color="primary" 
+//   variant="dots"
+//   text="Loading data..." 
+//   position="center"
+//   overlay
+//   blurBackground
+//   progress={75}
+//   showProgress
+// />
+//
+// // With cycling messages
+// <LoadingSpinner 
+//   loadingMessages={['Loading...', 'Please wait...', 'Almost done...']}
+//   messageInterval={1500}
+// />
+//
+// // Using presets
+// <LoadingSpinner {...LoadingSpinnerPresets.page} />
+// <LoadingSpinner {...LoadingSpinnerPresets.button} />
+
+// Example usage:
+// <LoadingSpinner size="lg" color="primary" text="Loading data..." centered />
+// <LoadingSpinner size="sm" color="info" text="Processing..." />
+// <LoadingSpinner />
+import React from "react";
+
+interface ErrorMsgProps {
+  children: React.ReactNode;
+}
+
+const ErrorMsg: React.FC<ErrorMsgProps> = ({ children }) => (
+  <div role="alert" className="alert alert-error my-4 mx-10 alert-soft">
+    {children}
+  </div>
+);
+
+export default ErrorMsg;
