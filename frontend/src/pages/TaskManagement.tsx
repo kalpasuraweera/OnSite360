@@ -11,6 +11,7 @@ import {
   MdSend,
   MdAttachFile,
   MdCalendarToday,
+  MdBarChart,
   MdTrendingUp,
   MdAssignment,
   MdSchedule,
