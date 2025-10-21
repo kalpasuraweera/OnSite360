@@ -49,7 +49,7 @@ import { useNavigate } from "react-router-dom";
 import { useDashboard, useProjects } from "../hooks/useProjects";
 import type { Project } from "../hooks/useProjects";
 import { useUserNotifications, useUserProjects } from "../hooks/useUsers";
-import { useRFIs } from "../hooks/useCommunication"; // <-- add this import
+import { useRFIs, type RFI } from "../hooks/useCommunication"; // <-- add this import
 import { useTasks } from "../hooks/useTasks";
 import type { Task } from "../hooks/useTasks";
 
@@ -651,7 +651,7 @@ const Dashboard = () => {
 
   // Additional charts data for various roles
   const projectTaskData = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
     const maxItems = 12;
     const slice = projects.slice(0, maxItems);
 
@@ -683,7 +683,7 @@ const Dashboard = () => {
 
   const projectDocData = useMemo(() => {
     // Use document counts per project
-    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
     const maxItems = 12;
     const slice = projects.slice(0, maxItems);
 
@@ -708,7 +708,7 @@ const Dashboard = () => {
 
   const projectThreadData = useMemo(() => {
     // Use thread counts per project
-    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
     const maxItems = 12;
     const slice = projects.slice(0, maxItems);
 
@@ -738,7 +738,7 @@ const Dashboard = () => {
 
   // replace the static costBreakdownData with a memoized per-project cost dataset
   const costBreakdownData = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
     if (!projects || projects.length === 0) {
       return {
         labels: [],
@@ -758,7 +758,7 @@ const Dashboard = () => {
 
     const labels = slice.map((p) => p.name ?? p.id ?? "Project");
     const values = slice.map((p) =>
-      Number(p.costToDate ?? p.totalSpent ?? p.totalCost ?? p.cost ?? 0)
+      Number(p.costToDate ?? 0)
     );
 
     const palette = [
@@ -791,8 +791,8 @@ const Dashboard = () => {
 
   // replace rfiResponseTimeData with a memo that counts RFIs per project
   const rfiCountPerProjectData = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    const rfis = (rfisQuery.data ?? []) as any[];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
+    const rfis = (rfisQuery.data ?? []) as RFI[];
     const maxItems = 12;
     const slice = projects.slice(0, maxItems);
 
@@ -800,7 +800,10 @@ const Dashboard = () => {
     const data = slice.map((p) => {
       // count rfis where rfi.project?.id or rfi.projectId matches project id
       return rfis.filter(
-        (r: any) => (r.project?.id ?? r.projectId ?? "") === p.id
+        (r: {
+          project?: { id: string };
+          projectId?: string;
+        }) => (r.project?.id ?? r.projectId ?? "") === p.id
       ).length;
     });
 
@@ -1042,16 +1045,25 @@ const Dashboard = () => {
 
   // Compute project coordinates list and a sensible center for the map
   const projectCoords = useMemo(() => {
-    const projects = (projectsQuery.data?.data ?? []) as any[];
-    const coords: { id: string; lat: number; lng: number; project: any }[] = [];
+    const projects = (projectsQuery.data?.data ?? []) as Project[];
+    const coords: { id: string; lat: number; lng: number; project: Project }[] =
+      [];
 
     projects.forEach((p) => {
       const raw = p.coordinates;
       if (!raw) return;
-      let parsed: any = null;
+      let parsed: {
+        lat?: number;
+        latitude?: number;
+        lng?: number;
+        longitude?: number;
+        lon?: number;
+        long?: number;
+      } | null = null;
       try {
         parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
       } catch (e) {
+        console.log(e);
         // Ignore parse errors
         parsed = raw;
       }
@@ -1129,31 +1141,42 @@ const Dashboard = () => {
                   />
                 ))
               : // map up to 4 projects and render featured images
-                (userProjectsQuery.data ?? []).slice(0, 4).map((p: any) => {
-                  const imgPath =
-                    p?.featuredImageUrl ??
-                    p?.featuredImage ??
-                    p?.imageUrl ??
-                    "";
-                  const src =
-                    imgPath && typeof imgPath === "string"
-                      ? `${
-                          import.meta.env.VITE_DOCUMENTS_URL ||
-                          "http://localhost:3000"
-                        }${imgPath}`
-                      : "/img1.jpg";
-                  return (
-                    <img
-                      key={p.id ?? src}
-                      src={src}
-                      alt={p.name ?? "Project image"}
-                      className="w-full h-20 sm:h-auto object-cover rounded"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "/img1.jpg";
-                      }}
-                    />
-                  );
-                })}
+                (userProjectsQuery.data ?? [])
+                  .slice(0, 4)
+                  .map(
+                    (p: {
+                      id: string;
+                      name?: string;
+                      featuredImageUrl?: string | null;
+                      featuredImage?: string | null;
+                      imageUrl?: string | null;
+                    }) => {
+                      const imgPath =
+                        p?.featuredImageUrl ??
+                        p?.featuredImage ??
+                        p?.imageUrl ??
+                        "";
+                      const src =
+                        imgPath && typeof imgPath === "string"
+                          ? `${
+                              import.meta.env.VITE_DOCUMENTS_URL ||
+                              "http://localhost:3000"
+                            }${imgPath}`
+                          : "/img1.jpg";
+                      return (
+                        <img
+                          key={p.id ?? src}
+                          src={src}
+                          alt={p.name ?? "Project image"}
+                          className="w-full h-20 sm:h-auto object-cover rounded"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src =
+                              "/img1.jpg";
+                          }}
+                        />
+                      );
+                    }
+                  )}
           </div>
         </div>
       )}
