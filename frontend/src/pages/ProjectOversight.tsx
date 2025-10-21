@@ -404,11 +404,19 @@ const ProjectOversight = () => {
   };
 
   const getProjectImageUrl = (project: Project) => {
-    const p = project as any;
+    const p = project as {
+      imageUrl?: string;
+      image?: { url?: string; path?: string } | string;
+      featuredImage?: string;
+      featuredPhoto?: string;
+      photoUrl?: string;
+      photo?: string;
+      logoUrl?: string;
+      logo?: string;
+    }
     // common property names that backend might use for uploaded image
     const candidates = [
       p.imageUrl,
-      p.image?.url,
       p.image,
       p.featuredImage,
       p.featuredPhoto,
