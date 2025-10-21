@@ -30,8 +30,13 @@ export class ProjectsService {
 
   // Create a new project
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
-    let { users, budget, squareFeet, coordinates, ...projectData } =
-      createProjectDto;
+    let {
+      users: usersInput,
+      budget,
+      squareFeet,
+      coordinates,
+      ...projectData
+    } = createProjectDto;
 
     // Parse budget if it's a string
     if (typeof budget === 'string') {
@@ -59,12 +64,23 @@ export class ProjectsService {
     }
 
     // Parse users array if it's a string
-    if (typeof users === 'string') {
+    let users: {
+      userId: string;
+      projectRole?: string;
+      accessLevel?: number;
+    }[] = [];
+    if (typeof usersInput === 'string') {
       try {
-        users = JSON.parse(users) as { userId: string; projectRole?: string }[];
+        users = JSON.parse(usersInput) as {
+          userId: string;
+          projectRole?: string;
+          accessLevel?: number;
+        }[];
       } catch (e) {
         users = [];
       }
+    } else if (Array.isArray(usersInput)) {
+      users = usersInput;
     }
 
     return this.prisma.project.create({
@@ -216,8 +232,7 @@ export class ProjectsService {
     id: string,
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
-    let { users, budget, squareFeet, coordinates, ...projectData } =
-      updateProjectDto;
+    let { budget, squareFeet, coordinates, ...projectData } = updateProjectDto;
 
     // Check if project exists
     const existingProject = await this.prisma.project.findUnique({
@@ -253,6 +268,11 @@ export class ProjectsService {
       }
     }
 
+    let users: {
+      userId: string;
+      projectRole?: string;
+      accessLevel?: number;
+    }[] = [];
     // Parse users array if it's a string
     if (typeof users === 'string') {
       try {
